@@ -1,13 +1,15 @@
 # QT串口调试助手
   一个基于QT的串口调试助手，实现了基本收发功能、绘图功能、数据保存、关键字高亮等功能，并支持STM32F1和F4系列的自动下载。
 
-![demo](screenshoot/demo.gif)
-![mainwindow](screenshoot/mainwindow.png)
-![mainwindow](screenshoot/mainwindow2.jpg)
-![graphwindow](screenshoot/graphwindow.png)
-![scatterline](screenshoot/scatterline.png)
-![multistring](screenshoot/multistring.png)
+# 特色功能
+  - 数据可视化绘图
+  - 语法高亮
+  - 文本分类显示
+  - 全局弹出热键
+  - STM32串口ISP下载
 
+# 动图展示
+![demo](screenshoot/demo.gif)
 # 如何绘图
 当打开绘图器后，按照如下协议发送数据即可绘制曲线：
 ```c
@@ -16,10 +18,44 @@
 printf("{:%f,%f}\r\n", data1, data2);
 ```
 
+# 如何使用分类文本显示
+```c
+//语法
+"{name:text_data}\n"
+```
+name为文本名称
+
+text_data为文本数据
+
+不同name的文本数据会显示在不同文本窗口
+```c
+//C语言示例
+
+#define PRINT_VOL(fmt, ...) \
+        printf("{voltage:"##fmt"}\n", __VA_ARGS__)
+
+#define PRINT_CUR(fmt, ...) \
+        printf("{current:"##fmt"}\n", __VA_ARGS__)
+
+    float vol = 3.32;
+    float cur = 0.23;
+    void fun()
+    {
+      PRINT_VOL("the voltage is %.2f V", vol);
+      PRINT_CUR("the current is %.2f A", cur);
+    }
+```
+![demo1](screenshoot/demo1.gif)
+![mainwindow](screenshoot/mainwindow.png)
+![mainwindow](screenshoot/mainwindow2.jpg)
+![graphwindow](screenshoot/graphwindow.png)
+![scatterline](screenshoot/scatterline.png)
+![multistring](screenshoot/multistring.png)
+
+
 # 计划清单
   - 代码重构/优化/注释
   - 自定义高亮规则
-  - 去除绘图debug的计数前缀以及帮助文档中的相关说明
   
 # 考虑中的功能
   - XYZModen协议支持
@@ -44,10 +80,5 @@ printf("{:%f,%f}\r\n", data1, data2);
 
 # 奇思妙想
   - 布尔控件、滑动条控件显示
-  - ASCII协议下实现绘图、文本、数值的分离显示：
-    - ```{:...}``` 表示绘图数据，```...```为绘图数据，用逗号分隔
-    - ```{TXT:...}``` 表示分类文本数据，```...```为文本内容，用分号/逗号分隔？
-    - ```{NUM:...}``` 表示分类数值数据，```...```为数值内容，用逗号分隔
-    - ```{RAW:...}``` 表示透传数据，```...```为透传内容，不做分隔，直接显示在数据显示区
   - 绘图器游标功能与差值显示
   - 信息发布功能可针对版本号发布信息，更具有目标性
