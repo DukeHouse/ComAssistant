@@ -493,6 +493,10 @@ void MainWindow::debugTimerSlot()
                   QString::number(static_cast<double>(num4),'f') + "," +
                   QString::number(static_cast<double>(num5),'f') + "," +
                   QString::number(static_cast<double>(num6),'f') + "}\n";
+        tmp +=  "{voltage:value:### V}\n"
+                "{current:value:@@@ A}\n";
+        tmp.replace("###", QString::number(3.3 + qrand()/static_cast<double>(RAND_MAX)/10.0));
+        tmp.replace("@@@", QString::number(0.0 + qrand()/static_cast<double>(RAND_MAX)/20.0));
         if(serial.isOpen()){
             serial.write(tmp.toLocal8Bit());
         }
@@ -1762,7 +1766,7 @@ void MainWindow::on_actiondebug_triggered(bool checked)
 {
     if(checked){
         debugTimer.setTimerType(Qt::PreciseTimer);
-        debugTimer.start(10);
+        debugTimer.start(100);
         connect(&debugTimer, SIGNAL(timeout()), this, SLOT(debugTimerSlot()));
     }else{
         debugTimer.stop();
@@ -2512,6 +2516,6 @@ void MainWindow::on_tabWidget_tabCloseRequested(int index)
 void MainWindow::on_tabWidget_tabBarClicked(int index)
 {
     if(ui->tabWidget->tabText(index) == "main"){
-//        RefreshTextBrowser = true;
+        RefreshTextBrowser = true;
     }
 }
