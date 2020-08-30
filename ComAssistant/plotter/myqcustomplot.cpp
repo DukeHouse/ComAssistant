@@ -181,7 +181,6 @@ void MyQCustomPlot::removeSelectedGraph()
     if (this->selectedGraphs().size() > 0)
     {
         this->removeGraph(this->selectedGraphs().first());
-        this->rescaleAxes(true);
         this->replot();
     }
 }
@@ -229,7 +228,6 @@ void MyQCustomPlot::hideSelectedGraph()
             this->selectedGraphs().first()->setVisible(true);
             this->legend->item(index)->setTextColor(Qt::black);
         }
-//        this->rescaleAxes(true);
         this->replot();
     }
 }
