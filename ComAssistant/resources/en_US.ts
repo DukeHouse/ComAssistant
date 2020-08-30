@@ -733,7 +733,7 @@ Is the cable loose?</translation>
     <message>
         <location filename="../sources/mainwindow.cpp" line="906"/>
         <source>存在非法的十六进制格式。</source>
-        <translation>Illegal hex format</translation>
+        <translation>Illegal hex format.</translation>
     </message>
     <message>
         <location filename="../sources/mainwindow.cpp" line="1009"/>
@@ -759,7 +759,7 @@ Is the cable loose?</translation>
     <message>
         <location filename="../sources/mainwindow.cpp" line="1057"/>
         <source>请选择dat文件。</source>
-        <translation>Please choose dat file</translation>
+        <translation>Please choose dat file.</translation>
     </message>
     <message>
         <location filename="../sources/mainwindow.cpp" line="1107"/>
@@ -904,7 +904,7 @@ Is the cable loose?</translation>
     <message>
         <location filename="../sources/mainwindow.cpp" line="1703"/>
         <source>尚未支持的文件格式。请选择jpg/bmp/png/pdf文件。</source>
-        <translation>Unsupported file format. Please choose jpg/bmp/png/pdf file</translation>
+        <translation>Unsupported file format. Please choose jpg/bmp/png/pdf file.</translation>
     </message>
     <message>
         <location filename="../sources/mainwindow.cpp" line="1844"/>

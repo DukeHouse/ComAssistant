@@ -486,7 +486,7 @@ void MainWindow::debugTimerSlot()
 
     if(ui->actionAscii->isChecked()){
         QString tmp;
-        tmp = "{"+QString::number(static_cast<qint32>(count*10))+":" +
+        tmp = "{plotter:" +
                   QString::number(static_cast<double>(num1),'f') + "," +
                   QString::number(static_cast<double>(num2),'f') + "," +
                   QString::number(static_cast<double>(num3),'f') + "," +
@@ -641,7 +641,7 @@ void MainWindow::on_refreshCom_clicked()
 void MainWindow::tryOpenSerial()
 {
     //只存在一个串口时且串口未被占用时自动打开
-    if(ui->comList->count()==1 && ui->comList->currentText().indexOf(tr("占用"))==-1 && ui->comList->currentText()!=tr("未找到可用串口!")){
+    if(ui->comList->count()==1 && ui->comList->currentText().indexOf(tr("BUSY"))==-1 && ui->comList->currentText()!=tr("未找到可用串口!")){
         ui->refreshCom->setChecked(false);
         ui->comSwitch->setChecked(true);
         on_comSwitch_clicked(true);
