@@ -327,6 +327,17 @@ MainWindow::MainWindow(QWidget *parent) :
     //计时器
     g_lastSecsSinceEpoch = QDateTime::currentSecsSinceEpoch();
 
+    //文本提取引擎初始化
+    qDebug() << "Main threadID :" << QThread::currentThreadId();
+    p_textExtract = new TextExtractEngine();
+    p_textExtract->moveToThread(&textExtractThread);
+    connect(&textExtractThread, SIGNAL(finished()), p_textExtract, SLOT(deleteLater()));
+    connect(this, SIGNAL(tee_appendData(const QString &)), p_textExtract, SLOT(appendData(const QString &)));
+    connect(this, SIGNAL(tee_clearData()), p_textExtract, SLOT(clearData()));
+    connect(p_textExtract, SIGNAL(textGroupsUpdate(const QByteArray &, const QByteArray &)),
+            this, SLOT(tee_textGroupsUpdate(const QByteArray &, const QByteArray &)));
+    textExtractThread.start();
+
     //显示界面
     this->show();
     //调整窗体布局
@@ -338,6 +349,32 @@ MainWindow::MainWindow(QWidget *parent) :
         //弹出声明
         on_actionAbout_triggered();
         QMessageBox::information(this, tr("提示"), tr("欢迎使用本串口调试助手。\n\n请认真阅读帮助文件与相关声明。\n若您继续使用本软件则代表您接受并同意相关声明。\n若您不同意相关声明请自行关闭软件。"));
+    }
+}
+
+void MainWindow::tee_textGroupsUpdate(const QByteArray &name, const QByteArray &data)
+{
+    qDebug()<<"tee_textGroupsUpdate";
+    QPlainTextEdit *textEdit = nullptr;
+    qint32 count = 0;
+
+    //find tab name
+    count = ui->tabWidget->count();
+    for(qint32 i = 0; i < count; i++){
+        if(ui->tabWidget->tabText(i) == name){
+            textEdit = dynamic_cast<QPlainTextEdit *>(ui->tabWidget->widget(i));
+        }
+    }
+
+    //insert data to plainText
+    if(textEdit){
+        textEdit->appendPlainText(data);
+    }else{
+        textEdit = new QPlainTextEdit(this);
+        textEdit->setFont(g_font);
+        new Highlighter(textEdit->document());
+        ui->tabWidget->addTab(textEdit, name);
+        textEdit->appendPlainText(data);
     }
 }
 
@@ -529,6 +566,8 @@ MainWindow::~MainWindow()
     }else{
         Config::writeDefault();
     }
+    textExtractThread.quit();
+    textExtractThread.wait();
     delete highlighter;
     delete ui;
     delete http;
@@ -707,6 +746,9 @@ void MainWindow::readSerialPort()
             unshowedRxBuff.clear();
         }
     }
+
+    //数据交付给文本解析引擎
+    emit tee_appendData(tmpReadBuff);
 
     //时间戳选项
     if(ui->timeStampCheckBox->isChecked() && timeStampTimer.isActive()==false){
@@ -964,6 +1006,7 @@ void MainWindow::on_clearWindows_clicked()
     SendFileBuffIndex = 0;
     parseFileBuff.clear();
     parseFileBuffIndex = 0;
+    emit tee_clearData();
 
     //绘图器相关
     ui->customPlot->protocol->clearBuff();
@@ -2362,4 +2405,9 @@ void MainWindow::splitterMovedSlot(int pos, int index)
 
     //计算可显示字符并刷新显示
     resizeEvent(nullptr);
+}
+
+void MainWindow::on_tabWidget_tabCloseRequested(int index)
+{
+    ui->tabWidget->removeTab(index);
 }
