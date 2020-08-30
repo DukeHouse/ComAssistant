@@ -96,7 +96,8 @@ SOURCES += \
     sources/http.cpp \
     sources/main.cpp \
     sources/mainwindow.cpp \
-    sources/myserialport.cpp
+    sources/myserialport.cpp\
+    sources/text_extract_engine.cpp
 
 HEADERS += \
     QHotkey/QHotkey/qhotkey.h \
@@ -164,7 +165,8 @@ HEADERS += \
     sources/highlighter.h \
     sources/http.h \
     sources/mainwindow.h \
-    sources/myserialport.h
+    sources/myserialport.h \
+    sources/text_extract_engine.h
 
 FORMS += \
         ui/about_me_dialog.ui \
