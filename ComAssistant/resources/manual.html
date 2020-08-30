@@ -15,6 +15,7 @@
   <li><b>多字符串</b>：发送的数据均会记录下来供重复使用。</li>
   <li><b>STM32-ISP</b>：实现STM32F1和F4系列的芯片的一键下载功能。该功能最好依赖自动下载电路，或者使用软件方法使单片机进入ISP模式
   <pre style="background-color: rgb(235, 235, 235);">
+    
     //以下函数可用于跳转到ISP Bootloader模式
     void JumpToISP(void)
     {
@@ -51,7 +52,7 @@
     }
     </pre>
   </li>
-  <li><b>全局弹出热键</b>：弹出主窗口，最小化后方便快速打开查看数据，默认值为Shift+Alt+C，可以被修改</li>
+  <li><b>全局弹出热键</b>：弹出主窗口，最小化后方便快速打开查看数据，默认值为Shift+Alt+C，点击后进行修改</li>
 </ul>
 
 <h2>设置</h2>
@@ -59,10 +60,56 @@
   <li><b>串口设置</b>：对串口进行更丰富的设置</li>
   <li><b>编码规则</b>：选择软件内部使用的编码规则。这会影响中文显示效果</li>
   <li><b>回车样式</b>：选择win风格回车"\r\n"还是unix风格回车"\n"。这会影响回车效果</li>
-  <li><b>关键字高亮</b>：开启/关闭数据显示区的关键字高亮功能，方便阅读。时间戳信息、字符串、注释等以及如下字符会被高亮: , ; { } = ( ) [ ] &lt; &gt;</li>
+  <li><b>个性化</b>：
+    <ul>
+        <li><b>关键字高亮</b>：开启/关闭数据显示区的关键字高亮功能，方便阅读。时间戳信息、字符串、注释等以及如下字符会被高亮: , ; { } = ( ) [ ] &lt; &gt;</li>
+        <li><b>字体设置</b>：设置字体</li>
+        <li><b>背景色设置</b>：设置背景色</li>
+    </ul>
+  </li>
   <li><b>恢复默认设置</b>：软件支持保存部分设置，该按钮可以恢复所有默认设置。也可以在关闭软件后通过删除程序目录的ComAssistantConfig.ini文件达到同样目的。</li>
-  <li><b>字体设置</b>：设置字体</li>
-  <li><b>背景色设置</b>：设置背景色</li>
+
+</ul>
+
+<h2>分类文本显示</h2>
+<p>
+分类文本显示需要按照协议发送数据，否则上位机将无法正确解析。
+</p>
+<ul>
+    协议为以下风格的字符串（不支持中文）:
+    <pre style="background-color: rgb(235, 235, 235);">
+    
+    {name:text_data}\n
+
+    name 表示文本名称，由字母、数字、下划线组成
+    :为name和text_data之间的分隔符
+    text_data 表示文本数据，支持除去花括号以外的所有可见英文字符
+    \n为回车换行符，可以是\n也可以是\r\n，该字符不可遗漏。
+    </pre>
+    同一个文本名称的数据将会被分类到同一个界面下显示。<br>
+    <br>
+    举例：<br>
+    若有电压和电流数据需要分开显示，发送的字符串形式如下：<br>
+    <pre style="background-color: rgb(235, 235, 235);">
+    
+    {voltage:the voltage is 3.32 V}\n
+    {current:the current is 0.23 A}\n
+    </pre>
+    <p>
+    C语言示例代码
+    </p>
+    <pre style="background-color: rgb(235, 235, 235);">
+    #define PRINT_VOL(fmt, ...) printf("{voltage:"##fmt"}\n", __VA_ARGS__)
+    #define PRINT_CUR(fmt, ...) printf("{current:"##fmt"}\n", __VA_ARGS__)
+
+    float vol = 3.32;
+    float cur = 0.23;
+    int main()
+    {
+      PRINT_VOL("the voltage is %.2f V", vol);
+      PRINT_CUR("the current is %.2f A", cur);
+    }
+    </pre>
 </ul>
 
 <h2>数据可视化</h2>
@@ -70,7 +117,8 @@
   <li><b>绘图器</b>：绘图器开关。<br>
     <ul><b>注意</b>：
         <li>横轴为绘图点的数量，纵轴为绘图点的值，如要求数据点之间具有相同的时间间隔，请自行控制下位机的发送时间间隔。</li>
-        <li>为了追求简单易用，绘图协议默认不带数据校验，请勿过度相信数据正确性，尤其是波特率较高的情况下数据更容易出错，建议波特率不高于115200。</li>
+        <li>为了追求简单易用，绘图协议默认不带数据校验，数据偶尔出错属正常现象，是物理层面的错误，尤其是波特率较高的情况下更容易出错，建议波特率不高于115200。</li>
+        <li>如有高速通信需求，可使用和校验模式</li>
     </ul>
     </li>
   <li><b>线型</b>：支持线图、点线图、点图三种风格</li>
@@ -78,15 +126,17 @@
   <li><b>协议类型</b>：绘图器支持两种简单的协议类型，均为单精度浮点型。<br>
     <ul>
       <li>
-        <b>Ascii协议规则为</b>：
+        <b>Ascii协议的C语言规则为</b>：
         <pre style="background-color: rgb(235, 235, 235);">
-        printf("{:%f,%f,%f}\r\n", data1, data2, data3);
+
+        printf("{plotter:%f,%f,%f}\r\n", data1, data2, data3);
         </pre>
-        表示同一时刻，3条曲线的数据。{和:之间可以添加一些自定义数据，比如发送次数统计cnt++，但是不能再次添加:和{等容易引起歧义的符号。曲线数量不能超过15个。
+        表示同一时刻，3条曲线的数据。曲线数量不能超过15个。字符串中的plotter也可以改为其他文本数据，参考分类文本显示功能
       </li><br>
       <li>
         <b>带和校验的Ascii协议规则为</b>：
         <pre style="background-color: rgb(235, 235, 235);">
+
         data1 = (int)(data1*100)/100.0;
         data2 = (int)(data2*100)/100.0;
         sumCheck = (int)((data1 + data1)*100)/100.0;
@@ -98,6 +148,7 @@
       <li>
         <b>Float协议规则为</b>：直接将float类型数据按小端顺序拆成4个字节依次发送，并以0x00, 0x00, 0x80, 0x7F四个字节作为一组数据的结尾，其中第一个数据表示第一条曲线，依次类推，曲线数量不能超过15个。
         <pre style="background-color: rgb(235, 235, 235);">
+
         //float转byte宏
         #define BYTE0(dwTemp)       (*(char *)(&dwTemp))
         #define BYTE1(dwTemp)       (*((char *)(&dwTemp) + 1))
@@ -131,6 +182,7 @@
       <li>
         <b>带和校验的Float协议规则为</b>：同样是最后一个数据作为和校验 <br>
         <pre style="background-color: rgb(235, 235, 235);">
+
         //float转byte宏
         #define BYTE0(dwTemp)       (*(char *)(&dwTemp))
         #define BYTE1(dwTemp)       (*((char *)(&dwTemp) + 1))

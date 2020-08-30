@@ -24,6 +24,7 @@
 #include <QMenu>
 #include <QInputDialog>
 #include <QList>
+#include <QThread>
 //绘图器类
 #include "myqcustomplot.h"
 #include "dataprotocol.h"
@@ -38,6 +39,8 @@
 #include "stm32isp_dialog.h"
 #include "about_me_dialog.h"
 #include "settings_dialog.h"
+//文本提取引擎
+#include "text_extract_engine.h"
 
 namespace Ui {
 class MainWindow;
@@ -155,6 +158,10 @@ private slots:
 
     void on_actionPopupHotkey_triggered();
 
+    void on_tabWidget_tabCloseRequested(int index);
+
+    void on_tabWidget_tabBarClicked(int index);
+
 private:
     QString formatTime(int ms);
     bool needSaveConfig = true;
@@ -189,7 +196,6 @@ private:
     QTimer printToTextBrowserTimer; //刷新文本显示区的定时器
     QTimer plotterParseTimer;      //协议解析定时器
 
-    QString enter;
     QString lastFileDialogPath; //上次文件对话框路径
 
     Highlighter *highlighter = nullptr; //高亮器
@@ -213,6 +219,18 @@ private:
 
     //窗口显示字符统计
     int characterCount = 0; //可显示字符数
+
+    //文本提取引擎
+    QThread textExtractThread;
+    TextExtractEngine *p_textExtract;
+signals:
+    void tee_appendData(const QString &str);
+    void tee_clearData(const QString &name);
+    qint32 tee_saveData(const QString &path, const QString &name, const bool& savePackBuff);
+public slots:
+    void tee_textGroupsUpdate(const QByteArray &name, const QByteArray &data);
+    void tee_saveDataResult(const qint32& result, const QString &path, const qint32 fileSize);
+
 protected:
     void resizeEvent(QResizeEvent* event);
 

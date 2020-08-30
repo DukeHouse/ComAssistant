@@ -229,7 +229,7 @@ void MyQCustomPlot::hideSelectedGraph()
             this->selectedGraphs().first()->setVisible(true);
             this->legend->item(index)->setTextColor(Qt::black);
         }
-        this->rescaleAxes(true);
+//        this->rescaleAxes(true);
         this->replot();
     }
 }

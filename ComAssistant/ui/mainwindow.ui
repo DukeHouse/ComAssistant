@@ -229,8 +229,8 @@
    <widget class="QWidget" name="widget_input" native="true">
     <property name="geometry">
      <rect>
-      <x>9</x>
-      <y>434</y>
+      <x>10</x>
+      <y>470</y>
       <width>680</width>
       <height>191</height>
      </rect>
@@ -472,69 +472,6 @@ p, li { white-space: pre-wrap; }
      </item>
     </layout>
    </widget>
-   <widget class="QSplitter" name="splitter_display">
-    <property name="geometry">
-     <rect>
-      <x>9</x>
-      <y>239</y>
-      <width>680</width>
-      <height>190</height>
-     </rect>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Horizontal</enum>
-    </property>
-    <widget class="QWidget" name="layoutWidget">
-     <layout class="QHBoxLayout" name="layout_textBrowser">
-      <property name="spacing">
-       <number>0</number>
-      </property>
-      <item>
-       <widget class="QPlainTextEdit" name="textBrowser">
-        <property name="font">
-         <font>
-          <family>Consolas</family>
-          <pointsize>10</pointsize>
-         </font>
-        </property>
-        <property name="contextMenuPolicy">
-         <enum>Qt::CustomContextMenu</enum>
-        </property>
-        <property name="autoFillBackground">
-         <bool>false</bool>
-        </property>
-        <property name="readOnly">
-         <bool>true</bool>
-        </property>
-        <property name="placeholderText">
-         <string>数据显示区</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QScrollBar" name="textBrowserScrollBar">
-        <property name="maximum">
-         <number>0</number>
-        </property>
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-    <widget class="QListWidget" name="multiString">
-     <property name="font">
-      <font>
-       <family>Consolas</family>
-       <pointsize>10</pointsize>
-      </font>
-     </property>
-     <property name="contextMenuPolicy">
-      <enum>Qt::CustomContextMenu</enum>
-     </property>
-    </widget>
-   </widget>
    <widget class="QSplitter" name="splitter_visulize">
     <property name="geometry">
      <rect>
@@ -582,6 +519,108 @@ p, li { white-space: pre-wrap; }
      </property>
     </widget>
    </widget>
+   <widget class="QSplitter" name="splitter_display">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>240</y>
+      <width>541</width>
+      <height>223</height>
+     </rect>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Horizontal</enum>
+    </property>
+    <widget class="QTabWidget" name="tabWidget">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <property name="tabsClosable">
+      <bool>true</bool>
+     </property>
+     <property name="movable">
+      <bool>true</bool>
+     </property>
+     <property name="tabBarAutoHide">
+      <bool>true</bool>
+     </property>
+     <widget class="QWidget" name="main">
+      <attribute name="title">
+       <string>main</string>
+      </attribute>
+      <layout class="QFormLayout" name="formLayout_4">
+       <property name="horizontalSpacing">
+        <number>0</number>
+       </property>
+       <property name="verticalSpacing">
+        <number>0</number>
+       </property>
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <item row="0" column="0" colspan="2">
+        <layout class="QHBoxLayout" name="layout_textBrowser">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QPlainTextEdit" name="textBrowser">
+           <property name="font">
+            <font>
+             <family>Consolas</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="contextMenuPolicy">
+            <enum>Qt::CustomContextMenu</enum>
+           </property>
+           <property name="autoFillBackground">
+            <bool>false</bool>
+           </property>
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+           <property name="placeholderText">
+            <string>数据显示区</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QScrollBar" name="textBrowserScrollBar">
+           <property name="maximum">
+            <number>0</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+    <widget class="QListWidget" name="multiString">
+     <property name="font">
+      <font>
+       <family>Consolas</family>
+       <pointsize>10</pointsize>
+      </font>
+     </property>
+     <property name="contextMenuPolicy">
+      <enum>Qt::CustomContextMenu</enum>
+     </property>
+    </widget>
+   </widget>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <widget class="QMenuBar" name="menuBar">
@@ -611,14 +650,20 @@ p, li { white-space: pre-wrap; }
      <addaction name="action_winLikeEnter"/>
      <addaction name="action_unixLikeEnter"/>
     </widget>
+    <widget class="QMenu" name="menu">
+     <property name="title">
+      <string>个性化</string>
+     </property>
+     <addaction name="actionKeyWordHighlight"/>
+     <addaction name="actionFontSetting"/>
+     <addaction name="actionBackGroundColorSetting"/>
+    </widget>
     <addaction name="actionCOM_Config"/>
     <addaction name="textCode"/>
     <addaction name="enterStyle"/>
-    <addaction name="actionKeyWordHighlight"/>
+    <addaction name="menu"/>
     <addaction name="separator"/>
     <addaction name="actionResetDefaultConfig"/>
-    <addaction name="actionFontSetting"/>
-    <addaction name="actionBackGroundColorSetting"/>
    </widget>
    <widget class="QMenu" name="help">
     <property name="title">

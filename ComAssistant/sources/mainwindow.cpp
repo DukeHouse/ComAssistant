@@ -61,11 +61,9 @@ void MainWindow::readConfig()
 
     //回车风格
     if(Config::getEnterStyle() == EnterStyle_e::WinStyle){
-        enter = "\r\n";
         ui->action_winLikeEnter->setChecked(true);
         ui->action_unixLikeEnter->setChecked(false);
     }else if (Config::getEnterStyle() == EnterStyle_e::UnixStyle) {
-        enter = "\n";
         ui->action_winLikeEnter->setChecked(false);
         ui->action_unixLikeEnter->setChecked(true);
     }else {
@@ -114,7 +112,7 @@ void MainWindow::readConfig()
     ui->textEdit->setText(Config::getTextSendArea());
     ui->textEdit->moveCursor(QTextCursor::End);
     //背景色
-    int r,g,b;
+    qint32 r,g,b;
     QColor color = Config::getBackGroundColor();
     if(color.isValid()){
         g_background_color = color;
@@ -166,20 +164,20 @@ void MainWindow::readConfig()
 
 void MainWindow::adjustLayout()
 {
-    int length;
-    QList<int> lengthList;
+    qint32 length;
+    QList<qint32> lengthList;
 
     //splitter_io垂直间距调整
     length = splitter_io->height();
     lengthList.clear();
-    lengthList << static_cast<int>(length*0.8)
-               << static_cast<int>(length*0.2);
+    lengthList << static_cast<qint32>(length*0.8)
+               << static_cast<qint32>(length*0.2);
     splitter_io->setSizes(lengthList);
     //splitter_output垂直间距调整
     length = splitter_output->height();
     lengthList.clear();
-    lengthList << static_cast<int>(length*0.8)
-               << static_cast<int>(length*0.2);
+    lengthList << static_cast<qint32>(length*0.8)
+               << static_cast<qint32>(length*0.2);
     splitter_output->setSizes(lengthList);
 
     #define FACT_COE    0.645
@@ -188,8 +186,8 @@ void MainWindow::adjustLayout()
         //splitter_visulize水平间距调整
         length = ui->splitter_visulize->width();
         lengthList.clear();
-        lengthList << static_cast<int>(length * FACT_COE)
-                   << static_cast<int>(length * (1 - FACT_COE));
+        lengthList << static_cast<qint32>(length * FACT_COE)
+                   << static_cast<qint32>(length * (1 - FACT_COE));
         ui->splitter_visulize->setSizes(lengthList);
     }
     if(ui->actionMultiString->isChecked())
@@ -197,8 +195,8 @@ void MainWindow::adjustLayout()
         //splitter_display水平间距调整
         length = ui->splitter_display->width();
         lengthList.clear();
-        lengthList << static_cast<int>(length * FACT_COE)
-                   << static_cast<int>(length * (1 - FACT_COE));
+        lengthList << static_cast<qint32>(length * FACT_COE)
+                   << static_cast<qint32>(length * (1 - FACT_COE));
         ui->splitter_display->setSizes(lengthList);
     }
 
@@ -327,6 +325,21 @@ MainWindow::MainWindow(QWidget *parent) :
     //计时器
     g_lastSecsSinceEpoch = QDateTime::currentSecsSinceEpoch();
 
+    //文本提取引擎初始化
+    qDebug() << "Main threadID :" << QThread::currentThreadId();
+    p_textExtract = new TextExtractEngine();
+    p_textExtract->moveToThread(&textExtractThread);
+    connect(&textExtractThread, SIGNAL(finished()), p_textExtract, SLOT(deleteLater()));
+    connect(this, SIGNAL(tee_appendData(const QString &)), p_textExtract, SLOT(appendData(const QString &)));
+    connect(this, SIGNAL(tee_clearData(const QString &)), p_textExtract, SLOT(clearData(const QString )));
+    connect(p_textExtract, SIGNAL(textGroupsUpdate(const QByteArray &, const QByteArray &)),
+            this, SLOT(tee_textGroupsUpdate(const QByteArray &, const QByteArray &)));
+    connect(this, SIGNAL(tee_saveData(const QString &, const QString &, const bool& )),
+            p_textExtract, SLOT(saveData(const QString &, const QString &, const bool& )));
+    connect(p_textExtract, SIGNAL(saveDataResult(const qint32&, const QString &, const qint32 )),
+            this, SLOT(tee_saveDataResult(const qint32&, const QString &, const qint32 )));
+    textExtractThread.start();
+
     //显示界面
     this->show();
     //调整窗体布局
@@ -338,6 +351,54 @@ MainWindow::MainWindow(QWidget *parent) :
         //弹出声明
         on_actionAbout_triggered();
         QMessageBox::information(this, tr("提示"), tr("欢迎使用本串口调试助手。\n\n请认真阅读帮助文件与相关声明。\n若您继续使用本软件则代表您接受并同意相关声明。\n若您不同意相关声明请自行关闭软件。"));
+    }
+}
+
+void MainWindow::tee_saveDataResult(const qint32& result, const QString &path, const qint32 fileSize)
+{
+    QString str;
+    switch (result) {
+    case TextExtractEngine::SAVE_OK:
+        str = "\nTotal saved " + QString::number(fileSize) + " Bytes in " + path + "\n";
+        BrowserBuff.append(str);
+        hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
+        printToTextBrowser();
+        lastFileDialogPath = path;
+        lastFileDialogPath = lastFileDialogPath.mid(0, lastFileDialogPath.lastIndexOf('/')+1);
+        break;
+    case TextExtractEngine::OPEN_FAILED:
+        QMessageBox::information(this, tr("提示"), tr("文件打开失败。"));
+        break;
+    case TextExtractEngine::UNKNOW_NAME:
+        QMessageBox::information(this, tr("提示"), tr("未知的窗口名称"));
+        break;
+    }
+}
+
+void MainWindow::tee_textGroupsUpdate(const QByteArray &name, const QByteArray &data)
+{
+//    qDebug()<<"tee_textGroupsUpdate";
+    QPlainTextEdit *textEdit = nullptr;
+    qint32 count = 0;
+
+    //find tab name
+    count = ui->tabWidget->count();
+    for(qint32 i = 0; i < count; i++){
+        if(ui->tabWidget->tabText(i) == name){
+            textEdit = dynamic_cast<QPlainTextEdit *>(ui->tabWidget->widget(i));
+        }
+    }
+
+    //insert data to plainText
+    if(textEdit){
+        textEdit->appendPlainText(data);
+    }else{
+        textEdit = new QPlainTextEdit(this);
+        textEdit->setFont(g_font);
+        new Highlighter(textEdit->document());
+        textEdit->setReadOnly(true);
+        ui->tabWidget->addTab(textEdit, name);
+        textEdit->appendPlainText(data);
     }
 }
 
@@ -354,12 +415,12 @@ void MainWindow::printToTextBrowserTimerSlot()
 }
 
 
-QString MainWindow::formatTime(int ms)
+QString MainWindow::formatTime(qint32 ms)
 {
-    int ss = 1000;
-    int mi = ss * 60;
-    int hh = mi * 60;
-    int dd = hh * 24;
+    qint32 ss = 1000;
+    qint32 mi = ss * 60;
+    qint32 hh = mi * 60;
+    qint32 dd = hh * 24;
 
     long day = ms / dd;
     long hour = (ms - day * dd) / hh;
@@ -380,7 +441,7 @@ QString MainWindow::formatTime(int ms)
 void MainWindow::secTimerSlot()
 {
     static int64_t secCnt = 0;
-    static int adIndex = 0;
+    static qint32 adIndex = 0;
 
     //传输速度统计与显示
     rxSpeedKB = static_cast<double>(statisticRxByteCnt) / 1024.0;
@@ -425,13 +486,17 @@ void MainWindow::debugTimerSlot()
 
     if(ui->actionAscii->isChecked()){
         QString tmp;
-        tmp = "{"+QString::number(static_cast<int>(count*10))+":" +
+        tmp = "{plotter:" +
                   QString::number(static_cast<double>(num1),'f') + "," +
                   QString::number(static_cast<double>(num2),'f') + "," +
                   QString::number(static_cast<double>(num3),'f') + "," +
                   QString::number(static_cast<double>(num4),'f') + "," +
                   QString::number(static_cast<double>(num5),'f') + "," +
-                  QString::number(static_cast<double>(num6),'f') + "}" + enter;
+                  QString::number(static_cast<double>(num6),'f') + "}\n";
+        tmp +=  "{voltage:value:### V}\n"
+                "{current:value:@@@ A}\n";
+        tmp.replace("###", QString::number(3.3 + qrand()/static_cast<double>(RAND_MAX)/10.0));
+        tmp.replace("@@@", QString::number(0.0 + qrand()/static_cast<double>(RAND_MAX)/20.0));
         if(serial.isOpen()){
             serial.write(tmp.toLocal8Bit());
         }
@@ -480,7 +545,7 @@ MainWindow::~MainWindow()
         Config::setTextSendArea(ui->textEdit->toPlainText());
         Config::setVersion();
         QStringList multi;
-        for(int i = 0; i < ui->multiString->count(); i++){
+        for(qint32 i = 0; i < ui->multiString->count(); i++){
             multi.append(ui->multiString->item(i)->text());
         }
         Config::setMultiString(multi);
@@ -529,6 +594,8 @@ MainWindow::~MainWindow()
     }else{
         Config::writeDefault();
     }
+    textExtractThread.quit();
+    textExtractThread.wait();
     delete highlighter;
     delete ui;
     delete http;
@@ -562,7 +629,7 @@ void MainWindow::on_refreshCom_clicked()
 
     //恢复刷新前的选择
     ui->comList->setCurrentIndex(0);
-    for(int i = 0; i < ui->comList->count(); i++){
+    for(qint32 i = 0; i < ui->comList->count(); i++){
         if(ui->comList->itemText(i).startsWith(portName)){
             ui->comList->setCurrentIndex(i);
             break;
@@ -578,7 +645,7 @@ void MainWindow::on_refreshCom_clicked()
 void MainWindow::tryOpenSerial()
 {
     //只存在一个串口时且串口未被占用时自动打开
-    if(ui->comList->count()==1 && ui->comList->currentText().indexOf(tr("占用"))==-1 && ui->comList->currentText()!=tr("未找到可用串口!")){
+    if(ui->comList->count()==1 && ui->comList->currentText().indexOf(tr("BUSY"))==-1 && ui->comList->currentText()!=tr("未找到可用串口!")){
         ui->refreshCom->setChecked(false);
         ui->comSwitch->setChecked(true);
         on_comSwitch_clicked(true);
@@ -586,7 +653,7 @@ void MainWindow::tryOpenSerial()
         //如果有多个串口，则尝试选择上次使用的端口号
         if(ui->comList->count()>1){
             QString name = Config::getPortName();
-            for(int i = 0; i < ui->comList->count(); i++){
+            for(qint32 i = 0; i < ui->comList->count(); i++){
                 if(ui->comList->itemText(i).startsWith(name)){
                     ui->comList->setCurrentIndex(i);
                     break;
@@ -600,7 +667,7 @@ void MainWindow::tryOpenSerial()
 void MainWindow::on_comSwitch_clicked(bool checked)
 {
     QString com = ui->comList->currentText().mid(0,ui->comList->currentText().indexOf('('));
-    int baud = ui->baudrateList->currentText().toInt();
+    qint32 baud = ui->baudrateList->currentText().toInt();
 
     if(checked)
     {
@@ -691,7 +758,7 @@ void MainWindow::readSerialPort()
     if(ui->hexDisplay->isChecked()==false){
         //只需要保证上屏的最后一个字节的高位不是1即可
         if(tmpReadBuff.back() & 0x80){
-            int reversePos = tmpReadBuff.size()-1;
+            qint32 reversePos = tmpReadBuff.size()-1;
             while(tmpReadBuff.at(reversePos)&0x80){//不超过3次循环
                 reversePos--;
                 if(reversePos<0)
@@ -707,6 +774,9 @@ void MainWindow::readSerialPort()
             unshowedRxBuff.clear();
         }
     }
+
+    //数据交付给文本解析引擎
+    emit tee_appendData(tmpReadBuff);
 
     //时间戳选项
     if(ui->timeStampCheckBox->isChecked() && timeStampTimer.isActive()==false){
@@ -750,7 +820,7 @@ void MainWindow::parseFileSlot()
         ui->customPlot->replot();
     }
     if(parseFileBuffIndex!=parseFileBuff.size()){
-        ui->statusBar->showMessage(tr("解析进度：")+QString::number(static_cast<int>(100.0*(parseFileBuffIndex+1.0)/parseFileBuff.size()))+"% ",1000);
+        ui->statusBar->showMessage(tr("解析进度：")+QString::number(static_cast<qint32>(100.0*(parseFileBuffIndex+1.0)/parseFileBuff.size()))+"% ",1000);
         emit parseFileSignal();
     }else{
         parseFile = false;
@@ -763,7 +833,7 @@ void MainWindow::parseFileSlot()
     }
 }
 
-static int PAGING_SIZE = 8192; //TextBrowser显示大小
+static qint32 PAGING_SIZE = 8192; //TextBrowser显示大小
 void MainWindow::printToTextBrowser()
 {
     //当前窗口显示字符调整
@@ -814,7 +884,7 @@ void MainWindow::serialBytesWritten(qint64 bytes)
     statisticTxByteCnt += bytes;
 
     if(SendFileBuff.size()>0 && SendFileBuffIndex!=SendFileBuff.size()){
-        ui->statusBar->showMessage(tr("发送进度：")+QString::number(static_cast<int>(100.0*(SendFileBuffIndex+1.0)/SendFileBuff.size()))+"%",1000);
+        ui->statusBar->showMessage(tr("发送进度：")+QString::number(static_cast<qint32>(100.0*(SendFileBuffIndex+1.0)/SendFileBuff.size()))+"%",1000);
         serial.write(SendFileBuff.at(SendFileBuffIndex++));
         if(SendFileBuffIndex == SendFileBuff.size()){
             SendFileBuffIndex = 0;
@@ -839,7 +909,7 @@ void MainWindow::handleSerialError(QSerialPort::SerialPortError errCode)
         //【还要】再刷新一次
         on_refreshCom_clicked();
         //尝试恢复所选端口号
-        for(int i = 0; i < ui->comList->count(); i++){
+        for(qint32 i = 0; i < ui->comList->count(); i++){
             if(ui->comList->itemText(i).startsWith(portName)){
                 ui->comList->setCurrentIndex(i);
             }
@@ -924,7 +994,7 @@ void MainWindow::on_sendButton_clicked()
     //给多字符串控件添加条目
     if(ui->actionMultiString->isChecked()){
         bool hasItem=false;
-        for(int i = 0; i < ui->multiString->count(); i++){
+        for(qint32 i = 0; i < ui->multiString->count(); i++){
             if(ui->multiString->item(i)->text()==ui->textEdit->toPlainText())
                 hasItem = true;
         }
@@ -958,6 +1028,13 @@ void MainWindow::on_clearWindows_clicked()
     BrowserBuff.clear();
     BrowserBuffIndex = 0;
     unshowedRxBuff.clear();
+    for(qint32 i = 0; i < ui->tabWidget->count(); i++){
+        if(ui->tabWidget->tabText(i) != "main"){
+            ui->tabWidget->removeTab(i);
+            emit tee_clearData(ui->tabWidget->tabText(i));
+            i = 0;//重置计数器
+        }
+    }
 
     //清空文件缓冲
     SendFileBuff.clear();
@@ -1034,7 +1111,7 @@ void MainWindow::on_textEdit_textChanged()
  * Event:十六进制格式发送按钮状态变化
  * Function:保存当前发送区的文本内容
 */
-void MainWindow::on_hexSend_stateChanged(int arg1)
+void MainWindow::on_hexSend_stateChanged(qint32 arg1)
 {
     arg1++;
     static QString lastAsciiText, lastHexText;
@@ -1066,7 +1143,6 @@ void MainWindow::on_hexDisplay_clicked(bool checked)
 */
 void MainWindow::on_action_winLikeEnter_triggered(bool checked)
 {
-    enter = "\r\n";
     if(checked){
         ui->action_unixLikeEnter->setChecked(false);
     }else {
@@ -1080,7 +1156,6 @@ void MainWindow::on_action_winLikeEnter_triggered(bool checked)
 */
 void MainWindow::on_action_unixLikeEnter_triggered(bool checked)
 {
-    enter = "\n";
     if(checked){
         ui->action_winLikeEnter->setChecked(false);
     }else {
@@ -1120,6 +1195,21 @@ void MainWindow::on_actionGBK_triggered(bool checked)
 */
 void MainWindow::on_actionSaveOriginData_triggered()
 {
+    QString tabName = "main";
+    bool ok = false;
+    if(ui->tabWidget->count() > 1){
+        QStringList list;
+        for(qint32 i = 0; i < ui->tabWidget->count(); i++){
+            list << ui->tabWidget->tabText(i);
+        }
+        tabName = QInputDialog::getItem(this, tr("选择保存窗口"), tr("名称标签"),
+                                        list, 0, false, &ok, Qt::WindowCloseButtonHint);
+        if(ok != true){
+            return;
+        }
+//        qDebug()<<"tabName"<<tabName;
+    }
+
     //如果追加时间戳则提示时间戳不会被保存
     if(ui->timeStampCheckBox->isChecked())
         QMessageBox::information(this,tr("提示"),tr("时间戳数据不会被保存！只保存接收到的原始数据。"));
@@ -1127,12 +1217,18 @@ void MainWindow::on_actionSaveOriginData_triggered()
     //打开保存文件对话框
     QString savePath = QFileDialog::getSaveFileName(this,
                                                     tr("保存原始数据-选择文件路径"),
-                                                    lastFileDialogPath + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss")+".dat",
+                                                    lastFileDialogPath + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + "-[" + tabName + "]" +".dat",
                                                     "Dat File(*.dat);;All File(*.*)");
     //检查路径格式
     if(!savePath.endsWith(".dat")){
         if(!savePath.isEmpty())
             QMessageBox::information(this,tr("提示"),"尚未支持的文件格式，请选择dat文件。");
+        return;
+    }
+
+    //子窗口数据由其线程负责存储
+    if(tabName != "main"){
+        emit tee_saveData(savePath, tabName, true);
         return;
     }
 
@@ -1144,10 +1240,12 @@ void MainWindow::on_actionSaveOriginData_triggered()
         file.flush();
         file.close();
 
-        QString str = enter + "Total saved "+QString::number(RxBuff.size())+" Bytes in "+savePath + enter;
+        QString str = "\nTotal saved " + QString::number(file.size()) + " Bytes in " + savePath + "\n";
         BrowserBuff.append(str);
         hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
         printToTextBrowser();
+    }else{
+        QMessageBox::information(this,tr("提示"),tr("文件打开失败。"));
     }
 
     //记忆路径
@@ -1209,8 +1307,8 @@ void MainWindow::on_actionOpenOriginData_triggered()
             plotterParsePosInRxBuff = 0;
 
         ui->textBrowser->clear();
-        ui->textBrowser->appendPlainText("File size: "+QString::number(file.size())+" Byte");
-        ui->textBrowser->appendPlainText("Read containt:"+enter);
+        ui->textBrowser->appendPlainText("File size: " + QString::number(file.size()) + " Byte");
+        ui->textBrowser->appendPlainText("Read containt:\n");
         BrowserBuff.clear();
         BrowserBuff.append(ui->textBrowser->document()->toPlainText());
 
@@ -1272,7 +1370,7 @@ void MainWindow::on_actionCOM_Config_triggered()
 void MainWindow::on_baudrateList_currentTextChanged(const QString &arg1)
 {
     bool ok;
-    int baud = arg1.toInt(&ok);
+    qint32 baud = arg1.toInt(&ok);
     if(ok){
         serial.setBaudRate(baud);
     }
@@ -1309,15 +1407,37 @@ void MainWindow::on_comList_textActivated(const QString &arg1)
 
 void MainWindow::on_actionSaveShowedData_triggered()
 {
+    QString tabName = "main";
+    bool ok = false;
+    if(ui->tabWidget->count() > 1){
+        QStringList list;
+        for(qint32 i = 0; i < ui->tabWidget->count(); i++){
+            list << ui->tabWidget->tabText(i);
+        }
+        tabName = QInputDialog::getItem(this, tr("选择保存窗口"), tr("名称标签"),
+                                        list, 0, false, &ok, Qt::WindowCloseButtonHint);
+        if(ok != true){
+            return;
+        }
+//        qDebug()<<"tabName"<<tabName;
+    }
+
     //打开保存文件对话框
-    QString savePath = QFileDialog::getSaveFileName(this,
-                                                    tr("保存显示数据-选择文件路径"),
-                                                    lastFileDialogPath + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss")+".txt",
-                                                    "Text File(*.txt);;All File(*.*)");
+    QString savePath = QFileDialog::getSaveFileName(
+                this,
+                tr("保存显示数据-选择文件路径"),
+                lastFileDialogPath + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + "-[" + tabName + "]" +".txt",
+                "Text File(*.txt);;All File(*.*)");
+
     //检查路径
     if(!savePath.endsWith("txt")){
         if(!savePath.isEmpty())
             QMessageBox::information(this,tr("尚未支持的文件格式"),tr("请选择txt文本文件。"));
+        return;
+    }
+
+    if(tabName != "main"){
+        emit tee_saveData(savePath, tabName, false);
         return;
     }
 
@@ -1337,10 +1457,12 @@ void MainWindow::on_actionSaveShowedData_triggered()
         }
         file.close();
 
-        QString str = enter + "Total saved "+QString::number(file.size())+" Bytes in "+savePath + enter;
+        QString str = "\nTotal saved " + QString::number(file.size()) + " Bytes in " + savePath + "\n";
         BrowserBuff.append(str);
         hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
         printToTextBrowser();
+    }else{
+        QMessageBox::information(this,tr("提示"),tr("文件打开失败。"));
     }
 }
 
@@ -1444,7 +1566,7 @@ void MainWindow::editSeedSlot()
     if( item == nullptr )
         return;
 
-    int curIndex = ui->multiString->row(item);
+    qint32 curIndex = ui->multiString->row(item);
     bool ok = false;
     QString newStr = QInputDialog::getText(this,tr("编辑条目"),tr("新的文本："), QLineEdit::Normal,
                                            ui->multiString->item(curIndex)->text(), &ok,Qt::WindowCloseButtonHint);
@@ -1461,7 +1583,7 @@ void MainWindow::deleteSeedSlot()
     if( item == nullptr )
         return;
 
-    int curIndex = ui->multiString->row(item);
+    qint32 curIndex = ui->multiString->row(item);
     ui->multiString->takeItem(curIndex);
     delete item;
 }
@@ -1571,8 +1693,8 @@ void MainWindow::plotterParseTimerSlot()
             ui->valueDisplay->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
         }
         //添加数据
-        int min = oneRowData.size() < ui->customPlot->plotControl->getNameSetsFromPlot().size() ? oneRowData.size() : ui->customPlot->plotControl->getNameSetsFromPlot().size();
-        for(int i=0; i < min; i++){
+        qint32 min = oneRowData.size() < ui->customPlot->plotControl->getNameSetsFromPlot().size() ? oneRowData.size() : ui->customPlot->plotControl->getNameSetsFromPlot().size();
+        for(qint32 i=0; i < min; i++){
             //这里会重复new对象导致内存溢出吗
             ui->valueDisplay->setItem(i,0,new QTableWidgetItem(ui->customPlot->plotControl->getNameSetsFromPlot().at(i)));
             ui->valueDisplay->setItem(i,1,new QTableWidgetItem(QString::number(oneRowData.at(i),'f')));
@@ -1592,7 +1714,7 @@ void MainWindow::plotterParseTimerSlot()
     //解析周期动态调整
     int32_t elapsed_time = elapsedTimer.elapsed();
     double parseSpeed = parsedLength/(elapsed_time/1000.0)/1024.0;
-    parseSpeed = (double)((int)(parseSpeed*100))/100.0;   //保留两位小数
+    parseSpeed = (double)((qint32)(parseSpeed*100))/100.0;   //保留两位小数
     static int32_t dynamic_period = PLOTTER_PARSE_PERIOD;
     if(parseSpeed < rxSpeedKB){
         dynamic_period = dynamic_period - 5;
@@ -1644,7 +1766,7 @@ void MainWindow::on_actiondebug_triggered(bool checked)
 {
     if(checked){
         debugTimer.setTimerType(Qt::PreciseTimer);
-        debugTimer.start(10);
+        debugTimer.start(100);
         connect(&debugTimer, SIGNAL(timeout()), this, SLOT(debugTimerSlot()));
     }else{
         debugTimer.stop();
@@ -1652,7 +1774,7 @@ void MainWindow::on_actiondebug_triggered(bool checked)
     }
 }
 
-void MainWindow::innerVerticalScrollBarActionTriggered(int action)
+void MainWindow::innerVerticalScrollBarActionTriggered(qint32 action)
 {
     QScrollBar* bar = ui->textBrowser->verticalScrollBar();
 
@@ -1666,9 +1788,9 @@ void MainWindow::innerVerticalScrollBarActionTriggered(int action)
        action == QAbstractSlider::SliderPageStepAdd||
        action == QAbstractSlider::SliderPageStepSub||
        action == QAbstractSlider::SliderMove){
-        int value = bar->value();
-        int oldMax = bar->maximum();
-        int newValue;
+        qint32 value = bar->value();
+        qint32 oldMax = bar->maximum();
+        qint32 newValue;
         bool res;
 
         //是否显示完了
@@ -1816,7 +1938,7 @@ void MainWindow::on_actionSavePlotData_triggered()
     }
 
     if(ok){
-        QString str = enter + "Save successful in "+savePath + enter;
+        QString str = "\nSave successful in " + savePath + "\n";
         BrowserBuff.append(str);
         hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
         printToTextBrowser();
@@ -1866,7 +1988,7 @@ void MainWindow::on_actionSavePlotAsPicture_triggered()
     }
 
     if(ok){
-        QString str = enter + "Save successful in "+savePath + enter;
+        QString str = "\nSave successful in " + savePath + "\n";
         BrowserBuff.append(str);
         hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
         printToTextBrowser();
@@ -1912,7 +2034,7 @@ void MainWindow::on_actionUsageStatistic_triggered()
     long hour;
     long minute;
     long second;
-    int nest = 0; //执行统计
+    qint32 nest = 0; //执行统计
 
     //单位换算
     nest = 0;
@@ -1967,9 +2089,9 @@ void MainWindow::on_actionUsageStatistic_triggered()
         case 4:currentRxUnit = " TB";break;
     }
     //时间常数
-    int mi = 60;
-    int hh = mi * 60;
-    int dd = hh * 24;
+    qint32 mi = 60;
+    qint32 hh = mi * 60;
+    qint32 dd = hh * 24;
     //时间换算
     day = static_cast<long>(currentRunTime_f / dd);
     hour = static_cast<long>((currentRunTime_f - day * dd) / hh);
@@ -2260,6 +2382,14 @@ void MainWindow::on_actionFontSetting_triggered()
         ui->textEdit->document()->setDefaultFont(g_font);
         ui->multiString->setFont(g_font);
         ui->customPlot->plotControl->setupFont(ui->customPlot, g_font);
+
+        QPlainTextEdit *textEdit = nullptr;
+        for(qint32 i = 0; i < ui->tabWidget->count(); i++){
+            textEdit = dynamic_cast<QPlainTextEdit *>(ui->tabWidget->widget(i));
+            if(textEdit){
+                textEdit->setFont(g_font);
+            }
+        }
     }
 }
 
@@ -2272,7 +2402,7 @@ void MainWindow::on_actionBackGroundColorSetting_triggered()
     if(!color.isValid())
         return;
 
-    int r,g,b;
+    qint32 r,g,b;
     g_background_color = color;
     g_background_color.getRgb(&r,&g,&b);
     QString str = "background-color: rgb(RGBR,RGBG,RGBB);";
@@ -2280,6 +2410,14 @@ void MainWindow::on_actionBackGroundColorSetting_triggered()
     str.replace("RGBG", QString::number(g));
     str.replace("RGBB", QString::number(b));
     ui->textBrowser->setStyleSheet(str);
+
+//    QPlainTextEdit *textEdit = nullptr;
+//    for(qint32 i = 0; i < ui->tabWidget->count(); i++){
+//        textEdit = dynamic_cast<QPlainTextEdit *>(ui->tabWidget->widget(i));
+//        if(textEdit){
+//            textEdit->setStyleSheet(str);
+//        }
+//    }
 }
 
 void MainWindow::on_actionSumCheck_triggered(bool checked)
@@ -2362,4 +2500,22 @@ void MainWindow::splitterMovedSlot(int pos, int index)
 
     //计算可显示字符并刷新显示
     resizeEvent(nullptr);
+}
+
+void MainWindow::on_tabWidget_tabCloseRequested(int index)
+{
+    //禁止删除主窗口
+    if(ui->tabWidget->tabText(index) == "main"){
+        ui->statusBar->showMessage(tr("不允许删除主窗口"), 2000);
+        return;
+    }
+    emit tee_clearData(ui->tabWidget->tabText(index));
+    ui->tabWidget->removeTab(index);    
+}
+
+void MainWindow::on_tabWidget_tabBarClicked(int index)
+{
+    if(ui->tabWidget->tabText(index) == "main"){
+        RefreshTextBrowser = true;
+    }
 }
