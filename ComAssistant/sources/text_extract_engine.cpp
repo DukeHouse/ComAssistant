@@ -7,12 +7,13 @@ TextExtractEngine::TextExtractEngine(QObject *parent) : QObject(parent)
 
 TextExtractEngine::~TextExtractEngine()
 {
-    qDebug() << "good bye TextExtractEngine:" << QThread::currentThreadId();
+//    qDebug() << "good bye TextExtractEngine:" << QThread::currentThreadId();
 }
 
 void inline TextExtractEngine::appendPackDataToTextGroups(QByteArray& name, QByteArray& data, QVector<textGroup_t>& textGroups)
 {
     int32_t nameIndex = 0;
+
     //search name from TextGroups
     QVector<textGroup_t>::iterator it = textGroups.begin();
     for(; it != textGroups.end(); it++){
@@ -93,7 +94,7 @@ bool inline TextExtractEngine::parseNameAndDataFromPack(QByteArray& pack)
 
     appendPackDataToTextGroups(name, data, textGroups);
 
-    qDebug()<<"name:"<<name<<"data:"<<data;
+//    qDebug()<<"name:"<<name<<"data:"<<data;
     return true;
 }
 
@@ -145,12 +146,12 @@ void TextExtractEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& res
 void TextExtractEngine::appendData(const QString &newData)
 {
     rawData.buff.append(newData);
-    qDebug()<<"------------------";
-    qDebug()<<"ThreadID"<<QThread::currentThreadId();
-    qDebug()<<"inData:"<<newData;
-    qDebug()<<"rowData:"<<rawData.buff;
+//    qDebug()<<"------------------";
+//    qDebug()<<"ThreadID"<<QThread::currentThreadId();
+//    qDebug()<<"inData:"<<newData;
+//    qDebug()<<"rowData:"<<rawData.buff;
     parsePacksFromBuffer(rawData.buff, rawData.buff);
-    qDebug()<<"leftData"<<rawData.buff;
+//    qDebug()<<"leftData"<<rawData.buff;
 }
 
 void TextExtractEngine::clearData(void)
