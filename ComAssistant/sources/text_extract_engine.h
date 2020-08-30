@@ -9,6 +9,9 @@
 #include <QString>
 #include <QByteArray>
 #include <QRegularExpression>
+#include <QFile>
+#include <QFileDialog>
+#include <QMessageBox>
 
 /*
  * TODO:
@@ -22,30 +25,37 @@ class textGroup_t
 {
 public:
     QString     name;
-    QVector<QByteArray>  textBuff;
-    uint32_t     showIndex;
+    QByteArray  dataBuff;
+    QByteArray  packBuff;
 };
 
 class rawData_t
 {
 public:
     QByteArray  buff;
-    uint32_t    parseIndex;
 };
 
 class TextExtractEngine : public QObject
 {
     Q_OBJECT
 public:
+    enum SaveDataResult{
+        UNKNOW_NAME = -2,
+        OPEN_FAILED = -1,
+        SAVE_OK = 0,
+    };
+
     explicit TextExtractEngine(QObject *parent = nullptr);
     ~TextExtractEngine();
 
 public slots:
     void appendData(const QString &newData);
-    void clearData(void);
+    void clearData(const QString &name);
+    qint32 saveData(const QString &path, const QString &name, const bool& savePackBuff);
 
 signals:
     void textGroupsUpdate(const QByteArray &name, const QByteArray &data);
+    void saveDataResult(const qint32& result, const QString &path, const qint32 fileSize);
 
 private:
     //数据包的前缀、分隔符、后缀
@@ -60,7 +70,7 @@ private:
     const QString PACK_SUFFIX_REG   = "\\}";
     const QString PACK_TAIL_REG     = "\r?\n";
 
-    void inline appendPackDataToTextGroups(QByteArray &name, QByteArray &data, QVector<textGroup_t> &textGroups);
+    void inline appendPackDataToTextGroups(QByteArray &name, QByteArray &data,  QByteArray& pack);
     bool inline parseNameAndDataFromPack(QByteArray &pack);
     void parsePacksFromBuffer(QByteArray &buffer, QByteArray &restBuffer);
     QVector<textGroup_t> textGroups;  //classified text groups: one tab page one group

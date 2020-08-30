@@ -196,7 +196,6 @@ private:
     QTimer printToTextBrowserTimer; //刷新文本显示区的定时器
     QTimer plotterParseTimer;      //协议解析定时器
 
-    QString enter;
     QString lastFileDialogPath; //上次文件对话框路径
 
     Highlighter *highlighter = nullptr; //高亮器
@@ -226,9 +225,11 @@ private:
     TextExtractEngine *p_textExtract;
 signals:
     void tee_appendData(const QString &str);
-    void tee_clearData();
+    void tee_clearData(const QString &name);
+    qint32 tee_saveData(const QString &path, const QString &name, const bool& savePackBuff);
 public slots:
     void tee_textGroupsUpdate(const QByteArray &name, const QByteArray &data);
+    void tee_saveDataResult(const qint32& result, const QString &path, const qint32 fileSize);
 
 protected:
     void resizeEvent(QResizeEvent* event);
