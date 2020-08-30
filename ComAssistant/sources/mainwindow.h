@@ -160,6 +160,8 @@ private slots:
 
     void on_tabWidget_tabCloseRequested(int index);
 
+    void on_tabWidget_tabBarClicked(int index);
+
 private:
     QString formatTime(int ms);
     bool needSaveConfig = true;
