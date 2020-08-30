@@ -650,14 +650,20 @@ p, li { white-space: pre-wrap; }
      <addaction name="action_winLikeEnter"/>
      <addaction name="action_unixLikeEnter"/>
     </widget>
+    <widget class="QMenu" name="menu">
+     <property name="title">
+      <string>个性化</string>
+     </property>
+     <addaction name="actionKeyWordHighlight"/>
+     <addaction name="actionFontSetting"/>
+     <addaction name="actionBackGroundColorSetting"/>
+    </widget>
     <addaction name="actionCOM_Config"/>
     <addaction name="textCode"/>
     <addaction name="enterStyle"/>
-    <addaction name="actionKeyWordHighlight"/>
+    <addaction name="menu"/>
     <addaction name="separator"/>
     <addaction name="actionResetDefaultConfig"/>
-    <addaction name="actionFontSetting"/>
-    <addaction name="actionBackGroundColorSetting"/>
    </widget>
    <widget class="QMenu" name="help">
     <property name="title">
