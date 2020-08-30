@@ -10,15 +10,16 @@ TextExtractEngine::~TextExtractEngine()
 //    qDebug() << "good bye TextExtractEngine:" << QThread::currentThreadId();
 }
 
-void inline TextExtractEngine::appendPackDataToTextGroups(QByteArray& name, QByteArray& data, QVector<textGroup_t>& textGroups)
+void inline TextExtractEngine::appendPackDataToTextGroups(QByteArray& name, QByteArray& data, QByteArray& pack)
 {
     int32_t nameIndex = 0;
 
-    //search name from TextGroups
+    //按名字寻找文本组
     QVector<textGroup_t>::iterator it = textGroups.begin();
     for(; it != textGroups.end(); it++){
         if(it->name == name){
-            it->textBuff.append(data);
+            it->dataBuff.append(data + "\n");
+            it->packBuff.append(pack + "\n");
             emit textGroupsUpdate(name, data);
             return;
         }
@@ -27,7 +28,8 @@ void inline TextExtractEngine::appendPackDataToTextGroups(QByteArray& name, QByt
 
     textGroup_t newTextGroup;
     newTextGroup.name = name;
-    newTextGroup.textBuff.append(data);
+    newTextGroup.dataBuff.append(data + "\n");
+    newTextGroup.packBuff.append(pack + "\n");
     textGroups.append(newTextGroup);
 
     emit textGroupsUpdate(name, data);
@@ -92,7 +94,7 @@ bool inline TextExtractEngine::parseNameAndDataFromPack(QByteArray& pack)
             }
     } while(scanIndex < pack.size());
 
-    appendPackDataToTextGroups(name, data, textGroups);
+    appendPackDataToTextGroups(name, data, pack);
 
 //    qDebug()<<"name:"<<name<<"data:"<<data;
     return true;
@@ -149,14 +151,51 @@ void TextExtractEngine::appendData(const QString &newData)
 //    qDebug()<<"------------------";
 //    qDebug()<<"ThreadID"<<QThread::currentThreadId();
 //    qDebug()<<"inData:"<<newData;
-//    qDebug()<<"rowData:"<<rawData.buff;
+//    qDebug()<<"rawData:"<<rawData.buff;
     parsePacksFromBuffer(rawData.buff, rawData.buff);
 //    qDebug()<<"leftData"<<rawData.buff;
 }
 
-void TextExtractEngine::clearData(void)
+//清除指定名称的数据
+void TextExtractEngine::clearData(const QString &name)
 {
-    qDebug()<<"clearData";
+//    qDebug()<<"clearData";
     rawData.buff.clear();
-    rawData.parseIndex = 0;
+
+    qint32 i = 0;
+    QVector<textGroup_t>::iterator it = textGroups.begin();
+    for(; it != textGroups.end(); it++){
+        if(it->name == name){
+            textGroups.remove(i);
+            break;//删除后记得跳出来
+        }
+        i++;
+    }
+}
+
+qint32 TextExtractEngine::saveData(const QString &path, const QString &name, const bool& savePackBuff)
+{
+    QVector<textGroup_t>::iterator it = textGroups.begin();
+    for(; it != textGroups.end(); it++){
+        if(it->name == name){
+            //保存数据
+            QFile file(path);
+            //删除旧数据形式写文件
+            if(file.open(QFile::WriteOnly|QFile::Truncate)){
+                if(savePackBuff)
+                    file.write(it->packBuff);//不用DataStream写入非文本文件，它会额外添加4个字节作为文件头
+                else
+                    file.write(it->dataBuff);//不用DataStream写入非文本文件，它会额外添加4个字节作为文件头
+                file.flush();
+                file.close();
+                emit saveDataResult(SAVE_OK, path, file.size());
+                return SAVE_OK;
+            }else{
+                emit saveDataResult(OPEN_FAILED, path, 0);
+                return OPEN_FAILED;
+            }
+        }
+    }
+    emit saveDataResult(UNKNOW_NAME, path, 0);
+    return UNKNOW_NAME;
 }

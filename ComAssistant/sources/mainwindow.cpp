@@ -61,11 +61,9 @@ void MainWindow::readConfig()
 
     //回车风格
     if(Config::getEnterStyle() == EnterStyle_e::WinStyle){
-        enter = "\r\n";
         ui->action_winLikeEnter->setChecked(true);
         ui->action_unixLikeEnter->setChecked(false);
     }else if (Config::getEnterStyle() == EnterStyle_e::UnixStyle) {
-        enter = "\n";
         ui->action_winLikeEnter->setChecked(false);
         ui->action_unixLikeEnter->setChecked(true);
     }else {
@@ -333,9 +331,13 @@ MainWindow::MainWindow(QWidget *parent) :
     p_textExtract->moveToThread(&textExtractThread);
     connect(&textExtractThread, SIGNAL(finished()), p_textExtract, SLOT(deleteLater()));
     connect(this, SIGNAL(tee_appendData(const QString &)), p_textExtract, SLOT(appendData(const QString &)));
-    connect(this, SIGNAL(tee_clearData()), p_textExtract, SLOT(clearData()));
+    connect(this, SIGNAL(tee_clearData(const QString &)), p_textExtract, SLOT(clearData(const QString )));
     connect(p_textExtract, SIGNAL(textGroupsUpdate(const QByteArray &, const QByteArray &)),
             this, SLOT(tee_textGroupsUpdate(const QByteArray &, const QByteArray &)));
+    connect(this, SIGNAL(tee_saveData(const QString &, const QString &, const bool& )),
+            p_textExtract, SLOT(saveData(const QString &, const QString &, const bool& )));
+    connect(p_textExtract, SIGNAL(saveDataResult(const qint32&, const QString &, const qint32 )),
+            this, SLOT(tee_saveDataResult(const qint32&, const QString &, const qint32 )));
     textExtractThread.start();
 
     //显示界面
@@ -352,9 +354,30 @@ MainWindow::MainWindow(QWidget *parent) :
     }
 }
 
+void MainWindow::tee_saveDataResult(const qint32& result, const QString &path, const qint32 fileSize)
+{
+    QString str;
+    switch (result) {
+    case TextExtractEngine::SAVE_OK:
+        str = "\nTotal saved " + QString::number(fileSize) + " Bytes in " + path + "\n";
+        BrowserBuff.append(str);
+        hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
+        printToTextBrowser();
+        lastFileDialogPath = path;
+        lastFileDialogPath = lastFileDialogPath.mid(0, lastFileDialogPath.lastIndexOf('/')+1);
+        break;
+    case TextExtractEngine::OPEN_FAILED:
+        QMessageBox::information(this, tr("提示"), tr("文件打开失败。"));
+        break;
+    case TextExtractEngine::UNKNOW_NAME:
+        QMessageBox::information(this, tr("提示"), tr("未知的窗口名称"));
+        break;
+    }
+}
+
 void MainWindow::tee_textGroupsUpdate(const QByteArray &name, const QByteArray &data)
 {
-    qDebug()<<"tee_textGroupsUpdate";
+//    qDebug()<<"tee_textGroupsUpdate";
     QPlainTextEdit *textEdit = nullptr;
     qint32 count = 0;
 
@@ -469,7 +492,7 @@ void MainWindow::debugTimerSlot()
                   QString::number(static_cast<double>(num3),'f') + "," +
                   QString::number(static_cast<double>(num4),'f') + "," +
                   QString::number(static_cast<double>(num5),'f') + "," +
-                  QString::number(static_cast<double>(num6),'f') + "}" + enter;
+                  QString::number(static_cast<double>(num6),'f') + "}\n";
         if(serial.isOpen()){
             serial.write(tmp.toLocal8Bit());
         }
@@ -1001,19 +1024,19 @@ void MainWindow::on_clearWindows_clicked()
     BrowserBuff.clear();
     BrowserBuffIndex = 0;
     unshowedRxBuff.clear();
+    for(qint32 i = 0; i < ui->tabWidget->count(); i++){
+        if(ui->tabWidget->tabText(i) != "main"){
+            ui->tabWidget->removeTab(i);
+            emit tee_clearData(ui->tabWidget->tabText(i));
+            i = 0;//重置计数器
+        }
+    }
 
     //清空文件缓冲
     SendFileBuff.clear();
     SendFileBuffIndex = 0;
     parseFileBuff.clear();
     parseFileBuffIndex = 0;
-    emit tee_clearData();
-    for(qint32 i = 0; i < ui->tabWidget->count(); i++){
-        if(ui->tabWidget->tabText(i) != "main"){
-            ui->tabWidget->removeTab(i);
-            i = 0;
-        }
-    }
 
     //绘图器相关
     ui->customPlot->protocol->clearBuff();
@@ -1116,7 +1139,6 @@ void MainWindow::on_hexDisplay_clicked(bool checked)
 */
 void MainWindow::on_action_winLikeEnter_triggered(bool checked)
 {
-    enter = "\r\n";
     if(checked){
         ui->action_unixLikeEnter->setChecked(false);
     }else {
@@ -1130,7 +1152,6 @@ void MainWindow::on_action_winLikeEnter_triggered(bool checked)
 */
 void MainWindow::on_action_unixLikeEnter_triggered(bool checked)
 {
-    enter = "\n";
     if(checked){
         ui->action_winLikeEnter->setChecked(false);
     }else {
@@ -1170,6 +1191,21 @@ void MainWindow::on_actionGBK_triggered(bool checked)
 */
 void MainWindow::on_actionSaveOriginData_triggered()
 {
+    QString tabName = "main";
+    bool ok = false;
+    if(ui->tabWidget->count() > 1){
+        QStringList list;
+        for(qint32 i = 0; i < ui->tabWidget->count(); i++){
+            list << ui->tabWidget->tabText(i);
+        }
+        tabName = QInputDialog::getItem(this, tr("选择保存窗口"), tr("名称标签"),
+                                        list, 0, false, &ok, Qt::WindowCloseButtonHint);
+        if(ok != true){
+            return;
+        }
+//        qDebug()<<"tabName"<<tabName;
+    }
+
     //如果追加时间戳则提示时间戳不会被保存
     if(ui->timeStampCheckBox->isChecked())
         QMessageBox::information(this,tr("提示"),tr("时间戳数据不会被保存！只保存接收到的原始数据。"));
@@ -1177,12 +1213,18 @@ void MainWindow::on_actionSaveOriginData_triggered()
     //打开保存文件对话框
     QString savePath = QFileDialog::getSaveFileName(this,
                                                     tr("保存原始数据-选择文件路径"),
-                                                    lastFileDialogPath + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss")+".dat",
+                                                    lastFileDialogPath + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + "-[" + tabName + "]" +".dat",
                                                     "Dat File(*.dat);;All File(*.*)");
     //检查路径格式
     if(!savePath.endsWith(".dat")){
         if(!savePath.isEmpty())
             QMessageBox::information(this,tr("提示"),"尚未支持的文件格式，请选择dat文件。");
+        return;
+    }
+
+    //子窗口数据由其线程负责存储
+    if(tabName != "main"){
+        emit tee_saveData(savePath, tabName, true);
         return;
     }
 
@@ -1194,10 +1236,12 @@ void MainWindow::on_actionSaveOriginData_triggered()
         file.flush();
         file.close();
 
-        QString str = enter + "Total saved "+QString::number(RxBuff.size())+" Bytes in "+savePath + enter;
+        QString str = "\nTotal saved " + QString::number(file.size()) + " Bytes in " + savePath + "\n";
         BrowserBuff.append(str);
         hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
         printToTextBrowser();
+    }else{
+        QMessageBox::information(this,tr("提示"),tr("文件打开失败。"));
     }
 
     //记忆路径
@@ -1259,8 +1303,8 @@ void MainWindow::on_actionOpenOriginData_triggered()
             plotterParsePosInRxBuff = 0;
 
         ui->textBrowser->clear();
-        ui->textBrowser->appendPlainText("File size: "+QString::number(file.size())+" Byte");
-        ui->textBrowser->appendPlainText("Read containt:"+enter);
+        ui->textBrowser->appendPlainText("File size: " + QString::number(file.size()) + " Byte");
+        ui->textBrowser->appendPlainText("Read containt:\n");
         BrowserBuff.clear();
         BrowserBuff.append(ui->textBrowser->document()->toPlainText());
 
@@ -1366,23 +1410,30 @@ void MainWindow::on_actionSaveShowedData_triggered()
         for(qint32 i = 0; i < ui->tabWidget->count(); i++){
             list << ui->tabWidget->tabText(i);
         }
-        tabName = QInputDialog::getItem(this, tr("选择保存窗口"), tr("名字标签"),
+        tabName = QInputDialog::getItem(this, tr("选择保存窗口"), tr("名称标签"),
                                         list, 0, false, &ok, Qt::WindowCloseButtonHint);
         if(ok != true){
             return;
         }
-        qDebug()<<tabName;
+//        qDebug()<<"tabName"<<tabName;
     }
 
     //打开保存文件对话框
-    QString savePath = QFileDialog::getSaveFileName(this,
-                                                    tr("保存显示数据-选择文件路径"),
-                                                    lastFileDialogPath + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss-"+tabName)+".txt",
-                                                    "Text File(*.txt);;All File(*.*)");
+    QString savePath = QFileDialog::getSaveFileName(
+                this,
+                tr("保存显示数据-选择文件路径"),
+                lastFileDialogPath + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + "-[" + tabName + "]" +".txt",
+                "Text File(*.txt);;All File(*.*)");
+
     //检查路径
     if(!savePath.endsWith("txt")){
         if(!savePath.isEmpty())
             QMessageBox::information(this,tr("尚未支持的文件格式"),tr("请选择txt文本文件。"));
+        return;
+    }
+
+    if(tabName != "main"){
+        emit tee_saveData(savePath, tabName, false);
         return;
     }
 
@@ -1395,32 +1446,19 @@ void MainWindow::on_actionSaveShowedData_triggered()
     QTextStream stream(&file);
     //删除旧数据形式写文件
     if(file.open(QFile::WriteOnly|QFile::Text|QFile::Truncate)){
-        if(tabName == "main"){
-            //保存主窗口数据
-            if(ui->hexDisplay->isChecked()){
-                stream<<hexBrowserBuff;
-            }else{
-                stream<<BrowserBuff;
-            }
+        if(ui->hexDisplay->isChecked()){
+            stream<<hexBrowserBuff;
         }else{
-            //保存子窗口数据，数据存储位置不一样，所以两套方法
-            QPlainTextEdit *textEdit = nullptr;
-            for(qint32 i = 0; i < ui->tabWidget->count(); i++){
-                if(ui->tabWidget->tabText(i) == tabName){
-                    textEdit = dynamic_cast<QPlainTextEdit *>(ui->tabWidget->widget(i));
-                    if(textEdit){
-                        stream<<textEdit->toPlainText();
-                    }
-                }
-            }
+            stream<<BrowserBuff;
         }
-
         file.close();
 
-        QString str = enter + "Total saved "+QString::number(file.size())+" Bytes in "+savePath + enter;
+        QString str = "\nTotal saved " + QString::number(file.size()) + " Bytes in " + savePath + "\n";
         BrowserBuff.append(str);
         hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
         printToTextBrowser();
+    }else{
+        QMessageBox::information(this,tr("提示"),tr("文件打开失败。"));
     }
 }
 
@@ -1896,7 +1934,7 @@ void MainWindow::on_actionSavePlotData_triggered()
     }
 
     if(ok){
-        QString str = enter + "Save successful in "+savePath + enter;
+        QString str = "\nSave successful in " + savePath + "\n";
         BrowserBuff.append(str);
         hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
         printToTextBrowser();
@@ -1946,7 +1984,7 @@ void MainWindow::on_actionSavePlotAsPicture_triggered()
     }
 
     if(ok){
-        QString str = enter + "Save successful in "+savePath + enter;
+        QString str = "\nSave successful in " + savePath + "\n";
         BrowserBuff.append(str);
         hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
         printToTextBrowser();
@@ -2467,7 +2505,8 @@ void MainWindow::on_tabWidget_tabCloseRequested(int index)
         ui->statusBar->showMessage(tr("不允许删除主窗口"), 2000);
         return;
     }
-    ui->tabWidget->removeTab(index);
+    emit tee_clearData(ui->tabWidget->tabText(index));
+    ui->tabWidget->removeTab(index);    
 }
 
 void MainWindow::on_tabWidget_tabBarClicked(int index)
