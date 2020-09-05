@@ -234,7 +234,6 @@ public slots:
 
 protected:
     void resizeEvent(QResizeEvent* event);
-
 };
 
 #endif // MAINWINDOW_H

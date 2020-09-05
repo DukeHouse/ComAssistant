@@ -37,8 +37,10 @@ private slots:
     void axisLabelDoubleClick(QCPAxis* axis, QCPAxis::SelectablePart part);
     void legendDoubleClick(QCPLegend* legend, QCPAbstractLegendItem* item);
     void selectionChanged();
-    void mousePress();
-    void mouseWheel();
+    void mousePress(QMouseEvent* m);
+    void mouseWheel(QWheelEvent* w);
+    void keyPressEvent(QKeyEvent *e);
+    void keyReleaseEvent(QKeyEvent *e);
     void removeSelectedGraph();
     void rescaleYAxis();
     void removeAllGraphs();
@@ -50,6 +52,7 @@ private slots:
 
 private:
     QStatusBar* bar;
+    qint32 key = 0;
 };
 
 #endif // MYQCUSTOMPLOT_H
