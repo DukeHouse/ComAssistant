@@ -327,18 +327,21 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //文本提取引擎初始化
     qDebug() << "Main threadID :" << QThread::currentThreadId();
-    p_textExtract = new TextExtractEngine();
-    p_textExtract->moveToThread(&textExtractThread);
-    connect(&textExtractThread, SIGNAL(finished()), p_textExtract, SLOT(deleteLater()));
+    p_textExtractThread = new QThread(this);
+    p_textExtract       = new TextExtractEngine();
+    p_textExtract->moveToThread(p_textExtractThread);
+    connect(p_textExtractThread, SIGNAL(finished()), p_textExtract, SLOT(deleteLater()));
     connect(this, SIGNAL(tee_appendData(const QString &)), p_textExtract, SLOT(appendData(const QString &)));
     connect(this, SIGNAL(tee_clearData(const QString &)), p_textExtract, SLOT(clearData(const QString )));
-    connect(p_textExtract, SIGNAL(textGroupsUpdate(const QByteArray &, const QByteArray &)),
-            this, SLOT(tee_textGroupsUpdate(const QByteArray &, const QByteArray &)));
+    connect(this, SIGNAL(tee_parseData()), p_textExtract, SLOT(parseData()));
     connect(this, SIGNAL(tee_saveData(const QString &, const QString &, const bool& )),
             p_textExtract, SLOT(saveData(const QString &, const QString &, const bool& )));
+    connect(p_textExtract, SIGNAL(textGroupsUpdate(const QByteArray &, const QByteArray &)),
+            this, SLOT(tee_textGroupsUpdate(const QByteArray &, const QByteArray &)));
     connect(p_textExtract, SIGNAL(saveDataResult(const qint32&, const QString &, const qint32 )),
             this, SLOT(tee_saveDataResult(const qint32&, const QString &, const qint32 )));
-    textExtractThread.start();
+
+    p_textExtractThread->start();
 
     //显示界面
     this->show();
@@ -406,6 +409,8 @@ void MainWindow::printToTextBrowserTimerSlot()
 {
     if(RefreshTextBrowser==false)
         return;
+
+    emit tee_parseData();
 
     //打印数据
     printToTextBrowser();
@@ -594,8 +599,11 @@ MainWindow::~MainWindow()
     }else{
         Config::writeDefault();
     }
-    textExtractThread.quit();
-    textExtractThread.wait();
+    p_textExtractThread->quit();
+    p_textExtractThread->wait();
+//    delete p_textExtract; //deleteLater自动删除？
+    delete p_textExtractThread;
+
     delete highlighter;
     delete ui;
     delete http;
@@ -837,7 +845,7 @@ static qint32 PAGING_SIZE = 8192; //TextBrowser显示大小
 void MainWindow::printToTextBrowser()
 {
     //当前窗口显示字符调整
-    if(characterCount==0 && ui->textBrowser->height()!=0){
+    if(characterCount==0 && ui->textBrowser->height() != 0){
         //characterCount=0且控件有高度说明characterCount未初始化，调用resizeEvent初始化，内部有了printToTextBrowser所以可以返回
         resizeEvent(nullptr);
         return;
@@ -1028,6 +1036,7 @@ void MainWindow::on_clearWindows_clicked()
     BrowserBuff.clear();
     BrowserBuffIndex = 0;
     unshowedRxBuff.clear();
+    emit tee_clearData("");
     for(qint32 i = 0; i < ui->tabWidget->count(); i++){
         if(ui->tabWidget->tabText(i) != "main"){
             ui->tabWidget->removeTab(i);
@@ -2456,7 +2465,15 @@ void MainWindow::on_actionPopupHotkey_triggered()
 void MainWindow::resizeEvent(QResizeEvent* event)
 {
     //消除警告
-    event->size();
+    if(event){
+       event->size();
+    }
+
+    //只响应显示主窗口时的窗口改变动作，其他类型的窗口只做记录，下次显示主窗口时进行响应
+    if(ui->tabWidget->tabText(ui->tabWidget->currentIndex()) != "main")
+    {
+        return;
+    }
 
     //首次启动不运行，防止卡死
     static uint8_t first_run = 1;
@@ -2515,7 +2532,9 @@ void MainWindow::on_tabWidget_tabCloseRequested(int index)
 
 void MainWindow::on_tabWidget_tabBarClicked(int index)
 {
+    ui->tabWidget->setCurrentIndex(index);
     if(ui->tabWidget->tabText(index) == "main"){
+        resizeEvent(nullptr);
         RefreshTextBrowser = true;
     }
 }
