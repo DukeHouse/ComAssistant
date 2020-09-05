@@ -407,10 +407,10 @@ void MainWindow::tee_textGroupsUpdate(const QByteArray &name, const QByteArray &
 
 void MainWindow::printToTextBrowserTimerSlot()
 {
-    emit tee_parseData();
-
     if(RefreshTextBrowser==false)
         return;
+
+    emit tee_parseData();
 
     //打印数据
     printToTextBrowser();
@@ -845,7 +845,7 @@ static qint32 PAGING_SIZE = 8192; //TextBrowser显示大小
 void MainWindow::printToTextBrowser()
 {
     //当前窗口显示字符调整
-    if(characterCount==0 && ui->textBrowser->height()!=0){
+    if(characterCount==0 && ui->textBrowser->height() != 0){
         //characterCount=0且控件有高度说明characterCount未初始化，调用resizeEvent初始化，内部有了printToTextBrowser所以可以返回
         resizeEvent(nullptr);
         return;
@@ -2469,6 +2469,12 @@ void MainWindow::resizeEvent(QResizeEvent* event)
        event->size();
     }
 
+    //只响应显示主窗口时的窗口改变动作，其他类型的窗口只做记录，下次显示主窗口时进行响应
+    if(ui->tabWidget->tabText(ui->tabWidget->currentIndex()) != "main")
+    {
+        return;
+    }
+
     //首次启动不运行，防止卡死
     static uint8_t first_run = 1;
     if(first_run){
@@ -2526,8 +2532,9 @@ void MainWindow::on_tabWidget_tabCloseRequested(int index)
 
 void MainWindow::on_tabWidget_tabBarClicked(int index)
 {
+    ui->tabWidget->setCurrentIndex(index);
     if(ui->tabWidget->tabText(index) == "main"){
-        RefreshTextBrowser = true;
         resizeEvent(nullptr);
+        RefreshTextBrowser = true;
     }
 }
