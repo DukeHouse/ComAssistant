@@ -6,8 +6,8 @@ MyQCustomPlot::MyQCustomPlot(QWidget* parent)
     // connect slot that ties some axis selections together (especially opposite axes):
     connect(this, SIGNAL(selectionChangedByUser()), this, SLOT(selectionChanged()));
     // connect slots that takes care that when an axis is selected, only that direction can be dragged and zoomed:
-    connect(this, SIGNAL(mousePress(QMouseEvent*)), this, SLOT(mousePress()));
-    connect(this, SIGNAL(mouseWheel(QWheelEvent*)), this, SLOT(mouseWheel()));
+    connect(this, SIGNAL(mousePress(QMouseEvent*)), this, SLOT(mousePress(QMouseEvent*)));
+    connect(this, SIGNAL(mouseWheel(QWheelEvent*)), this, SLOT(mouseWheel(QWheelEvent*)));
 
     // make bottom and left axes transfer their ranges to top and right axes:
     connect(this->xAxis, SIGNAL(rangeChanged(QCPRange)), this->xAxis2, SLOT(setRange(QCPRange)));
@@ -139,7 +139,7 @@ void MyQCustomPlot::selectionChanged()
   }
 }
 
-void MyQCustomPlot::mousePress()
+void MyQCustomPlot::mousePress(QMouseEvent *m)
 {
   // if an axis is selected, only allow the direction of that axis to be dragged
   // if no axis is selected, both directions may be dragged
@@ -152,7 +152,7 @@ void MyQCustomPlot::mousePress()
     this->axisRect()->setRangeDrag(Qt::Horizontal|Qt::Vertical);
 }
 
-void MyQCustomPlot::mouseWheel()
+void MyQCustomPlot::mouseWheel(QWheelEvent *w)
 {
     // if an axis is selected, only allow the direction of that axis to be zoomed
     // if no axis is selected, both directions may be zoomed
@@ -165,9 +165,43 @@ void MyQCustomPlot::mouseWheel()
         this->axisRect()->setRangeZoom(this->yAxis->orientation());
     }
     else{
-        //只调X轴
-        this->axisRect()->setRangeZoom(Qt::Horizontal);
-        plotControl->setXAxisLength(this->xAxis->range().upper - this->xAxis->range().lower);
+        switch(key)
+        {
+        case Qt::Key_X:
+            //只调X轴
+            this->axisRect()->setRangeZoom(Qt::Horizontal);
+            break;
+        case Qt::Key_V:
+            //只调Y轴
+            this->axisRect()->setRangeZoom(Qt::Vertical);
+            break;
+        case Qt::Key_Control:
+            //调XY轴
+            this->axisRect()->setRangeZoom(Qt::Horizontal|Qt::Vertical);
+            break;
+        default:
+            //只调X轴
+            this->axisRect()->setRangeZoom(Qt::Horizontal);
+            //更新X轴长度
+            plotControl->setXAxisLength(this->xAxis->range().upper - this->xAxis->range().lower);
+            break;
+        }
+//        qDebug()<<"w->delta()"<<w->delta();
+    }
+}
+
+void MyQCustomPlot::keyPressEvent(QKeyEvent *e)
+{
+//    qDebug()<<"keyPressEvent"<<e->key();
+    key = e->key();
+}
+
+void MyQCustomPlot::keyReleaseEvent(QKeyEvent *e)
+{
+//    qDebug()<<"keyReleaseEvent"<<e->key();
+    if(key == e->key())
+    {
+        key = 0;
     }
 }
 
