@@ -221,12 +221,13 @@ private:
     int characterCount = 0; //可显示字符数
 
     //文本提取引擎
-    QThread textExtractThread;
+    QThread *p_textExtractThread;
     TextExtractEngine *p_textExtract;
 signals:
     void tee_appendData(const QString &str);
     void tee_clearData(const QString &name);
     qint32 tee_saveData(const QString &path, const QString &name, const bool& savePackBuff);
+    void tee_parseData(void);
 public slots:
     void tee_textGroupsUpdate(const QByteArray &name, const QByteArray &data);
     void tee_saveDataResult(const qint32& result, const QString &path, const qint32 fileSize);

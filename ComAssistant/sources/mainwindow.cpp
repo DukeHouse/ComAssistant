@@ -327,18 +327,21 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //文本提取引擎初始化
     qDebug() << "Main threadID :" << QThread::currentThreadId();
-    p_textExtract = new TextExtractEngine();
-    p_textExtract->moveToThread(&textExtractThread);
-    connect(&textExtractThread, SIGNAL(finished()), p_textExtract, SLOT(deleteLater()));
+    p_textExtractThread = new QThread(this);
+    p_textExtract       = new TextExtractEngine();
+    p_textExtract->moveToThread(p_textExtractThread);
+    connect(p_textExtractThread, SIGNAL(finished()), p_textExtract, SLOT(deleteLater()));
     connect(this, SIGNAL(tee_appendData(const QString &)), p_textExtract, SLOT(appendData(const QString &)));
     connect(this, SIGNAL(tee_clearData(const QString &)), p_textExtract, SLOT(clearData(const QString )));
-    connect(p_textExtract, SIGNAL(textGroupsUpdate(const QByteArray &, const QByteArray &)),
-            this, SLOT(tee_textGroupsUpdate(const QByteArray &, const QByteArray &)));
+    connect(this, SIGNAL(tee_parseData()), p_textExtract, SLOT(parseData()));
     connect(this, SIGNAL(tee_saveData(const QString &, const QString &, const bool& )),
             p_textExtract, SLOT(saveData(const QString &, const QString &, const bool& )));
+    connect(p_textExtract, SIGNAL(textGroupsUpdate(const QByteArray &, const QByteArray &)),
+            this, SLOT(tee_textGroupsUpdate(const QByteArray &, const QByteArray &)));
     connect(p_textExtract, SIGNAL(saveDataResult(const qint32&, const QString &, const qint32 )),
             this, SLOT(tee_saveDataResult(const qint32&, const QString &, const qint32 )));
-    textExtractThread.start();
+
+    p_textExtractThread->start();
 
     //显示界面
     this->show();
@@ -404,6 +407,8 @@ void MainWindow::tee_textGroupsUpdate(const QByteArray &name, const QByteArray &
 
 void MainWindow::printToTextBrowserTimerSlot()
 {
+    emit tee_parseData();
+
     if(RefreshTextBrowser==false)
         return;
 
@@ -594,8 +599,11 @@ MainWindow::~MainWindow()
     }else{
         Config::writeDefault();
     }
-    textExtractThread.quit();
-    textExtractThread.wait();
+    p_textExtractThread->quit();
+    p_textExtractThread->wait();
+//    delete p_textExtract; //deleteLater自动删除？
+    delete p_textExtractThread;
+
     delete highlighter;
     delete ui;
     delete http;
@@ -1028,6 +1036,7 @@ void MainWindow::on_clearWindows_clicked()
     BrowserBuff.clear();
     BrowserBuffIndex = 0;
     unshowedRxBuff.clear();
+    emit tee_clearData("");
     for(qint32 i = 0; i < ui->tabWidget->count(); i++){
         if(ui->tabWidget->tabText(i) != "main"){
             ui->tabWidget->removeTab(i);
@@ -2456,7 +2465,9 @@ void MainWindow::on_actionPopupHotkey_triggered()
 void MainWindow::resizeEvent(QResizeEvent* event)
 {
     //消除警告
-    event->size();
+    if(event){
+       event->size();
+    }
 
     //首次启动不运行，防止卡死
     static uint8_t first_run = 1;
@@ -2517,5 +2528,6 @@ void MainWindow::on_tabWidget_tabBarClicked(int index)
 {
     if(ui->tabWidget->tabText(index) == "main"){
         RefreshTextBrowser = true;
+        resizeEvent(nullptr);
     }
 }

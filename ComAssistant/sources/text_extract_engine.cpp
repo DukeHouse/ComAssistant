@@ -2,14 +2,17 @@
 
 TextExtractEngine::TextExtractEngine(QObject *parent) : QObject(parent)
 {
-
+    // this run in main thread.
+//    qDebug()<<"hello thread";
 }
 
 TextExtractEngine::~TextExtractEngine()
 {
-//    qDebug() << "good bye TextExtractEngine:" << QThread::currentThreadId();
+    // this run in main thread.
+//    qDebug()<<"goodbye thread";
 }
 
+//把包数据根据名字加到文本组集合中，如果集合中没有对应名字，则在集合中新增一个文本组
 void inline TextExtractEngine::appendPackDataToTextGroups(QByteArray& name, QByteArray& data, QByteArray& pack)
 {
     int32_t nameIndex = 0;
@@ -36,6 +39,7 @@ void inline TextExtractEngine::appendPackDataToTextGroups(QByteArray& name, QByt
     return;
 }
 
+//从包数据中提取名字和数据，若名字提取失败则不再提取数据
 bool inline TextExtractEngine::parseNameAndDataFromPack(QByteArray& pack)
 {
 
@@ -100,6 +104,7 @@ bool inline TextExtractEngine::parseNameAndDataFromPack(QByteArray& pack)
     return true;
 }
 
+//从缓存中提取所有包，每提取出一个包就解析一个
 void TextExtractEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBuffer)
 {
     if(buffer.isEmpty())
@@ -145,21 +150,33 @@ void TextExtractEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& res
     restBuffer = buffer.mid(lastScannedIndex);
 }
 
+//往缓存中追加数据（不作解析）
 void TextExtractEngine::appendData(const QString &newData)
 {
+    #define MAX_PARSE_BUFFER 2048
     rawData.buff.append(newData);
-//    qDebug()<<"------------------";
-//    qDebug()<<"ThreadID"<<QThread::currentThreadId();
-//    qDebug()<<"inData:"<<newData;
-//    qDebug()<<"rawData:"<<rawData.buff;
-    parsePacksFromBuffer(rawData.buff, rawData.buff);
-//    qDebug()<<"leftData"<<rawData.buff;
+    if(rawData.buff.size() > MAX_PARSE_BUFFER)
+    {
+        rawData.buff.remove(0, rawData.buff.size() - MAX_PARSE_BUFFER);
+    }
+    needParse = true;
+
+//    qDebug()<<"ThreadID:"<<QThread::currentThreadId()<<"size:"<<rawData.buff.size();
 }
 
-//清除指定名称的数据
+//解析缓存中的数据，通常定时调用
+void TextExtractEngine::parseData()
+{
+    if(needParse)
+    {
+        parsePacksFromBuffer(rawData.buff, rawData.buff);
+        needParse = false;
+    }
+}
+
+//从文本组集合中清除指定名称的文本组
 void TextExtractEngine::clearData(const QString &name)
 {
-//    qDebug()<<"clearData";
     rawData.buff.clear();
 
     qint32 i = 0;
@@ -171,8 +188,11 @@ void TextExtractEngine::clearData(const QString &name)
         }
         i++;
     }
+
+    qDebug()<<"clearData"<<rawData.buff.size();
 }
 
+//保存指定名字的文本组到指定路径
 qint32 TextExtractEngine::saveData(const QString &path, const QString &name, const bool& savePackBuff)
 {
     QVector<textGroup_t>::iterator it = textGroups.begin();
