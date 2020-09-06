@@ -32,7 +32,8 @@ public:
     bool saveGraphAsTxt(const QString& filePath, char separate=' ');
     QCustomPlotControl *plotControl;
     DataProtocol *protocol;
-
+public slots:
+    void recvKey(QKeyEvent *e, bool isPressAct);
 private slots:
     void axisLabelDoubleClick(QCPAxis* axis, QCPAxis::SelectablePart part);
     void legendDoubleClick(QCPLegend* legend, QCPAbstractLegendItem* item);

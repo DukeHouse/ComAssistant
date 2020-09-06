@@ -236,6 +236,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(&serial, SIGNAL(readyRead()), this, SLOT(readSerialPort()));
     connect(&serial, SIGNAL(bytesWritten(qint64)), this, SLOT(serialBytesWritten(qint64)));
     connect(&serial, SIGNAL(error(QSerialPort::SerialPortError)),  this, SLOT(handleSerialError(QSerialPort::SerialPortError)));
+    connect(this, SIGNAL(sendKeyToPlotter(QKeyEvent*, bool)), ui->customPlot, SLOT(recvKey(QKeyEvent*, bool)));
 
 //    connect(ui->textBrowser->verticalScrollBar(),SIGNAL(actionTriggered(int)),this,SLOT(verticalScrollBarActionTriggered(int)));
     //绑定内置和外置滚动条
@@ -1038,7 +1039,7 @@ void MainWindow::on_clearWindows_clicked()
     unshowedRxBuff.clear();
     emit tee_clearData("");
     for(qint32 i = 0; i < ui->tabWidget->count(); i++){
-        if(ui->tabWidget->tabText(i) != "main"){
+        if(ui->tabWidget->tabText(i) != MAIN_TAB_NAME){
             ui->tabWidget->removeTab(i);
             emit tee_clearData(ui->tabWidget->tabText(i));
             i = 0;//重置计数器
@@ -1204,7 +1205,7 @@ void MainWindow::on_actionGBK_triggered(bool checked)
 */
 void MainWindow::on_actionSaveOriginData_triggered()
 {
-    QString tabName = "main";
+    QString tabName = MAIN_TAB_NAME;
     bool ok = false;
     if(ui->tabWidget->count() > 1){
         QStringList list;
@@ -1236,7 +1237,7 @@ void MainWindow::on_actionSaveOriginData_triggered()
     }
 
     //子窗口数据由其线程负责存储
-    if(tabName != "main"){
+    if(tabName != MAIN_TAB_NAME){
         emit tee_saveData(savePath, tabName, true);
         return;
     }
@@ -1416,7 +1417,7 @@ void MainWindow::on_comList_textActivated(const QString &arg1)
 
 void MainWindow::on_actionSaveShowedData_triggered()
 {
-    QString tabName = "main";
+    QString tabName = MAIN_TAB_NAME;
     bool ok = false;
     if(ui->tabWidget->count() > 1){
         QStringList list;
@@ -1445,7 +1446,8 @@ void MainWindow::on_actionSaveShowedData_triggered()
         return;
     }
 
-    if(tabName != "main"){
+    //标签页的数据保存由其线程自己负责
+    if(tabName != MAIN_TAB_NAME){
         emit tee_saveData(savePath, tabName, false);
         return;
     }
@@ -2462,6 +2464,18 @@ void MainWindow::on_actionPopupHotkey_triggered()
     registPopupHotKey(newKeySeq);
 }
 
+void MainWindow::keyPressEvent(QKeyEvent *e)
+{
+//    qDebug()<<"MainWindow::keyPressEvent"<<e->key();
+    emit sendKeyToPlotter(e, true);
+}
+
+void MainWindow::keyReleaseEvent(QKeyEvent *e)
+{
+//    qDebug()<<"MainWindow::keyReleaseEvent"<<e->key();
+    emit sendKeyToPlotter(e, false);
+}
+
 void MainWindow::resizeEvent(QResizeEvent* event)
 {
     //消除警告
@@ -2470,7 +2484,7 @@ void MainWindow::resizeEvent(QResizeEvent* event)
     }
 
     //只响应显示主窗口时的窗口改变动作，其他类型的窗口只做记录，下次显示主窗口时进行响应
-    if(ui->tabWidget->tabText(ui->tabWidget->currentIndex()) != "main")
+    if(ui->tabWidget->tabText(ui->tabWidget->currentIndex()) != MAIN_TAB_NAME)
     {
         return;
     }
@@ -2522,7 +2536,7 @@ void MainWindow::splitterMovedSlot(int pos, int index)
 void MainWindow::on_tabWidget_tabCloseRequested(int index)
 {
     //禁止删除主窗口
-    if(ui->tabWidget->tabText(index) == "main"){
+    if(ui->tabWidget->tabText(index) == MAIN_TAB_NAME){
         ui->statusBar->showMessage(tr("不允许删除主窗口"), 2000);
         return;
     }
@@ -2533,7 +2547,7 @@ void MainWindow::on_tabWidget_tabCloseRequested(int index)
 void MainWindow::on_tabWidget_tabBarClicked(int index)
 {
     ui->tabWidget->setCurrentIndex(index);
-    if(ui->tabWidget->tabText(index) == "main"){
+    if(ui->tabWidget->tabText(index) == MAIN_TAB_NAME){
         resizeEvent(nullptr);
         RefreshTextBrowser = true;
     }

@@ -186,7 +186,7 @@ void MyQCustomPlot::mouseWheel(QWheelEvent *w)
             plotControl->setXAxisLength(this->xAxis->range().upper - this->xAxis->range().lower);
             break;
         }
-//        qDebug()<<"w->delta()"<<w->delta();
+//        qDebug()<<"wheel key"<<key<<"w->delta()"<<w->delta();
     }
 }
 
@@ -203,6 +203,15 @@ void MyQCustomPlot::keyReleaseEvent(QKeyEvent *e)
     {
         key = 0;
     }
+}
+
+void MyQCustomPlot::recvKey(QKeyEvent *e, bool isPressAct)
+{
+    if(isPressAct){
+        keyPressEvent(e);
+        return;
+    }
+    keyReleaseEvent(e);
 }
 
 void MyQCustomPlot::removeSelectedGraph()
