@@ -2178,6 +2178,7 @@ void MainWindow::on_actionUsageStatistic_triggered()
     BrowserBuff.append(str);
     hexBrowserBuff.clear();
     hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
+    RefreshTextBrowser = true;
 }
 
 void MainWindow::on_actionSendFile_triggered()
