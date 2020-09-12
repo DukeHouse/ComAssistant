@@ -150,7 +150,7 @@ void TextExtractEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& res
     restBuffer = buffer.mid(lastScannedIndex);
 }
 
-//往缓存中追加数据（不作解析）
+//往缓存中追加数据（不作解析），限制解析长度保证性能
 void TextExtractEngine::appendData(const QString &newData)
 {
     #define MAX_PARSE_BUFFER 2048

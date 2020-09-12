@@ -68,28 +68,21 @@ QVector<double> DataProtocol::popOneRowData()
 /*
  * Function: 解析协议
  * para1: 被解析的数据
- * return: 已经扫描过的数据长度
+ * return: 已经解析完成的数据长度（若解析失败则长度为0）
 */
 int32_t DataProtocol::parse(const QByteArray& inputArray, int32_t &startPos, int32_t maxParseLengthLimit=-1, bool enableSumCheck=false)
-{   
+{
     RowData_t rowData;
     Pack_t pack;
     QByteArray restArray;
-    int32_t oldsize, newsize, scannedLength;
+    int32_t scannedLength = 0;
 
     //未解析数据，防止数据量过大，限制了最大解析长度
-    oldsize = unparsedBuff.size();
-    newsize = inputArray.size() - oldsize;
-    if(newsize - oldsize < maxParseLengthLimit){
-        unparsedBuff += inputArray.mid(startPos);
-    }else{
-        unparsedBuff += inputArray.mid(startPos, maxParseLengthLimit);
-    }
-    scannedLength = unparsedBuff.size() - oldsize;
-
+    unparsedBuff = inputArray.mid(startPos, maxParseLengthLimit);
+    int32_t size = unparsedBuff.size();
     //数据流分包
     extractPacks(unparsedBuff, restArray, true, enableSumCheck);
-    unparsedBuff = restArray;
+    scannedLength = size - restArray.size();
 
     return scannedLength;
 }
@@ -110,7 +103,8 @@ inline void DataProtocol::extractPacks(QByteArray &inputArray, QByteArray &restA
         }
         QRegularExpression reg;
         QRegularExpressionMatch match;
-        int index = 0;
+        int scanIndex = 0;
+        int lastScannedIndex = 0;
         //匹配{}间的数据。
         //{:之间不允许再出现{:
         //:后，数据与逗号作为一个组，这个组至少出现一次，组中的逗号出现0次或1次，组开头允许有空白字符\\s
@@ -120,9 +114,10 @@ inline void DataProtocol::extractPacks(QByteArray &inputArray, QByteArray &restA
         reg.setPatternOptions(QRegularExpression::InvertedGreedinessOption);//设置为非贪婪模式匹配
         do {
                 QByteArray tmp;
-                match = reg.match(inputArray, index);
+                match = reg.match(inputArray, scanIndex);
                 if(match.hasMatch()) {
-                    index = match.capturedEnd();
+                    scanIndex = match.capturedEnd();
+                    lastScannedIndex = scanIndex;
                     //连续的逗号和分号逗号之间补0
                     tmp.clear();
                     tmp.append(match.captured(0).toLocal8Bit());
@@ -149,16 +144,11 @@ inline void DataProtocol::extractPacks(QByteArray &inputArray, QByteArray &restA
                 }
                 else{
 //                    qDebug()<<"no match";
-                    if(index < inputArray.size()-1){
-                        index++;
-                        continue;
-                    }else{
-                        break;
-                    }
+                    scanIndex++;
                 }
-        } while(index < inputArray.length());
+        } while(scanIndex < inputArray.size());
 
-        restArray = inputArray.mid(index);
+        restArray = inputArray.mid(lastScannedIndex);
 
     }else if(protocolType == Float){
         QByteArray tmpArray = inputArray;
