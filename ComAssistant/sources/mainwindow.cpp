@@ -314,7 +314,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->multiString->setFont(g_font);
     ui->customPlot->plotControl->setupFont(ui->customPlot, g_font);
 
-    this->setWindowTitle(tr("串口调试助手") + " V"+Config::getVersion());
+    this->setWindowTitle(tr("纸飞机串口助手") + " - V"+Config::getVersion());
 
     //启动定时器
     secTimer.setTimerType(Qt::PreciseTimer);
