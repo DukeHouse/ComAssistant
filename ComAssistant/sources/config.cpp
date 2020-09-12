@@ -222,7 +222,7 @@ void Config::setEnterStyle(EnterStyle_e style){
 }
 EnterStyle_e Config::getEnterStyle(){
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    int value = iniFile->value(SECTION_GLOBAL+KEY_CODERULE, EnterStyle_e::WinStyle).toInt();
+    int value = iniFile->value(SECTION_GLOBAL+KEY_ENTERSTYLE, EnterStyle_e::WinStyle).toInt();
     delete iniFile;
     return static_cast<EnterStyle_e>(value);
 }
