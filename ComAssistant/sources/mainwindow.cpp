@@ -1622,7 +1622,7 @@ void MainWindow::on_actionPlotterSwitch_triggered(bool checked)
         //没激活就打开（数值显示器也可能激活）
         if(!plotterParseTimer.isActive()){
             plotterParseTimer.start(PLOTTER_PARSE_PERIOD);
-            plotterParsePosInRxBuff = RxBuff.size() - 1;
+            plotterParsePosInRxBuff = RxBuff.size();
         }
 
         if(ui->actionAscii->isChecked()){
@@ -1653,12 +1653,12 @@ void MainWindow::on_actionPlotterSwitch_triggered(bool checked)
 void MainWindow::plotterParseTimerSlot()
 {
     QElapsedTimer elapsedTimer;
-    int32_t maxParseLengthLimit = 4096;
+    int32_t maxParseLengthLimit = 2048;
     int32_t parsedLength;
     QVector<double> oneRowData;
     elapsedTimer.start();
 
-    if(plotterParsePosInRxBuff >= RxBuff.size() - 1){
+    if(plotterParsePosInRxBuff >= RxBuff.size()){
         return;
     }
 
@@ -1668,13 +1668,17 @@ void MainWindow::plotterParseTimerSlot()
     }
     //关定时器，防止数据量过大导致咬尾振荡
     plotterParseTimer.stop();
+
     //添加解析长度限制，防止数据量过大振荡
+    if(RxBuff.size() - plotterParsePosInRxBuff > maxParseLengthLimit)
+    {
+        plotterParsePosInRxBuff = RxBuff.size() - maxParseLengthLimit;
+    }
     parsedLength = ui->customPlot->protocol->parse(RxBuff, plotterParsePosInRxBuff, maxParseLengthLimit, g_enableSumCheck);
     plotterParsePosInRxBuff += parsedLength;
 
     //数据填充
     while(ui->customPlot->protocol->parsedBuffSize()>0){
-
         oneRowData = ui->customPlot->protocol->popOneRowData();
         //绘图显示器
         if(ui->actionPlotterSwitch->isChecked()){
@@ -1682,7 +1686,6 @@ void MainWindow::plotterParseTimerSlot()
             if(false == ui->customPlot->plotControl->displayToPlotter(ui->customPlot, oneRowData, false, false))
                 ui->statusBar->showMessage(tr("出现一组异常绘图数据，已丢弃。"), 1000);
         }
-
     }
     if(ui->actionAutoRefreshYAxis->isChecked())
         ui->customPlot->yAxis->rescale(true);
@@ -1718,7 +1721,7 @@ void MainWindow::plotterParseTimerSlot()
     //单次最大解析长度限制提示（文件解析模式下不提示）
     if(parsedLength == maxParseLengthLimit && parseFile==false){
         QString temp;
-        temp = temp + tr("警告：绘图器繁忙，待解析数据长度：") + QString::number(RxBuff.size() - plotterParsePosInRxBuff - 1) + "Byte";
+        temp = temp + tr("警告：绘图器繁忙，待解析数据长度：") + QString::number(RxBuff.size() - plotterParsePosInRxBuff) + "Byte";
         ui->statusBar->showMessage(temp, 2000);
     }
 
@@ -2255,7 +2258,7 @@ void MainWindow::on_actionValueDisplay_triggered(bool checked)
         //没激活就打开（绘图器也可能激活）
         if(!plotterParseTimer.isActive()){
             plotterParseTimer.start(PLOTTER_PARSE_PERIOD);
-            plotterParsePosInRxBuff = RxBuff.size() - 1;
+            plotterParsePosInRxBuff = RxBuff.size();
         }
     }else{
         ui->valueDisplay->hide();
