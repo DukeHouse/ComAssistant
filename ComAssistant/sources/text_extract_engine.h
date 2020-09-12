@@ -67,7 +67,7 @@ private:
     const QString PACK_PREFIX_REG   = "\\{";
     const QString PACK_NAME_REG     = "\\w+";
     const QString PACK_SEPARATE_REG = ":";
-    const QString PACK_DATA_REG     = "[\\w`~!@#\\$%\\^&*\\(\\)=+-\\[\\]:;'\"<>,\\.\\?/\\\\| ]+";
+    const QString PACK_DATA_REG     = "[\\w`~!@#\\$%\\^&*\\(\\)=+-\\[\\]:;'\"<>,\\.\\?/\\\\| \\{\\}]+";
     const QString PACK_SUFFIX_REG   = "\\}";
     const QString PACK_TAIL_REG     = "\r?\n";
 

@@ -42,61 +42,23 @@ void inline TextExtractEngine::appendPackDataToTextGroups(QByteArray& name, QByt
 //从包数据中提取名字和数据，若名字提取失败则不再提取数据
 bool inline TextExtractEngine::parseNameAndDataFromPack(QByteArray& pack)
 {
-
     if(pack.isEmpty())
         return false;
 
     QByteArray name;
     QByteArray data;
-    bool find_name = 0;
-    QRegularExpression reg;
-    QRegularExpressionMatch match;
-    QString pattern;
-    int scanIndex = 0;
 
     //匹配{name:data}风格的数据中的name。
-    scanIndex = 0;
-    pattern = PACK_PREFIX_REG + PACK_NAME_REG + PACK_SEPARATE_REG;
-    reg.setPattern(pattern);
-    reg.setPatternOptions(QRegularExpression::InvertedGreedinessOption);//设置为非贪婪模式匹配
-    do {
-            match = reg.match(pack, scanIndex);
-            if(match.hasMatch()) {
-                scanIndex = match.capturedEnd();
-                name.clear();
-                name.append(match.captured(0).toLocal8Bit());
-                name.remove(0, PACK_PREFIX.size());
-                name.remove(name.size() - PACK_SEPARATE.size(), PACK_SEPARATE.size());
-                find_name = 1;
-                break;
-            }else{
-//                qDebug()<<"no match";
-                scanIndex++;
-            }
-    } while(scanIndex < pack.size());
-
-    if(find_name == false)
+    name = pack;
+    name = name.mid(0, name.indexOf(PACK_SEPARATE));
+    name = name.remove(name.indexOf(PACK_PREFIX), PACK_PREFIX.size());
+    if(name.isEmpty())
         return false;
 
     //匹配{name:data}风格的数据中的data。
-    scanIndex = 0;
-    pattern = PACK_SEPARATE_REG + PACK_DATA_REG + PACK_SUFFIX_REG;
-    reg.setPattern(pattern);
-    reg.setPatternOptions(QRegularExpression::InvertedGreedinessOption);//设置为非贪婪模式匹配
-    do {
-            match = reg.match(pack, scanIndex);
-            if(match.hasMatch()) {
-                scanIndex = match.capturedEnd();
-                data.clear();
-                data.append(match.captured(0).toLocal8Bit());
-                data.remove(0, PACK_SEPARATE.size());
-                data.remove(data.size() - PACK_SUFFIX.size(), PACK_SUFFIX.size());
-                break;
-            }else{
-//                qDebug()<<"no match";
-                scanIndex++;
-            }
-    } while(scanIndex < pack.size());
+    data = pack;
+    data.remove(0, PACK_PREFIX.size()+name.size()+PACK_SEPARATE.size());
+    data = data.mid(0, data.lastIndexOf(PACK_SUFFIX));
 
     appendPackDataToTextGroups(name, data, pack);
 
@@ -133,13 +95,6 @@ void TextExtractEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& res
                 lastScannedIndex = scanIndex;
                 onePack.clear();
                 onePack.append(match.captured(0).toLocal8Bit());
-                //剔除回车换行
-                while (onePack.indexOf('\r') != -1) {
-                    onePack.remove(onePack.indexOf('\r'), 1);
-                }
-                while (onePack.indexOf('\n') != -1) {
-                    onePack.remove(onePack.indexOf('\n'), 1);
-                }
                 parseNameAndDataFromPack(onePack);
             }else{
 //                qDebug()<<"no match";
