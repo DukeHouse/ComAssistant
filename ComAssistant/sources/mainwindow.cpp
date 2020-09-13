@@ -247,7 +247,6 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->textBrowser->verticalScrollBar(),SIGNAL(actionTriggered(int)),this,SLOT(innerVerticalScrollBarActionTriggered(int)));
     connect(ui->textBrowserScrollBar,SIGNAL(actionTriggered(int)),this,SLOT(outterVerticalScrollBarActionTriggered(int)));
 
-
     //状态栏标签
     statusRemoteMsgLabel = new QLabel(this);
     statusSpeedLabel = new QLabel(this);
@@ -281,7 +280,6 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->splitter_display, SIGNAL(splitterMoved(int, int)), this, SLOT(splitterMovedSlot(int, int)));
     connect(splitter_io, SIGNAL(splitterMoved(int, int)), this, SLOT(splitterMovedSlot(int, int)));
     connect(splitter_output, SIGNAL(splitterMoved(int, int)), this, SLOT(splitterMovedSlot(int, int)));
-
 
     //读取配置（所有资源加->完成后、动作执行前读取）
     readConfig();
@@ -447,20 +445,32 @@ QString MainWindow::formatTime(qint32 ms)
 void MainWindow::secTimerSlot()
 {
     static int64_t secCnt = 0;
-    static qint32 adIndex = 0;
+    static qint32 msgIndex = 0;
+    static double idealSpeed = 0;
+    QString txHeavyLoad, rxHeavyLoad;
+    QString HeavyLoad = tr("(高负载)");
 
     //传输速度统计与显示
     rxSpeedKB = static_cast<double>(statisticRxByteCnt) / 1024.0;
     statisticRxByteCnt = 0;
     txSpeedKB = static_cast<double>(statisticTxByteCnt) / 1024.0;
     statisticTxByteCnt = 0;
-    statusSpeedLabel->setText(" Tx:" + QString::number(txSpeedKB, 'f', 2) + "KB/s " + "Rx:" + QString::number(rxSpeedKB, 'f', 2) + "KB/s");
+    //高负载提示(1是起始位)
+    idealSpeed = (double)serial.baudRate()/(serial.stopBits()+serial.parity()+serial.dataBits()+1)/1024.0;
+    txHeavyLoad.clear();
+    rxHeavyLoad.clear();
+    if(txSpeedKB > idealSpeed * 0.85)
+        txHeavyLoad = HeavyLoad;
+    if(rxSpeedKB > idealSpeed * 0.85)
+        rxHeavyLoad = HeavyLoad;
+    statusSpeedLabel->setText(" Tx:" + QString::number(txSpeedKB, 'f', 2) + "KB/s" + txHeavyLoad +
+                              " Rx:" + QString::number(rxSpeedKB, 'f', 2) + "KB/s" + rxHeavyLoad);
 
     //显示远端下载的信息
     if(http->getMsgList().size()>0 && secCnt%10==0){
-        statusRemoteMsgLabel->setText(http->getMsgList().at(adIndex++));
-        if(adIndex == http->getMsgList().size())
-            adIndex = 0;
+        statusRemoteMsgLabel->setText(http->getMsgList().at(msgIndex++));
+        if(msgIndex == http->getMsgList().size())
+            msgIndex = 0;
     }
 
     if(ui->comSwitch->isChecked()){
