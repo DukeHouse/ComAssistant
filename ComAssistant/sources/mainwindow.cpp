@@ -247,7 +247,6 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->textBrowser->verticalScrollBar(),SIGNAL(actionTriggered(int)),this,SLOT(innerVerticalScrollBarActionTriggered(int)));
     connect(ui->textBrowserScrollBar,SIGNAL(actionTriggered(int)),this,SLOT(outterVerticalScrollBarActionTriggered(int)));
 
-
     //状态栏标签
     statusRemoteMsgLabel = new QLabel(this);
     statusSpeedLabel = new QLabel(this);
@@ -281,7 +280,6 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->splitter_display, SIGNAL(splitterMoved(int, int)), this, SLOT(splitterMovedSlot(int, int)));
     connect(splitter_io, SIGNAL(splitterMoved(int, int)), this, SLOT(splitterMovedSlot(int, int)));
     connect(splitter_output, SIGNAL(splitterMoved(int, int)), this, SLOT(splitterMovedSlot(int, int)));
-
 
     //读取配置（所有资源加->完成后、动作执行前读取）
     readConfig();
@@ -447,20 +445,32 @@ QString MainWindow::formatTime(qint32 ms)
 void MainWindow::secTimerSlot()
 {
     static int64_t secCnt = 0;
-    static qint32 adIndex = 0;
+    static qint32 msgIndex = 0;
+    static double idealSpeed = 0;
+    QString txHeavyLoad, rxHeavyLoad;
+    QString HeavyLoad = tr("(高负载)");
 
     //传输速度统计与显示
     rxSpeedKB = static_cast<double>(statisticRxByteCnt) / 1024.0;
     statisticRxByteCnt = 0;
     txSpeedKB = static_cast<double>(statisticTxByteCnt) / 1024.0;
     statisticTxByteCnt = 0;
-    statusSpeedLabel->setText(" Tx:" + QString::number(txSpeedKB, 'f', 2) + "KB/s " + "Rx:" + QString::number(rxSpeedKB, 'f', 2) + "KB/s");
+    //高负载提示(1是起始位)
+    idealSpeed = (double)serial.baudRate()/(serial.stopBits()+serial.parity()+serial.dataBits()+1)/1024.0;
+    txHeavyLoad.clear();
+    rxHeavyLoad.clear();
+    if(txSpeedKB > idealSpeed * 0.85)
+        txHeavyLoad = HeavyLoad;
+    if(rxSpeedKB > idealSpeed * 0.85)
+        rxHeavyLoad = HeavyLoad;
+    statusSpeedLabel->setText(" Tx:" + QString::number(txSpeedKB, 'f', 2) + "KB/s" + txHeavyLoad +
+                              " Rx:" + QString::number(rxSpeedKB, 'f', 2) + "KB/s" + rxHeavyLoad);
 
     //显示远端下载的信息
     if(http->getMsgList().size()>0 && secCnt%10==0){
-        statusRemoteMsgLabel->setText(http->getMsgList().at(adIndex++));
-        if(adIndex == http->getMsgList().size())
-            adIndex = 0;
+        statusRemoteMsgLabel->setText(http->getMsgList().at(msgIndex++));
+        if(msgIndex == http->getMsgList().size())
+            msgIndex = 0;
     }
 
     if(ui->comSwitch->isChecked()){
@@ -2150,38 +2160,43 @@ void MainWindow::on_actionUsageStatistic_triggered()
 
     //上屏显示
     //ui->textBrowser->clear(); //如果清屏的话要做提示，可能用户数据还未保存
-    ui->textBrowser->appendPlainText(tr("软件版本：")+Config::getVersion());
-    ui->textBrowser->appendPlainText(tr(""));
-    ui->textBrowser->appendPlainText(tr("【设备信息】"));
-    ui->textBrowser->appendPlainText(tr("   MAC地址：")+HTTP::getHostMacAddress());
-    ui->textBrowser->appendPlainText(tr(""));
-    ui->textBrowser->appendPlainText(tr("【软件使用统计】"));
-    ui->textBrowser->appendPlainText(tr("   自本次启动软件以来，您："));
-    ui->textBrowser->appendPlainText(tr("   - 共发送数据：")+QString::number(currentTx,'f',2)+currentTxUnit);
-    ui->textBrowser->appendPlainText(tr("   - 共接收数据：")+QString::number(currentRx,'f',2)+currentRxUnit);
-    ui->textBrowser->appendPlainText(tr("   - 共运行本软件：")+currentRunTimeStr);
-    ui->textBrowser->appendPlainText(tr("   自首次启动软件以来，您："));
-    ui->textBrowser->appendPlainText(tr("   - 共发送数据：")+QString::number(totalTx,'f',2)+totalTxUnit);
-    ui->textBrowser->appendPlainText(tr("   - 共接收数据：")+QString::number(totalRx,'f',2)+totalRxUnit);
-    ui->textBrowser->appendPlainText(tr("   - 共运行本软件：")+totalRunTimeStr);
-    ui->textBrowser->appendPlainText(tr("   - 共启动本软件：")+QString::number(Config::getTotalRunCnt().toInt()+1)+tr(" 次"));
-    ui->textBrowser->appendPlainText(tr(""));
-    ui->textBrowser->appendPlainText(tr("   ")+rankStr);
-    ui->textBrowser->appendPlainText(tr(""));
-    ui->textBrowser->appendPlainText(tr("【隐私声明】"));
-    ui->textBrowser->appendPlainText(tr("  - 以上统计信息可能会被上传至服务器用于统计。"));
-    ui->textBrowser->appendPlainText(tr("  - 其他任何信息均不会被上传。"));
-    ui->textBrowser->appendPlainText(tr("  - 如您不同意本声明，可阻断本软件的网络请求或者您应该停止使用本软件。"));
-    ui->textBrowser->appendPlainText(tr(""));
-    ui->textBrowser->appendPlainText(tr("感谢您的使用"));
-    ui->textBrowser->appendPlainText(tr(""));
+    QString str;
+    str.append(tr("## 软件版本：")+Config::getVersion() + "\n");
+    str.append("\n");
+    str.append(tr("## 设备信息") + "\n");
+    str.append(tr("   MAC地址：")+HTTP::getHostMacAddress() + "\n");
+    str.append("\n");
+    str.append(tr("## 软件使用统计") + "\n");
+    str.append(tr("   ### 自本次启动软件以来，您：") + "\n");
+    str.append(tr("   - 共发送数据：")+QString::number(currentTx,'f',2)+currentTxUnit + "\n");
+    str.append(tr("   - 共接收数据：")+QString::number(currentRx,'f',2)+currentRxUnit + "\n");
+    str.append(tr("   - 共运行本软件：")+currentRunTimeStr + "\n");
+    str.append("\n");
+    str.append(tr("   ### 自首次启动软件以来，您：") + "\n");
+    str.append(tr("   - 共发送数据：")+QString::number(totalTx,'f',2)+totalTxUnit + "\n");
+    str.append(tr("   - 共接收数据：")+QString::number(totalRx,'f',2)+totalRxUnit + "\n");
+    str.append(tr("   - 共运行本软件：")+totalRunTimeStr + "\n");
+    str.append(tr("   - 共启动本软件：")+QString::number(Config::getTotalRunCnt().toInt()+1)+tr(" 次") + "\n");
+    str.append("\n");
+    str.append(tr("   ")+rankStr + "\n");
+    str.append("\n");
+    str.append(tr("## 隐私声明") + "\n");
+    str.append(tr("  - 以上统计信息可能会被上传至服务器用于统计。") + "\n");
+    str.append(tr("  - 其他任何信息均不会被上传。") + "\n");
+    str.append(tr("  - 如您不同意本声明，可阻断本软件的网络请求或者您应该停止使用本软件。") + "\n");
+    str.append("\n");
+    str.append(tr("## 感谢您的使用") + "\n");
+    str.append("\n");
 
-    QString str = ui->textBrowser->document()->toPlainText();
-    BrowserBuff.clear();
-    BrowserBuff.append(str);
-    hexBrowserBuff.clear();
-    hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
-    RefreshTextBrowser = true;
+    //创建关于我对话框资源
+    About_Me_Dialog* p = new About_Me_Dialog(this);
+    p->getVersionString(Config::getVersion());
+    p->showMarkdown(str);
+    p->resize(1024,768);
+    //设置close后自动销毁
+    p->setAttribute(Qt::WA_DeleteOnClose);
+    //非阻塞式显示
+    p->show();
 }
 
 void MainWindow::on_actionSendFile_triggered()

@@ -23,6 +23,7 @@ public:
     ~About_Me_Dialog();
     void getVersionString(QString str);
     void showManualDoc(void);
+    void showMarkdown(QString &markdown);
 
 private slots:
     void on_okButton_clicked();

@@ -55,7 +55,10 @@
        <item row="1" column="1">
         <widget class="QLabel" name="name">
          <property name="text">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;INHOWE&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          <string>&lt;a href=&quot;www.github.com/inhowe/&quot;&gt;INHOWE&lt;/a&gt;</string>
+         </property>
+         <property name="openExternalLinks">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
@@ -79,14 +82,14 @@
           <bool>true</bool>
          </property>
          <property name="text">
-          <string>源代码：</string>
+          <string>开源许可：</string>
          </property>
         </widget>
        </item>
        <item row="3" column="1">
         <widget class="QLabel" name="githubUrl">
          <property name="text">
-          <string>&lt;a href=&quot;www.github.com/inhowe/ComAssistant&quot;&gt;www.github.com/inhowe/ComAssistant&lt;/a&gt;</string>
+          <string>ComAssistant</string>
          </property>
         </widget>
        </item>
