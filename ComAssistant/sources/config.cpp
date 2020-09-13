@@ -37,6 +37,7 @@ void Config::writeDefault(){
     iniFile->setValue(SECTION_GLOBAL+KEY_GUIFONT, defaultFont);
     iniFile->setValue(SECTION_GLOBAL+KEY_BACKGROUNDCOLOR, defaultColor);
     iniFile->setValue(SECTION_GLOBAL+KEY_POPUPHOTKEY, "Shift+Alt+C");
+    iniFile->setValue(SECTION_GLOBAL+KEY_SENDCOMMENT, false);
 
     iniFile->setValue(SECTION_SERIAL+KEY_PORTNAME, "");
     iniFile->setValue(SECTION_SERIAL+KEY_BAUDRATE, QSerialPort::Baud115200);
@@ -434,6 +435,20 @@ QString Config::getPopupHotKey()
 {
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
     QString value = iniFile->value(SECTION_GLOBAL+KEY_POPUPHOTKEY, "Shift+Alt+C").toString();
+    delete iniFile;
+    return value;
+}
+void Config::setSendComment(bool enable)
+{
+    createDefaultIfNotExist();
+    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
+    iniFile->setValue(SECTION_GLOBAL+KEY_SENDCOMMENT, enable);
+    delete iniFile;
+}
+bool Config::getSendComment()
+{
+    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
+    bool value = iniFile->value(SECTION_GLOBAL+KEY_SENDCOMMENT, false).toBool();
     delete iniFile;
     return value;
 }

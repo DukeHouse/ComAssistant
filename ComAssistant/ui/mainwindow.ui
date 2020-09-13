@@ -655,6 +655,7 @@ p, li { white-space: pre-wrap; }
       <string>个性化</string>
      </property>
      <addaction name="actionKeyWordHighlight"/>
+     <addaction name="actionPopupHotkey"/>
      <addaction name="actionFontSetting"/>
      <addaction name="actionBackGroundColorSetting"/>
     </widget>
@@ -694,7 +695,7 @@ p, li { white-space: pre-wrap; }
     </property>
     <addaction name="actionMultiString"/>
     <addaction name="actionSTM32_ISP"/>
-    <addaction name="actionPopupHotkey"/>
+    <addaction name="actionSendComment"/>
    </widget>
    <widget class="QMenu" name="plotter">
     <property name="title">
@@ -1029,6 +1030,17 @@ p, li { white-space: pre-wrap; }
   <action name="actionPopupHotkey">
    <property name="text">
     <string>全局弹出热键</string>
+   </property>
+  </action>
+  <action name="actionSendComment">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>发送注释(不发送//后面的内容)</string>
+   </property>
+   <property name="statusTip">
+    <string>不发送//后面的内容</string>
    </property>
   </action>
  </widget>

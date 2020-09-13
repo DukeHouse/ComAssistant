@@ -86,6 +86,10 @@ private slots:
     void innerVerticalScrollBarValueChanged(int value);
     void outterVerticalScrollBarValueChanged(int value);
     void splitterMovedSlot(int pos, int index);
+    void on_tabWidget_tabCloseRequested(int index);
+    void on_tabWidget_tabBarClicked(int index);
+    void on_timeStampCheckBox_stateChanged(int arg1);
+    void on_timeStampTimeOut_textChanged(const QString &arg1);
 
     //file
     void on_actionSaveOriginData_triggered();
@@ -98,7 +102,8 @@ private slots:
     //function
     void on_actionMultiString_triggered(bool checked);
     void on_actionSTM32_ISP_triggered();
-    
+    void on_actionPopupHotkey_triggered();
+
     //setting
     void on_actionCOM_Config_triggered();
     void on_actionGBK_triggered(bool checked);
@@ -106,6 +111,8 @@ private slots:
     void on_action_winLikeEnter_triggered(bool checked);
     void on_action_unixLikeEnter_triggered(bool checked);
     void on_actionKeyWordHighlight_triggered(bool checked);
+    void on_actionFontSetting_triggered();
+    void on_actionBackGroundColorSetting_triggered();
     void on_actionResetDefaultConfig_triggered(bool checked);
     
     //visualization
@@ -117,6 +124,8 @@ private slots:
     void on_actionAscii_triggered(bool checked);
     void on_actionFloat_triggered(bool checked);
     void on_actiondebug_triggered(bool checked);
+    void on_actionSumCheck_triggered(bool checked);
+    void on_actionOpenGL_triggered(bool checked);
 
     //help
     void on_actionManual_triggered();
@@ -144,23 +153,7 @@ private slots:
     void deleteSeedSlot();
     void clearSeedsSlot();
 
-    void on_timeStampCheckBox_stateChanged(int arg1);
-
-    void on_timeStampTimeOut_textChanged(const QString &arg1);
-
-    void on_actionOpenGL_triggered(bool checked);
-
-    void on_actionFontSetting_triggered();
-
-    void on_actionBackGroundColorSetting_triggered();
-
-    void on_actionSumCheck_triggered(bool checked);
-
-    void on_actionPopupHotkey_triggered();
-
-    void on_tabWidget_tabCloseRequested(int index);
-
-    void on_tabWidget_tabBarClicked(int index);
+    void on_actionSendComment_triggered(bool checked);
 
 private:
     QString formatTime(int ms);

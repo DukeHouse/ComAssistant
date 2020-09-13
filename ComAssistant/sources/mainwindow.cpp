@@ -59,6 +59,9 @@ void MainWindow::readConfig()
     //注册全局呼出快捷键
     registPopupHotKey(Config::getPopupHotKey());
 
+    //发送注释
+    on_actionSendComment_triggered(Config::getSendComment());
+
     //回车风格
     if(Config::getEnterStyle() == EnterStyle_e::WinStyle){
         ui->action_winLikeEnter->setChecked(true);
@@ -348,11 +351,11 @@ MainWindow::MainWindow(QWidget *parent) :
     adjustLayout();
     //是否首次运行
     if(Config::getFirstRun()){
+        QMessageBox::information(this, tr("提示"), tr("欢迎使用纸飞机串口调试助手。\n\n由于阁下是首次运行，接下来会弹出帮助文件和相关声明，请认真阅读。\n\n若阁下继续使用本软件则代表阁下接受并同意相关声明，\n否则请自行关闭软件。"));
         //弹出帮助文件
         on_actionManual_triggered();
         //弹出声明
-        on_actionAbout_triggered();
-        QMessageBox::information(this, tr("提示"), tr("欢迎使用本串口调试助手。\n\n请认真阅读帮助文件与相关声明。\n若您继续使用本软件则代表您接受并同意相关声明。\n若您不同意相关声明请自行关闭软件。"));
+        on_actionAbout_triggered();        
     }
 }
 
@@ -569,6 +572,7 @@ MainWindow::~MainWindow()
         Config::setGUIFont(g_font);
         Config::setBackGroundColor(g_background_color);
         Config::setPopupHotKey(g_popupHotKeySequence);
+        Config::setSendComment(ui->actionSendComment->isChecked());
 
         //serial 只保存成功打开过的
         Config::setPortName(serial.portName());
@@ -950,15 +954,29 @@ void MainWindow::cycleSendTimerSlot()
 */
 void MainWindow::on_sendButton_clicked()
 {
-    static QByteArray tmp;//用static是担心write是传递指针，发送大量数据可能会由于未发送完成而被销毁？
+    QByteArray tmp;
 
     if(!serial.isOpen()){
         QMessageBox::information(this,tr("提示"),tr("串口未打开"));
         return;
     }
 
-    //回车风格转换，win风格补上'\r'，默认unix风格
+    //不处理注释
     tmp = ui->textEdit->toPlainText().toLocal8Bit();
+    if(ui->actionSendComment->isChecked())
+    {
+        if(tmp.indexOf("//") != -1)
+        {
+            tmp = tmp.mid(0, tmp.indexOf("//"));
+        }
+        else if(tmp.indexOf("/") != -1) //注意顺序
+        {
+            tmp = tmp.mid(0, tmp.indexOf("/"));
+        }
+    }
+
+    //回车风格转换，win风格补上'\r'，默认unix风格
+
     if(ui->action_winLikeEnter->isChecked()){
         //win风格
         while (tmp.indexOf('\n') != -1) {
@@ -1112,18 +1130,33 @@ void MainWindow::on_cycleSendCheck_clicked(bool checked)
 */
 void MainWindow::on_textEdit_textChanged()
 {
+    QByteArray tmp;
+    //不处理注释
+    tmp = ui->textEdit->toPlainText().toLocal8Bit();
+    if(ui->actionSendComment->isChecked())
+    {
+        if(tmp.indexOf("//") != -1)
+        {
+            tmp = tmp.mid(0, tmp.indexOf("//"));
+        }
+        else if(tmp.indexOf("/") != -1) //注意顺序
+        {
+            tmp = tmp.mid(0, tmp.indexOf("/"));
+        }
+    }
+
     //十六进制发送下的输入格式检查
     static QString lastText;
     if(ui->hexSend->isChecked()){
-        if(!hexFormatCheck(ui->textEdit->toPlainText())){
+        if(!hexFormatCheck(tmp)){
             QMessageBox::warning(this, tr("警告"), tr("存在非法的十六进制格式。"));
             ui->textEdit->clear();
             ui->textEdit->insertPlainText(lastText);
             return;
         }
         //不能记录非空数据，因为clear操作也会触发本事件
-        if(!ui->textEdit->toPlainText().isEmpty())
-            lastText = ui->textEdit->toPlainText();
+        if(!tmp.isEmpty())
+            lastText = tmp;
     }
 }
 
@@ -2141,19 +2174,19 @@ void MainWindow::on_actionUsageStatistic_triggered()
 
     QString rankStr;
     if(totalTxRx_MB<100){
-        rankStr = tr("恭喜您，获得了【青铜码农】的称号！请再接再厉！");
+        rankStr = tr("恭喜阁下，获得了【青铜码农】的称号！请再接再厉！");
     }else if(totalTxRx_MB<200){
-        rankStr = tr("恭喜您，获得了【白银码农】的称号！请再接再厉！");
+        rankStr = tr("恭喜阁下，获得了【白银码农】的称号！请再接再厉！");
     }else if(totalTxRx_MB<400){
-        rankStr = tr("恭喜您，获得了【黄金码农】的称号！请再接再厉！");
+        rankStr = tr("恭喜阁下，获得了【黄金码农】的称号！请再接再厉！");
     }else if(totalTxRx_MB<800){
-        rankStr = tr("恭喜您，获得了【铂金码农】的称号！请再接再厉！");
+        rankStr = tr("恭喜阁下，获得了【铂金码农】的称号！请再接再厉！");
     }else if(totalTxRx_MB<1600){
-        rankStr = tr("恭喜您，获得了【星钻码农】的称号！请再接再厉！");
+        rankStr = tr("恭喜阁下，获得了【星钻码农】的称号！请再接再厉！");
     }else if(totalTxRx_MB<3200){
-        rankStr = tr("恭喜您，获得了【皇冠码农】的称号！请再接再厉！");
+        rankStr = tr("恭喜阁下，获得了【皇冠码农】的称号！请再接再厉！");
     }else if(totalTxRx_MB<6400){
-        rankStr = tr("恭喜您，获得了【王牌码农】的称号！请再接再厉！");
+        rankStr = tr("恭喜阁下，获得了【王牌码农】的称号！请再接再厉！");
     }else{
         rankStr = tr("荣誉只是浮云~");
     }
@@ -2167,12 +2200,12 @@ void MainWindow::on_actionUsageStatistic_triggered()
     str.append(tr("   MAC地址：")+HTTP::getHostMacAddress() + "\n");
     str.append("\n");
     str.append(tr("## 软件使用统计") + "\n");
-    str.append(tr("   ### 自本次启动软件以来，您：") + "\n");
+    str.append(tr("   ### 自本次启动软件以来，阁下：") + "\n");
     str.append(tr("   - 共发送数据：")+QString::number(currentTx,'f',2)+currentTxUnit + "\n");
     str.append(tr("   - 共接收数据：")+QString::number(currentRx,'f',2)+currentRxUnit + "\n");
     str.append(tr("   - 共运行本软件：")+currentRunTimeStr + "\n");
     str.append("\n");
-    str.append(tr("   ### 自首次启动软件以来，您：") + "\n");
+    str.append(tr("   ### 自首次启动软件以来，阁下：") + "\n");
     str.append(tr("   - 共发送数据：")+QString::number(totalTx,'f',2)+totalTxUnit + "\n");
     str.append(tr("   - 共接收数据：")+QString::number(totalRx,'f',2)+totalRxUnit + "\n");
     str.append(tr("   - 共运行本软件：")+totalRunTimeStr + "\n");
@@ -2183,9 +2216,9 @@ void MainWindow::on_actionUsageStatistic_triggered()
     str.append(tr("## 隐私声明") + "\n");
     str.append(tr("  - 以上统计信息可能会被上传至服务器用于统计。") + "\n");
     str.append(tr("  - 其他任何信息均不会被上传。") + "\n");
-    str.append(tr("  - 如您不同意本声明，可阻断本软件的网络请求或者您应该停止使用本软件。") + "\n");
+    str.append(tr("  - 如阁下不同意本声明，可阻断本软件的网络请求或者阁下应该停止使用本软件。") + "\n");
     str.append("\n");
-    str.append(tr("## 感谢您的使用") + "\n");
+    str.append(tr("## 感谢阁下的使用") + "\n");
     str.append("\n");
 
     //创建关于我对话框资源
@@ -2570,4 +2603,23 @@ void MainWindow::on_tabWidget_tabBarClicked(int index)
         resizeEvent(nullptr);
         RefreshTextBrowser = true;
     }
+}
+
+void MainWindow::on_actionSendComment_triggered(bool checked)
+{
+    if(checked)
+    {
+        ui->function->setTitle(tr("功能：发送注释"));
+    }
+    else
+    {
+        if(ui->hexSend->isChecked() && ui->textEdit->toPlainText().indexOf("//")!=-1)
+        {
+            QMessageBox::information(this, tr("提示"), tr("hex发送模式下关闭发送注释功能前需要先删除注释"));
+            ui->actionSendComment->setChecked(true);
+            return;
+        }
+        ui->function->setTitle(tr("功能"));
+    }
+    ui->actionSendComment->setChecked(checked);
 }
