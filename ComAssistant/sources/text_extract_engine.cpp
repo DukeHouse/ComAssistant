@@ -144,7 +144,7 @@ void TextExtractEngine::clearData(const QString &name)
         i++;
     }
 
-    qDebug()<<"clearData"<<rawData.buff.size();
+//    qDebug()<<"clearData"<<rawData.buff.size();
 }
 
 //保存指定名字的文本组到指定路径

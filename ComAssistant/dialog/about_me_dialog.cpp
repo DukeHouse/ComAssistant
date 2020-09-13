@@ -9,6 +9,7 @@ About_Me_Dialog::About_Me_Dialog(QWidget *parent) :
     //可见性设置
     ui->label_github->setVisible(false);
     ui->githubUrl->setVisible(false);
+    //使用了高亮器html显示会出问题
 }
 
 About_Me_Dialog::~About_Me_Dialog()
@@ -33,7 +34,7 @@ void About_Me_Dialog::showManualDoc(void)
             file.close();
 
             ui->textBrowser->clear();
-            ui->textBrowser->append(html);
+            ui->textBrowser->setHtml(html);
 
             //滚动到最前面，不知道为什么设置滚动条没效果
             QTextCursor cursor = ui->textBrowser->textCursor();
@@ -45,6 +46,12 @@ void About_Me_Dialog::showManualDoc(void)
     }else{
         QMessageBox::information(this, "提示", "帮助文件丢失。");
     }
+}
+
+void About_Me_Dialog::showMarkdown(QString &markdown)
+{
+    ui->textBrowser->clear();
+    ui->textBrowser->setMarkdown(markdown);
 }
 
 void About_Me_Dialog::on_okButton_clicked()
