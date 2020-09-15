@@ -242,7 +242,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, SIGNAL(sendKeyToPlotter(QKeyEvent*, bool)), ui->customPlot, SLOT(recvKey(QKeyEvent*, bool)));
 
 //    connect(ui->textBrowser->verticalScrollBar(),SIGNAL(actionTriggered(int)),this,SLOT(verticalScrollBarActionTriggered(int)));
-    //绑定内置和外置滚动条
+    //绑定内置和外置滚动条(因为设置背景色后内置滚动条颜色一起变了，很难看)
     ui->textBrowser->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     connect(ui->textBrowser->verticalScrollBar(),SIGNAL(rangeChanged(int, int)),this,SLOT(innerVerticalScrollBarRangeChanged(int, int)));
     connect(ui->textBrowser->verticalScrollBar(),SIGNAL(valueChanged(int)),this,SLOT(innerVerticalScrollBarValueChanged(int)));
@@ -449,25 +449,23 @@ void MainWindow::secTimerSlot()
 {
     static int64_t secCnt = 0;
     static qint32 msgIndex = 0;
-    static double idealSpeed = 0;
-    QString txHeavyLoad, rxHeavyLoad;
-    QString HeavyLoad = tr("(高负载)");
+    double idealSpeed = 0;
+    qint32 txLoad, rxLoad;
 
     //传输速度统计与显示
     rxSpeedKB = static_cast<double>(statisticRxByteCnt) / 1024.0;
     statisticRxByteCnt = 0;
     txSpeedKB = static_cast<double>(statisticTxByteCnt) / 1024.0;
     statisticTxByteCnt = 0;
-    //高负载提示(1是起始位)
+    //负载率计算(公式中的1是起始位)
     idealSpeed = (double)serial.baudRate()/(serial.stopBits()+serial.parity()+serial.dataBits()+1)/1024.0;
-    txHeavyLoad.clear();
-    rxHeavyLoad.clear();
-    if(txSpeedKB > idealSpeed * 0.85)
-        txHeavyLoad = HeavyLoad;
-    if(rxSpeedKB > idealSpeed * 0.85)
-        rxHeavyLoad = HeavyLoad;
-    statusSpeedLabel->setText(" Tx:" + QString::number(txSpeedKB, 'f', 2) + "KB/s" + txHeavyLoad +
-                              " Rx:" + QString::number(rxSpeedKB, 'f', 2) + "KB/s" + rxHeavyLoad);
+    txLoad = 100 * txSpeedKB / idealSpeed;
+    rxLoad = 100 * rxSpeedKB / idealSpeed;
+    if(txLoad>100)txLoad = 100;//由于电脑串口是先放进缓冲再发送，因此会出现使用率大于100%的情况
+    if(rxLoad>100)rxLoad = 100;
+
+    statusSpeedLabel->setText(" Tx:" + QString::number(txSpeedKB, 'f', 2) + "KB/s(" + QString::number(txLoad) + "%)" +
+                              " Rx:" + QString::number(rxSpeedKB, 'f', 2) + "KB/s(" + QString::number(rxLoad) + "%)");
 
     //显示远端下载的信息
     if(http->getMsgList().size()>0 && secCnt%10==0){
@@ -899,6 +897,7 @@ void MainWindow::printToTextBrowser()
     }
 
     ui->textBrowser->verticalScrollBar()->setValue(ui->textBrowser->verticalScrollBar()->maximum());
+    ui->textBrowser->moveCursor(QTextCursor::End);
 }
 
 void MainWindow::serialBytesWritten(qint64 bytes)
@@ -1622,8 +1621,9 @@ void MainWindow::editSeedSlot()
 
     qint32 curIndex = ui->multiString->row(item);
     bool ok = false;
-    QString newStr = QInputDialog::getText(this,tr("编辑条目"),tr("新的文本："), QLineEdit::Normal,
-                                           ui->multiString->item(curIndex)->text(), &ok,Qt::WindowCloseButtonHint);
+    QString newStr = QInputDialog::getMultiLineText(this, tr("编辑条目"), tr("新的文本："),
+                                                    ui->multiString->item(curIndex)->text(),
+                                                    &ok, Qt::WindowCloseButtonHint);
     if(ok == true)
         ui->multiString->item(curIndex)->setText(newStr);
 }
@@ -1894,7 +1894,7 @@ void MainWindow::innerVerticalScrollBarRangeChanged(int min, int max)
 {
     ui->textBrowserScrollBar->setMinimum(min);
     ui->textBrowserScrollBar->setMaximum(max);
-//    ui->textBrowserScrollBar->setValue(max);
+    ui->textBrowserScrollBar->setValue(max);
 }
 void MainWindow::innerVerticalScrollBarValueChanged(int value)
 {
@@ -1902,13 +1902,12 @@ void MainWindow::innerVerticalScrollBarValueChanged(int value)
 }
 void MainWindow::outterVerticalScrollBarActionTriggered(int action)
 {
-    action = !!action;
+    action = action + 0;
     ui->textBrowser->verticalScrollBar()->setValue(ui->textBrowserScrollBar->value());
 }
 void MainWindow::outterVerticalScrollBarValueChanged(int value)
 {
-    value = !!value;
-    ui->textBrowser->verticalScrollBar()->setValue(ui->textBrowserScrollBar->value());
+    ui->textBrowser->verticalScrollBar()->setValue(value);
 }
 
 void MainWindow::on_actionLinePlot_triggered()
