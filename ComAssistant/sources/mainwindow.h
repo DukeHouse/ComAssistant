@@ -90,6 +90,7 @@ private slots:
     void on_tabWidget_tabBarClicked(int index);
     void on_timeStampCheckBox_stateChanged(int arg1);
     void on_timeStampTimeOut_textChanged(const QString &arg1);
+    void copyTextBrowser_triggered(void);
 
     //file
     void on_actionSaveOriginData_triggered();
@@ -223,6 +224,7 @@ signals:
     qint32 tee_saveData(const QString &path, const QString &name, const bool& savePackBuff);
     void tee_parseData(void);
     void sendKeyToPlotter(QKeyEvent *e, bool isPressAct);
+
 public slots:
     void tee_textGroupsUpdate(const QByteArray &name, const QByteArray &data);
     void tee_saveDataResult(const qint32& result, const QString &path, const qint32 fileSize);
