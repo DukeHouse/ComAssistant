@@ -1148,7 +1148,7 @@ void MainWindow::on_textEdit_textChanged()
     static QString lastText;
     if(ui->hexSend->isChecked()){
         if(!hexFormatCheck(tmp)){
-            QMessageBox::warning(this, tr("警告"), tr("存在非法的十六进制格式。"));
+            QMessageBox::warning(this, tr("警告"), tr("hex发送模式下存在非法的十六进制格式。"));
             ui->textEdit->clear();
             ui->textEdit->insertPlainText(lastText);
             return;
@@ -1557,8 +1557,18 @@ void MainWindow::on_actionSTM32_ISP_triggered()
 */
 void MainWindow::on_multiString_itemDoubleClicked(QListWidgetItem *item)
 {
-    ui->textEdit->clear();
-    ui->textEdit->setText(item->text());
+    //十六进制发送下的输入格式检查
+    QString tmp = item->text();
+    if(ui->hexSend->isChecked()){
+        if(!hexFormatCheck(tmp)){
+            QMessageBox::warning(this, tr("警告"), tr("hex发送模式下存在非法的十六进制格式。"));
+            ui->textEdit->clear();
+            return;
+        }
+    }
+    //实际上填入数据后还会再触发一次on_textEdit_textChanged()进行格式检查，
+    //但是on_textEdit_textChanged()会重置回上一次字符串，导致会发送上一次数据
+    ui->textEdit->setText(tmp);
     on_sendButton_clicked();
 }
 
@@ -2318,27 +2328,40 @@ void MainWindow::on_actionValueDisplay_triggered(bool checked)
     adjustLayout();
 }
 
+//复制所选文本到剪贴板
+void MainWindow::copyTextBrowser_triggered(void)
+{
+    QClipboard *clipboard = QApplication::clipboard();
+    if(ui->textBrowser->textCursor().selectedText().isEmpty())
+        return;
+    clipboard->setText(ui->textBrowser->textCursor().selectedText());
+}
+
 void MainWindow::on_textBrowser_customContextMenuRequested(const QPoint &pos)
 {
     QPoint noWarning = pos;
     noWarning.x();
 
+    QAction *copyText = nullptr;
     QAction *clearTextBrowser = nullptr;
     QAction *saveOriginData = nullptr;
     QAction *saveShowedData = nullptr;
-    QAction *tips = nullptr;
+
     QMenu *popMenu = new QMenu( this );
     //添加右键菜单
+    copyText = new QAction(tr("复制所选文本"), this);
     saveOriginData = new QAction(tr("保存原始数据"), this);
     saveShowedData = new QAction(tr("保存显示数据"), this);
     clearTextBrowser = new QAction(tr("清空数据显示区"), this);
 
+    popMenu->addAction( copyText );
+    popMenu->addSeparator();
     popMenu->addAction( saveOriginData );
     popMenu->addAction( saveShowedData );
     popMenu->addSeparator();
     popMenu->addAction( clearTextBrowser );
-    popMenu->addSeparator();
-    popMenu->addAction( tips );
+
+    connect( copyText, SIGNAL(triggered() ), this, SLOT( copyTextBrowser_triggered()) );
     connect( saveOriginData, SIGNAL(triggered() ), this, SLOT( on_actionSaveOriginData_triggered()) );
     connect( saveShowedData, SIGNAL(triggered() ), this, SLOT( on_actionSaveShowedData_triggered()) );
     connect( clearTextBrowser, SIGNAL(triggered() ), this, SLOT( clearTextBrowserSlot()) );
