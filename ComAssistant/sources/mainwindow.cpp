@@ -242,7 +242,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, SIGNAL(sendKeyToPlotter(QKeyEvent*, bool)), ui->customPlot, SLOT(recvKey(QKeyEvent*, bool)));
 
 //    connect(ui->textBrowser->verticalScrollBar(),SIGNAL(actionTriggered(int)),this,SLOT(verticalScrollBarActionTriggered(int)));
-    //绑定内置和外置滚动条
+    //绑定内置和外置滚动条(因为设置背景色后内置滚动条颜色一起变了，很难看)
     ui->textBrowser->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     connect(ui->textBrowser->verticalScrollBar(),SIGNAL(rangeChanged(int, int)),this,SLOT(innerVerticalScrollBarRangeChanged(int, int)));
     connect(ui->textBrowser->verticalScrollBar(),SIGNAL(valueChanged(int)),this,SLOT(innerVerticalScrollBarValueChanged(int)));
@@ -449,25 +449,23 @@ void MainWindow::secTimerSlot()
 {
     static int64_t secCnt = 0;
     static qint32 msgIndex = 0;
-    static double idealSpeed = 0;
-    QString txHeavyLoad, rxHeavyLoad;
-    QString HeavyLoad = tr("(高负载)");
+    double idealSpeed = 0;
+    qint32 txLoad, rxLoad;
 
     //传输速度统计与显示
     rxSpeedKB = static_cast<double>(statisticRxByteCnt) / 1024.0;
     statisticRxByteCnt = 0;
     txSpeedKB = static_cast<double>(statisticTxByteCnt) / 1024.0;
     statisticTxByteCnt = 0;
-    //高负载提示(1是起始位)
+    //负载率计算(公式中的1是起始位)
     idealSpeed = (double)serial.baudRate()/(serial.stopBits()+serial.parity()+serial.dataBits()+1)/1024.0;
-    txHeavyLoad.clear();
-    rxHeavyLoad.clear();
-    if(txSpeedKB > idealSpeed * 0.85)
-        txHeavyLoad = HeavyLoad;
-    if(rxSpeedKB > idealSpeed * 0.85)
-        rxHeavyLoad = HeavyLoad;
-    statusSpeedLabel->setText(" Tx:" + QString::number(txSpeedKB, 'f', 2) + "KB/s" + txHeavyLoad +
-                              " Rx:" + QString::number(rxSpeedKB, 'f', 2) + "KB/s" + rxHeavyLoad);
+    txLoad = 100 * txSpeedKB / idealSpeed;
+    rxLoad = 100 * rxSpeedKB / idealSpeed;
+    if(txLoad>100)txLoad = 100;//由于电脑串口是先放进缓冲再发送，因此会出现使用率大于100%的情况
+    if(rxLoad>100)rxLoad = 100;
+
+    statusSpeedLabel->setText(" Tx:" + QString::number(txSpeedKB, 'f', 2) + "KB/s(" + QString::number(txLoad) + "%)" +
+                              " Rx:" + QString::number(rxSpeedKB, 'f', 2) + "KB/s(" + QString::number(rxLoad) + "%)");
 
     //显示远端下载的信息
     if(http->getMsgList().size()>0 && secCnt%10==0){
@@ -899,6 +897,7 @@ void MainWindow::printToTextBrowser()
     }
 
     ui->textBrowser->verticalScrollBar()->setValue(ui->textBrowser->verticalScrollBar()->maximum());
+    ui->textBrowser->moveCursor(QTextCursor::End);
 }
 
 void MainWindow::serialBytesWritten(qint64 bytes)
@@ -1149,7 +1148,7 @@ void MainWindow::on_textEdit_textChanged()
     static QString lastText;
     if(ui->hexSend->isChecked()){
         if(!hexFormatCheck(tmp)){
-            QMessageBox::warning(this, tr("警告"), tr("存在非法的十六进制格式。"));
+            QMessageBox::warning(this, tr("警告"), tr("hex发送模式下存在非法的十六进制格式。"));
             ui->textEdit->clear();
             ui->textEdit->insertPlainText(lastText);
             return;
@@ -1558,8 +1557,19 @@ void MainWindow::on_actionSTM32_ISP_triggered()
 */
 void MainWindow::on_multiString_itemDoubleClicked(QListWidgetItem *item)
 {
-    ui->textEdit->clear();
-    ui->textEdit->setText(item->text());
+    //十六进制发送下的输入格式检查
+    QString tmp = item->text();
+    if(ui->hexSend->isChecked()){
+        QString lastStr = ui->textEdit->toPlainText().toLocal8Bit();
+        if(!hexFormatCheck(tmp)){
+            QMessageBox::warning(this, tr("警告"), tr("hex发送模式下存在非法的十六进制格式。"));
+            ui->textEdit->setText(lastStr);
+            return;
+        }
+    }
+    //实际上填入数据后还会再触发一次on_textEdit_textChanged()进行格式检查，
+    //但是on_textEdit_textChanged()会重置回上一次字符串，导致会发送上一次数据
+    ui->textEdit->setText(tmp);
     on_sendButton_clicked();
 }
 
@@ -1622,8 +1632,9 @@ void MainWindow::editSeedSlot()
 
     qint32 curIndex = ui->multiString->row(item);
     bool ok = false;
-    QString newStr = QInputDialog::getText(this,tr("编辑条目"),tr("新的文本："), QLineEdit::Normal,
-                                           ui->multiString->item(curIndex)->text(), &ok,Qt::WindowCloseButtonHint);
+    QString newStr = QInputDialog::getMultiLineText(this, tr("编辑条目"), tr("新的文本："),
+                                                    ui->multiString->item(curIndex)->text(),
+                                                    &ok, Qt::WindowCloseButtonHint);
     if(ok == true)
         ui->multiString->item(curIndex)->setText(newStr);
 }
@@ -1894,7 +1905,7 @@ void MainWindow::innerVerticalScrollBarRangeChanged(int min, int max)
 {
     ui->textBrowserScrollBar->setMinimum(min);
     ui->textBrowserScrollBar->setMaximum(max);
-//    ui->textBrowserScrollBar->setValue(max);
+    ui->textBrowserScrollBar->setValue(max);
 }
 void MainWindow::innerVerticalScrollBarValueChanged(int value)
 {
@@ -1902,13 +1913,12 @@ void MainWindow::innerVerticalScrollBarValueChanged(int value)
 }
 void MainWindow::outterVerticalScrollBarActionTriggered(int action)
 {
-    action = !!action;
+    action = action + 0;
     ui->textBrowser->verticalScrollBar()->setValue(ui->textBrowserScrollBar->value());
 }
 void MainWindow::outterVerticalScrollBarValueChanged(int value)
 {
-    value = !!value;
-    ui->textBrowser->verticalScrollBar()->setValue(ui->textBrowserScrollBar->value());
+    ui->textBrowser->verticalScrollBar()->setValue(value);
 }
 
 void MainWindow::on_actionLinePlot_triggered()
@@ -2319,27 +2329,40 @@ void MainWindow::on_actionValueDisplay_triggered(bool checked)
     adjustLayout();
 }
 
+//复制所选文本到剪贴板
+void MainWindow::copyTextBrowser_triggered(void)
+{
+    QClipboard *clipboard = QApplication::clipboard();
+    if(ui->textBrowser->textCursor().selectedText().isEmpty())
+        return;
+    clipboard->setText(ui->textBrowser->textCursor().selectedText());
+}
+
 void MainWindow::on_textBrowser_customContextMenuRequested(const QPoint &pos)
 {
     QPoint noWarning = pos;
     noWarning.x();
 
+    QAction *copyText = nullptr;
     QAction *clearTextBrowser = nullptr;
     QAction *saveOriginData = nullptr;
     QAction *saveShowedData = nullptr;
-    QAction *tips = nullptr;
+
     QMenu *popMenu = new QMenu( this );
     //添加右键菜单
+    copyText = new QAction(tr("复制所选文本"), this);
     saveOriginData = new QAction(tr("保存原始数据"), this);
     saveShowedData = new QAction(tr("保存显示数据"), this);
     clearTextBrowser = new QAction(tr("清空数据显示区"), this);
 
+    popMenu->addAction( copyText );
+    popMenu->addSeparator();
     popMenu->addAction( saveOriginData );
     popMenu->addAction( saveShowedData );
     popMenu->addSeparator();
     popMenu->addAction( clearTextBrowser );
-    popMenu->addSeparator();
-    popMenu->addAction( tips );
+
+    connect( copyText, SIGNAL(triggered() ), this, SLOT( copyTextBrowser_triggered()) );
     connect( saveOriginData, SIGNAL(triggered() ), this, SLOT( on_actionSaveOriginData_triggered()) );
     connect( saveShowedData, SIGNAL(triggered() ), this, SLOT( on_actionSaveShowedData_triggered()) );
     connect( clearTextBrowser, SIGNAL(triggered() ), this, SLOT( clearTextBrowserSlot()) );
