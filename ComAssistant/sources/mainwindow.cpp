@@ -1560,9 +1560,10 @@ void MainWindow::on_multiString_itemDoubleClicked(QListWidgetItem *item)
     //十六进制发送下的输入格式检查
     QString tmp = item->text();
     if(ui->hexSend->isChecked()){
+        QString lastStr = ui->textEdit->toPlainText().toLocal8Bit();
         if(!hexFormatCheck(tmp)){
             QMessageBox::warning(this, tr("警告"), tr("hex发送模式下存在非法的十六进制格式。"));
-            ui->textEdit->clear();
+            ui->textEdit->setText(lastStr);
             return;
         }
     }
