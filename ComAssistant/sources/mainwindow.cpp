@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 #include <QHotkey>
 
+static qint32   g_multiStr_cur_index;
 static QColor   g_background_color;
 static QFont    g_font;
 static bool     g_enableSumCheck;
@@ -236,6 +237,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(&secTimer, SIGNAL(timeout()), this, SLOT(secTimerSlot()));
     connect(&printToTextBrowserTimer, SIGNAL(timeout()), this, SLOT(printToTextBrowserTimerSlot()));
     connect(&plotterParseTimer, SIGNAL(timeout()), this, SLOT(plotterParseTimerSlot()));
+    connect(&multiStrSeqSendTimer, SIGNAL(timeout()), this, SLOT(multiStrSeqSendTimerSlot()));
     connect(&serial, SIGNAL(readyRead()), this, SLOT(readSerialPort()));
     connect(&serial, SIGNAL(bytesWritten(qint64)), this, SLOT(serialBytesWritten(qint64)));
     connect(&serial, SIGNAL(error(QSerialPort::SerialPortError)),  this, SLOT(handleSerialError(QSerialPort::SerialPortError)));
@@ -323,6 +325,8 @@ MainWindow::MainWindow(QWidget *parent) :
     printToTextBrowserTimer.setTimerType(Qt::PreciseTimer);
     printToTextBrowserTimer.start(50);
     plotterParseTimer.setTimerType(Qt::PreciseTimer);
+    multiStrSeqSendTimer.setTimerType(Qt::PreciseTimer);
+    multiStrSeqSendTimer.setSingleShot(true);
 
     //计时器
     g_lastSecsSinceEpoch = QDateTime::currentSecsSinceEpoch();
@@ -948,29 +952,106 @@ void MainWindow::cycleSendTimerSlot()
     on_sendButton_clicked();
 }
 
+//用于多字符串组件的序列发送功能，提取序列延时时间
+qint32 extractSeqenceTime(QString &str)
+{
+    QString temp;
+    qint32 seqTime = -1;
+    bool ok;
+    if(str.indexOf('[')==-1)
+    {
+        return -1;
+    }
+    temp = str.mid(str.indexOf('['));
+
+    if(str.indexOf(']')==-1)
+    {
+        return -1;
+    }
+    temp = temp.mid(1, temp.indexOf(']')-1);
+
+    seqTime = temp.toInt(&ok);
+
+    if(!ok || seqTime < 0)
+    {
+        return -1;
+    }
+
+    return seqTime;
+}
+
+void MainWindow::multiStrSeqSendTimerSlot()
+{
+    if (!ui->actionMultiString->isChecked())
+    {
+        multiStrSeqSendTimer.stop();
+        return;
+    }
+    if(ui->multiString->item(g_multiStr_cur_index + 1)==nullptr)
+    {
+        g_multiStr_cur_index = -1;
+    }
+
+    //十六进制发送下的输入格式检查
+    QString tmp = ui->multiString->item(++g_multiStr_cur_index)->text();
+    if(ui->hexSend->isChecked()){
+        QString lastStr = ui->textEdit->toPlainText().toLocal8Bit();
+        if(!hexFormatCheck(tmp)){
+            QMessageBox::warning(this, tr("警告"), tr("hex发送模式下存在非法的十六进制格式。"));
+            ui->textEdit->setText(lastStr);
+            return;
+        }
+    }
+    //实际上填入数据后还会再触发一次on_textEdit_textChanged()进行格式检查，
+    //但是on_textEdit_textChanged()会重置回上一次字符串，导致会发送上一次数据
+    ui->textEdit->setText(tmp);
+    on_sendButton_clicked();
+}
+
 /*
  * Function:发送数据
 */
 void MainWindow::on_sendButton_clicked()
 {
     QByteArray tmp;
+    QString tail;
 
     if(!serial.isOpen()){
         QMessageBox::information(this,tr("提示"),tr("串口未打开"));
         return;
     }
 
-    //不处理注释
+    //不处理注释(发送注释功能)
     tmp = ui->textEdit->toPlainText().toLocal8Bit();
     if(ui->actionSendComment->isChecked())
     {
         if(tmp.lastIndexOf("//") != -1)
         {
+            tail = tmp.mid(tmp.lastIndexOf("//"));
             tmp = tmp.mid(0, tmp.lastIndexOf("//"));
         }
         else if(tmp.lastIndexOf("/") != -1 && ui->hexSend->isChecked()) //注意顺序
         {
+            tail = tmp.mid(tmp.lastIndexOf("/"));
             tmp = tmp.mid(0, tmp.lastIndexOf("/"));
+        }
+        //多字符串序列发送
+        if(ui->actionMultiString->isChecked())
+        {
+            qint32 seqTime = extractSeqenceTime(tail);
+            if(seqTime > 0)
+            {
+                ui->clearWindows->setText(tr("中  止"));
+                multiStrSeqSendTimer.start(seqTime);
+            }
+            else
+            {
+                multiStrSeqSendTimer.stop();
+            }
+        }
+        else
+        {
+            multiStrSeqSendTimer.stop();
         }
     }
 
@@ -1046,6 +1127,13 @@ void MainWindow::on_clearWindows_clicked()
 {
     ui->clearWindows->setText(tr("清  空"));
 
+    //多字符串序列发送定时器，第二次才清空
+    if(multiStrSeqSendTimer.isActive())
+    {
+        multiStrSeqSendTimer.stop();
+        return;
+    }
+
     //定时器
     g_lastSecsSinceEpoch = QDateTime::currentSecsSinceEpoch();
     qint64 consumedTime = QDateTime::currentSecsSinceEpoch() - g_lastSecsSinceEpoch;
@@ -1095,8 +1183,6 @@ void MainWindow::on_clearWindows_clicked()
 
     //更新收发统计
     statusStatisticLabel->setText(serial.getTxRxString());
-
-
 }
 
 void MainWindow::on_cycleSendCheck_clicked(bool checked)
@@ -1569,6 +1655,7 @@ void MainWindow::on_multiString_itemDoubleClicked(QListWidgetItem *item)
     }
     //实际上填入数据后还会再触发一次on_textEdit_textChanged()进行格式检查，
     //但是on_textEdit_textChanged()会重置回上一次字符串，导致会发送上一次数据
+    g_multiStr_cur_index = ui->multiString->currentIndex().row();
     ui->textEdit->setText(tmp);
     on_sendButton_clicked();
 }

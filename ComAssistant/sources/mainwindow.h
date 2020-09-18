@@ -140,6 +140,7 @@ private slots:
     void cycleSendTimerSlot();
     void printToTextBrowserTimerSlot();
     void plotterParseTimerSlot();
+    void multiStrSeqSendTimerSlot();
 
     //contextMenuRequested
     void on_textBrowser_customContextMenuRequested(const QPoint &pos);
@@ -188,7 +189,8 @@ private:
     QTimer secTimer;        //秒定时器
     QTimer timeStampTimer;  //时间戳定时器
     QTimer printToTextBrowserTimer; //刷新文本显示区的定时器
-    QTimer plotterParseTimer;      //协议解析定时器
+    QTimer plotterParseTimer;       //协议解析定时器
+    QTimer multiStrSeqSendTimer;    //多字符串序列发送定时器
 
     QString lastFileDialogPath; //上次文件对话框路径
 

@@ -694,8 +694,9 @@ p, li { white-space: pre-wrap; }
      <string>功能</string>
     </property>
     <addaction name="actionMultiString"/>
-    <addaction name="actionSTM32_ISP"/>
     <addaction name="actionSendComment"/>
+    <addaction name="separator"/>
+    <addaction name="actionSTM32_ISP"/>
    </widget>
    <widget class="QMenu" name="plotter">
     <property name="title">
