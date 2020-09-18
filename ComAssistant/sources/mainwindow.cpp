@@ -964,13 +964,13 @@ void MainWindow::on_sendButton_clicked()
     tmp = ui->textEdit->toPlainText().toLocal8Bit();
     if(ui->actionSendComment->isChecked())
     {
-        if(tmp.indexOf("//") != -1)
+        if(tmp.lastIndexOf("//") != -1)
         {
-            tmp = tmp.mid(0, tmp.indexOf("//"));
+            tmp = tmp.mid(0, tmp.lastIndexOf("//"));
         }
-        else if(tmp.indexOf("/") != -1) //注意顺序
+        else if(tmp.lastIndexOf("/") != -1 && ui->hexSend->isChecked()) //注意顺序
         {
-            tmp = tmp.mid(0, tmp.indexOf("/"));
+            tmp = tmp.mid(0, tmp.lastIndexOf("/"));
         }
     }
 
@@ -1134,13 +1134,13 @@ void MainWindow::on_textEdit_textChanged()
     tmp = ui->textEdit->toPlainText().toLocal8Bit();
     if(ui->actionSendComment->isChecked())
     {
-        if(tmp.indexOf("//") != -1)
+        if(tmp.lastIndexOf("//") != -1)
         {
-            tmp = tmp.mid(0, tmp.indexOf("//"));
+            tmp = tmp.mid(0, tmp.lastIndexOf("//"));
         }
-        else if(tmp.indexOf("/") != -1) //注意顺序
+        else if(tmp.lastIndexOf("/") != -1 && ui->hexSend->isChecked()) //注意顺序
         {
-            tmp = tmp.mid(0, tmp.indexOf("/"));
+            tmp = tmp.mid(0, tmp.lastIndexOf("/"));
         }
     }
 
