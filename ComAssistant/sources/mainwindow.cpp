@@ -1134,6 +1134,29 @@ void MainWindow::on_clearWindows_clicked()
         return;
     }
 
+    //文件解析中止，第二次才清空
+    if(parseFile)
+    {
+        parseFileBuff.clear();
+        parseFileBuffIndex = 0;
+        parseFile = 0;
+        ui->sendButton->setEnabled(true);
+        ui->multiString->setEnabled(true);
+        ui->cycleSendCheck->setEnabled(true);
+        return;
+    }
+
+    //文件发送中止，第二次才清空
+    if(!SendFileBuff.isEmpty())
+    {
+        SendFileBuff.clear();
+        SendFileBuffIndex = 0;
+        ui->sendButton->setEnabled(true);
+        ui->multiString->setEnabled(true);
+        ui->cycleSendCheck->setEnabled(true);
+        return;
+    }
+
     //定时器
     g_lastSecsSinceEpoch = QDateTime::currentSecsSinceEpoch();
     qint64 consumedTime = QDateTime::currentSecsSinceEpoch() - g_lastSecsSinceEpoch;
@@ -1160,12 +1183,6 @@ void MainWindow::on_clearWindows_clicked()
             i = 0;//重置计数器
         }
     }
-
-    //清空文件缓冲
-    SendFileBuff.clear();
-    SendFileBuffIndex = 0;
-    parseFileBuff.clear();
-    parseFileBuffIndex = 0;
 
     //绘图器相关
     ui->customPlot->protocol->clearBuff();
@@ -1448,7 +1465,7 @@ void MainWindow::on_actionOpenOriginData_triggered()
         ui->textBrowser->appendPlainText("File size: " + QString::number(file.size()) + " Byte");
         ui->textBrowser->appendPlainText("Read containt:\n");
         BrowserBuff.clear();
-        BrowserBuff.append(ui->textBrowser->document()->toPlainText());
+        BrowserBuff.append(ui->textBrowser->toPlainText());
 
         //关闭不必要的控件
         ui->sendButton->setEnabled(false);
@@ -2380,11 +2397,20 @@ void MainWindow::on_actionSendFile_triggered()
             ui->textBrowser->appendPlainText("One pack size: "+QString::number(PACKSIZE_SENDFILE)+" Bytes");
             ui->textBrowser->appendPlainText("Total packs: "+QString::number(SendFileBuff.size())+" packs");
             ui->textBrowser->appendPlainText("");
-            QString str = ui->textBrowser->document()->toPlainText();
+            QString str = ui->textBrowser->toPlainText();
             BrowserBuff.clear();
             BrowserBuff.append(str);
             hexBrowserBuff.clear();
             hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
+
+            //关闭不必要的控件
+            ui->sendButton->setEnabled(false);
+            ui->multiString->setEnabled(false);
+            cycleSendTimer.stop();
+            ui->cycleSendCheck->setEnabled(false);
+            ui->cycleSendCheck->setChecked(false);
+            ui->clearWindows->setText(tr("中  止"));
+
             serial.write(SendFileBuff.at(SendFileBuffIndex++));//后续缓冲的发送在串口发送完成的槽里
         }
         else
