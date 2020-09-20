@@ -127,7 +127,7 @@ void MainWindow::readConfig()
         g_background_color.setGreen(g);
         g_background_color.setBlue(b);
     }
-    QString str = "background-color: rgb(RGBR,RGBG,RGBB);";
+    QString str = "QPlainTextEdit{ background-color: rgb(RGBR,RGBG,RGBB);}";
     str.replace("RGBR", QString::number(r));
     str.replace("RGBG", QString::number(g));
     str.replace("RGBB", QString::number(b));
@@ -402,10 +402,22 @@ void MainWindow::tee_textGroupsUpdate(const QByteArray &name, const QByteArray &
     if(textEdit){
         textEdit->appendPlainText(data);
     }else{
+        //新增textEdit，并设置字体、背景、高亮器等属性
         textEdit = new QPlainTextEdit(this);
         textEdit->setFont(g_font);
+
+        qint32 r,g,b;
+        g_background_color.getRgb(&r,&g,&b);
+        QString str = "QPlainTextEdit{ background-color: rgb(RGBR,RGBG,RGBB);}";
+        str.replace("RGBR", QString::number(r));
+        str.replace("RGBG", QString::number(g));
+        str.replace("RGBB", QString::number(b));
+        textEdit->setStyleSheet(str);
+
         new Highlighter(textEdit->document());
+
         textEdit->setReadOnly(true);
+
         ui->tabWidget->addTab(textEdit, name);
         textEdit->appendPlainText(data);
     }
@@ -2604,19 +2616,19 @@ void MainWindow::on_actionBackGroundColorSetting_triggered()
     qint32 r,g,b;
     g_background_color = color;
     g_background_color.getRgb(&r,&g,&b);
-    QString str = "background-color: rgb(RGBR,RGBG,RGBB);";
+    QString str = "QPlainTextEdit{ background-color: rgb(RGBR,RGBG,RGBB);}";
     str.replace("RGBR", QString::number(r));
     str.replace("RGBG", QString::number(g));
     str.replace("RGBB", QString::number(b));
     ui->textBrowser->setStyleSheet(str);
 
-//    QPlainTextEdit *textEdit = nullptr;
-//    for(qint32 i = 0; i < ui->tabWidget->count(); i++){
-//        textEdit = dynamic_cast<QPlainTextEdit *>(ui->tabWidget->widget(i));
-//        if(textEdit){
-//            textEdit->setStyleSheet(str);
-//        }
-//    }
+    QPlainTextEdit *textEdit = nullptr;
+    for(qint32 i = 0; i < ui->tabWidget->count(); i++){
+        textEdit = dynamic_cast<QPlainTextEdit *>(ui->tabWidget->widget(i));
+        if(textEdit){
+            textEdit->setStyleSheet(str);
+        }
+    }
 }
 
 void MainWindow::on_actionSumCheck_triggered(bool checked)
