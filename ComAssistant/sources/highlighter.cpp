@@ -68,25 +68,37 @@ Highlighter::Highlighter(QTextDocument *parent)
                     << "\\("
                     << "\\)"
                     << "\\["
-                    << "]"
+                    << "\\]"
                     << "<"
-                    << ">";
-    separateFormat.setForeground(Qt::red);
+                    << ">"
+                    << "\\."
+                    << "/"
+                    << "\\?"
+                    << "\""
+                    << "\\\\"
+                    << "\\|"
+                    << "'"
+                    << "!"
+                    << "@"
+                    << "#"
+                    << "\\$"
+                    << "%"
+                    << "\\^"
+                    << "&"
+                    << "^"
+                    << "\\*"
+                    << "-"
+                    << "_"
+                    << "\\+"
+                    << "°"
+                    << "℃";
+
+    separateFormat.setForeground(QColor(255, 90, 90));
     foreach (const QString &pattern, keywordPatterns) {
         rule.pattern = QRegularExpression(pattern);
         rule.format = separateFormat;
         highlightingRules.append(rule);
     }
-
-    //引用字符串高亮
-    quotationFormat.setForeground(Qt::darkYellow);
-    rule.pattern = QRegularExpression(QStringLiteral("\".*\""));
-    rule.format = quotationFormat;
-    highlightingRules.append(rule);
-    quotationFormat.setForeground(Qt::darkYellow);
-    rule.pattern = QRegularExpression(QStringLiteral("\'.*\'"));
-    rule.format = quotationFormat;
-    highlightingRules.append(rule);
 
     //单行注释高亮
     singleLineCommentFormat.setForeground(Qt::darkGreen);
@@ -102,12 +114,22 @@ Highlighter::Highlighter(QTextDocument *parent)
                     << "\\b0X[0-9a-fA-F]{1,}\\b"
                     << "\\b[0-9a-fA-F][0-9a-fA-F]{1,}\\b";
     keywordFormat.setFontWeight(QFont::Normal);
-    keywordFormat.setForeground(Qt::darkMagenta);
+    keywordFormat.setForeground(QColor(130, 90, 230));
     foreach (const QString &pattern, keywordPatterns) {
         rule.pattern = QRegularExpression(pattern);
         rule.format = keywordFormat;
         highlightingRules.append(rule);
     }
+
+    //引用字符串高亮
+    quotationFormat.setForeground(QColor(240, 135, 30));
+    rule.pattern = QRegularExpression(QStringLiteral("\".*\""));
+    rule.format = quotationFormat;
+    highlightingRules.append(rule);
+    quotationFormat.setForeground(QColor(240, 135, 30));
+    rule.pattern = QRegularExpression(QStringLiteral("\'.*\'"));
+    rule.format = quotationFormat;
+    highlightingRules.append(rule);
 
     //时间戳高亮，放在后面以便覆盖重复的匹配字符
     keywordPatterns.clear();
