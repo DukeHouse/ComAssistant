@@ -312,6 +312,8 @@ bool Config::setMultiString(QStringList multiStr){
         multiStr.append("发送的数据会自动添加进条目");
         multiStr.append("双击条目发送");
         multiStr.append("右击条目删除/编辑");
+        multiStr.append("\"发送注释\"可以忽略发送//后面的内容");
+        multiStr.append("在//后标记[n]可延时n毫秒后自动发送下一指令");
     }
 
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
@@ -342,6 +344,8 @@ QStringList Config::getMultiString(){
             case 0: preStr = "发送的数据会自动添加进条目"; break;
             case 1: preStr = "双击条目发送"; break;
             case 2: preStr = "右击条目删除/编辑"; break;
+            case 3: preStr = "\"发送注释\"可以忽略发送//后面的内容"; break;
+            case 4: preStr = "在//后标记[n]可延时n毫秒后自动发送下一指令"; break;
             default: preStr = ""; break;
         }
         QString value = iniFile->value(SECTION_MULTISTR+KEY_MULTISTRING+QString::number(i), preStr).toString();
