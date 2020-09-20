@@ -204,7 +204,6 @@ void MainWindow::adjustLayout()
         ui->splitter_display->setSizes(lengthList);
     }
 
-//    ui->textBrowserScrollBar->hide();
 }
 
 void MainWindow::layoutConfig()
@@ -243,14 +242,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(&serial, SIGNAL(error(QSerialPort::SerialPortError)),  this, SLOT(handleSerialError(QSerialPort::SerialPortError)));
     connect(this, SIGNAL(sendKeyToPlotter(QKeyEvent*, bool)), ui->customPlot, SLOT(recvKey(QKeyEvent*, bool)));
 
-//    connect(ui->textBrowser->verticalScrollBar(),SIGNAL(actionTriggered(int)),this,SLOT(verticalScrollBarActionTriggered(int)));
-    //绑定内置和外置滚动条(因为设置背景色后内置滚动条颜色一起变了，很难看)
-    ui->textBrowser->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    connect(ui->textBrowser->verticalScrollBar(),SIGNAL(rangeChanged(int, int)),this,SLOT(innerVerticalScrollBarRangeChanged(int, int)));
-    connect(ui->textBrowser->verticalScrollBar(),SIGNAL(valueChanged(int)),this,SLOT(innerVerticalScrollBarValueChanged(int)));
-    connect(ui->textBrowserScrollBar ,SIGNAL(valueChanged(int)),this,SLOT(outterVerticalScrollBarValueChanged(int)));
-    connect(ui->textBrowser->verticalScrollBar(),SIGNAL(actionTriggered(int)),this,SLOT(innerVerticalScrollBarActionTriggered(int)));
-    connect(ui->textBrowserScrollBar,SIGNAL(actionTriggered(int)),this,SLOT(outterVerticalScrollBarActionTriggered(int)));
+    connect(ui->textBrowser->verticalScrollBar(),SIGNAL(actionTriggered(int)),this,SLOT(verticalScrollBarActionTriggered(int)));
 
     //状态栏标签
     statusRemoteMsgLabel = new QLabel(this);
@@ -1958,14 +1950,14 @@ void MainWindow::on_actiondebug_triggered(bool checked)
     }
 }
 
-void MainWindow::innerVerticalScrollBarActionTriggered(qint32 action)
+void MainWindow::verticalScrollBarActionTriggered(qint32 action)
 {
     QScrollBar* bar = ui->textBrowser->verticalScrollBar();
 
     if(bar->maximum() == 0)
         return;
 
-//    qDebug()<<"innerVerticalScrollBarActionTriggered"<<action<<bar->value()<<bar->maximum()<<bar->sliderPosition()<<100*bar->sliderPosition()/bar->maximum();
+//    qDebug()<<"verticalScrollBarActionTriggered"<<action<<bar->value()<<bar->maximum()<<bar->sliderPosition()<<100*bar->sliderPosition()/bar->maximum();
 
     if(action == QAbstractSlider::SliderSingleStepAdd ||
        action == QAbstractSlider::SliderSingleStepSub||
@@ -2015,27 +2007,8 @@ void MainWindow::innerVerticalScrollBarActionTriggered(qint32 action)
         }
     }
 
-    ui->textBrowserScrollBar->setValue(bar->value());
 }
-void MainWindow::innerVerticalScrollBarRangeChanged(int min, int max)
-{
-    ui->textBrowserScrollBar->setMinimum(min);
-    ui->textBrowserScrollBar->setMaximum(max);
-    ui->textBrowserScrollBar->setValue(max);
-}
-void MainWindow::innerVerticalScrollBarValueChanged(int value)
-{
-    ui->textBrowserScrollBar->setValue(value);
-}
-void MainWindow::outterVerticalScrollBarActionTriggered(int action)
-{
-    action = action + 0;
-    ui->textBrowser->verticalScrollBar()->setValue(ui->textBrowserScrollBar->value());
-}
-void MainWindow::outterVerticalScrollBarValueChanged(int value)
-{
-    ui->textBrowser->verticalScrollBar()->setValue(value);
-}
+
 
 void MainWindow::on_actionLinePlot_triggered()
 {
