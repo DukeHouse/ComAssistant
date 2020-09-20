@@ -1028,7 +1028,7 @@ p, li { white-space: pre-wrap; }
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>发送注释(不发送//后面的内容)</string>
+    <string>发送注释</string>
    </property>
    <property name="statusTip">
     <string>不发送//后面的内容</string>
