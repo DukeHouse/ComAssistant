@@ -996,19 +996,32 @@ void MainWindow::multiStrSeqSendTimerSlot()
         g_multiStr_cur_index = -1;
     }
 
-    //十六进制发送下的输入格式检查
-    QString tmp = ui->multiString->item(++g_multiStr_cur_index)->text();
+    //十六进制发送下的输入格式检查，遇到非法字符串时及时停止发送，否则on_textEdit_textChanged()机制会引起数据重发
+    QString tmp, noCut_tmp;
+    noCut_tmp = tmp = ui->multiString->item(++g_multiStr_cur_index)->text();
+    if(ui->actionSendComment->isChecked())
+    {
+        if(tmp.lastIndexOf("//") != -1)
+        {
+            tmp = tmp.mid(0, tmp.lastIndexOf("//"));
+        }
+        else if(tmp.lastIndexOf("/") != -1 && ui->hexSend->isChecked()) //注意顺序
+        {
+            tmp = tmp.mid(0, tmp.lastIndexOf("/"));
+        }
+    }
     if(ui->hexSend->isChecked()){
-        QString lastStr = ui->textEdit->toPlainText().toLocal8Bit();
         if(!hexFormatCheck(tmp)){
-            QMessageBox::warning(this, tr("警告"), tr("hex发送模式下存在非法的十六进制格式。"));
-            ui->textEdit->setText(lastStr);
+            QMessageBox::warning(this, tr("警告"), QString("The %1th string has illegal hexadecimal format.").arg(g_multiStr_cur_index));
+            multiStrSeqSendTimer.stop();
+            ui->clearWindows->setText(tr("清  空"));
+            //存在非法字符就及时停止发送
             return;
         }
     }
     //实际上填入数据后还会再触发一次on_textEdit_textChanged()进行格式检查，
-    //但是on_textEdit_textChanged()会重置回上一次字符串，导致会发送上一次数据
-    ui->textEdit->setText(tmp);
+    //但是on_textEdit_textChanged()会重置回上一次字符串，导致会发送上一次数据，有必要先行检查
+    ui->textEdit->setText(noCut_tmp);
     on_sendButton_clicked();
 }
 
@@ -1237,9 +1250,10 @@ void MainWindow::on_cycleSendCheck_clicked(bool checked)
 */
 void MainWindow::on_textEdit_textChanged()
 {
-    QByteArray tmp;
+    QString tmp;
+    QString noCut_tmp;
     //不处理注释
-    tmp = ui->textEdit->toPlainText().toLocal8Bit();
+    noCut_tmp = tmp = ui->textEdit->toPlainText();
     if(ui->actionSendComment->isChecked())
     {
         if(tmp.lastIndexOf("//") != -1)
@@ -1257,13 +1271,15 @@ void MainWindow::on_textEdit_textChanged()
     if(ui->hexSend->isChecked()){
         if(!hexFormatCheck(tmp)){
             QMessageBox::warning(this, tr("警告"), tr("hex发送模式下存在非法的十六进制格式。"));
+            multiStrSeqSendTimer.stop();
+            ui->clearWindows->setText(tr("清  空"));
             ui->textEdit->clear();
             ui->textEdit->insertPlainText(lastText);
             return;
         }
         //不能记录非空数据，因为clear操作也会触发本事件
-        if(!tmp.isEmpty())
-            lastText = tmp;
+        if(!noCut_tmp.isEmpty())
+            lastText = noCut_tmp;
     }
 }
 
@@ -1630,7 +1646,6 @@ void MainWindow::on_actionSaveShowedData_triggered()
 void MainWindow::on_actionUpdate_triggered()
 {
     http->addTask(HTTP::GetVersion);
-//    http->addTask(HTTP::GetVersion_MY_SERVER);
 }
 
 void MainWindow::on_sendInterval_textChanged(const QString &arg1)
@@ -1665,20 +1680,31 @@ void MainWindow::on_actionSTM32_ISP_triggered()
 */
 void MainWindow::on_multiString_itemDoubleClicked(QListWidgetItem *item)
 {
-    //十六进制发送下的输入格式检查
+    //十六进制发送下的输入格式检查（先剔除注释数据）
     QString tmp = item->text();
+    if(ui->actionSendComment->isChecked())
+    {
+        if(tmp.lastIndexOf("//") != -1)
+        {
+            tmp = tmp.mid(0, tmp.lastIndexOf("//"));
+        }
+        else if(tmp.lastIndexOf("/") != -1 && ui->hexSend->isChecked()) //注意顺序
+        {
+            tmp = tmp.mid(0, tmp.lastIndexOf("/"));
+        }
+    }
     if(ui->hexSend->isChecked()){
-        QString lastStr = ui->textEdit->toPlainText().toLocal8Bit();
         if(!hexFormatCheck(tmp)){
             QMessageBox::warning(this, tr("警告"), tr("hex发送模式下存在非法的十六进制格式。"));
-            ui->textEdit->setText(lastStr);
+            multiStrSeqSendTimer.stop();
+            ui->clearWindows->setText(tr("清  空"));
             return;
         }
     }
     //实际上填入数据后还会再触发一次on_textEdit_textChanged()进行格式检查，
-    //但是on_textEdit_textChanged()会重置回上一次字符串，导致会发送上一次数据
+    //但是on_textEdit_textChanged()会重置回上一次字符串，导致会发送上一次数据，所以先进行检查
     g_multiStr_cur_index = ui->multiString->currentIndex().row();
-    ui->textEdit->setText(tmp);
+    ui->textEdit->setText(item->text());
     on_sendButton_clicked();
 }
 
