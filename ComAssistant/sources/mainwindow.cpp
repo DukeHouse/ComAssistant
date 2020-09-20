@@ -1050,6 +1050,7 @@ void MainWindow::on_sendButton_clicked()
             }
             else
             {
+                ui->clearWindows->setText(tr("清  空"));
                 multiStrSeqSendTimer.stop();
             }
         }
