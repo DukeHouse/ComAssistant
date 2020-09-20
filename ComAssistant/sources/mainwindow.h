@@ -79,12 +79,7 @@ private slots:
     void on_comList_textActivated(const QString &arg1);
     void on_sendInterval_textChanged(const QString &arg1);
     void on_multiString_itemDoubleClicked(QListWidgetItem *item);
-//    void verticalScrollBarActionTriggered(int action);
-    void innerVerticalScrollBarActionTriggered(int action);
-    void outterVerticalScrollBarActionTriggered(int action);
-    void innerVerticalScrollBarRangeChanged(int min, int max);
-    void innerVerticalScrollBarValueChanged(int value);
-    void outterVerticalScrollBarValueChanged(int value);
+    void verticalScrollBarActionTriggered(int action);
     void splitterMovedSlot(int pos, int index);
     void on_tabWidget_tabCloseRequested(int index);
     void on_tabWidget_tabBarClicked(int index);
