@@ -152,6 +152,8 @@ private slots:
 
     void on_actionSendComment_triggered(bool checked);
 
+    void on_actionAutoRefreshYAxis_triggered(bool checked);
+
 private:
     QString formatTime(int ms);
     bool needSaveConfig = true;

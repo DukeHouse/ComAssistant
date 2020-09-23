@@ -700,7 +700,7 @@ p, li { white-space: pre-wrap; }
      <addaction name="actionFloat"/>
      <addaction name="actionSumCheck"/>
     </widget>
-    <widget class="QMenu" name="setting">
+    <widget class="QMenu" name="plotterSetting">
      <property name="title">
       <string>设置</string>
      </property>
@@ -718,7 +718,7 @@ p, li { white-space: pre-wrap; }
      <addaction name="separator"/>
     </widget>
     <addaction name="actionPlotterSwitch"/>
-    <addaction name="setting"/>
+    <addaction name="plotterSetting"/>
     <addaction name="separator"/>
     <addaction name="actionValueDisplay"/>
     <addaction name="separator"/>

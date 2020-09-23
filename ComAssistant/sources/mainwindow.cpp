@@ -265,7 +265,7 @@ MainWindow::MainWindow(QWidget *parent) :
     on_actionKeyWordHighlight_triggered(ui->actionKeyWordHighlight->isChecked());
 
     //初始化绘图控制器
-    ui->customPlot->init(ui->statusBar);
+    ui->customPlot->init(ui->statusBar, ui->plotterSetting);
 
     //http
     http = new HTTP(this);
@@ -2807,4 +2807,9 @@ void MainWindow::on_actionSendComment_triggered(bool checked)
         ui->function->setTitle(tr("功能"));
     }
     ui->actionSendComment->setChecked(checked);
+}
+
+void MainWindow::on_actionAutoRefreshYAxis_triggered(bool checked)
+{
+    ui->actionAutoRefreshYAxis->setChecked(checked);
 }
