@@ -37,9 +37,12 @@ MyQCustomPlot::~MyQCustomPlot()
     delete protocol;
 }
 
-void MyQCustomPlot::init(QStatusBar* pBar)
+void MyQCustomPlot::init(QStatusBar* pBar, QMenu* plotterSetting, QAction* saveGraphData, QAction* saveGraphPicture)
 {
     bar = pBar;
+    setting = plotterSetting;
+    saveData = saveGraphData;
+    savePicture = saveGraphPicture;
     plotControl = new QCustomPlotControl;
     protocol = new DataProtocol;
 
@@ -289,9 +292,23 @@ void MyQCustomPlot::contextMenuRequest(QPoint pos)
   } else  // general context menu on graphs requested
   {
     if (this->graphCount() > 0){
-      menu->addAction("曲线居中", this, SLOT(rescaleYAxis()));
-      menu->addSeparator();
-      menu->addAction("移除所有曲线", this, SLOT(removeAllGraphs()));
+        menu->addAction("曲线居中", this, SLOT(rescaleYAxis()));
+        menu->addSeparator();
+        if(setting)
+        {
+            menu->addMenu(setting);
+        }
+        menu->addSeparator();
+        if(saveData)
+        {
+            menu->addAction(saveData);
+        }
+        if(savePicture)
+        {
+            menu->addAction(savePicture);
+        }
+        menu->addSeparator();
+        menu->addAction("移除所有曲线", this, SLOT(removeAllGraphs()));
     }
   }
   //选择了曲线
@@ -367,7 +384,7 @@ void MyQCustomPlot::showTracer(QMouseEvent *event)
         y = yRange.lower;
 
     //更新Tracer
-    QString text = "X:" + QString::number(x, 'f', 2) + " Y:" + QString::number(y, 'f', 2);
+    QString text = "X:" + QString::number(x, 'g', 6) + " Y:" + QString::number(y, 'g', 6);
     m_Tracer->updatePosition(x, y);
     m_Tracer->setText(text);
 

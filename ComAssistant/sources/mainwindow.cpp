@@ -265,7 +265,7 @@ MainWindow::MainWindow(QWidget *parent) :
     on_actionKeyWordHighlight_triggered(ui->actionKeyWordHighlight->isChecked());
 
     //初始化绘图控制器
-    ui->customPlot->init(ui->statusBar);
+    ui->customPlot->init(ui->statusBar, ui->plotterSetting, ui->actionSavePlotData, ui->actionSavePlotAsPicture);
 
     //http
     http = new HTTP(this);
@@ -472,8 +472,41 @@ void MainWindow::secTimerSlot()
     if(txLoad>100)txLoad = 100;//由于电脑串口是先放进缓冲再发送，因此会出现使用率大于100%的情况
     if(rxLoad>100)rxLoad = 100;
 
-    statusSpeedLabel->setText(" Tx:" + QString::number(txSpeedKB, 'f', 2) + "KB/s(" + QString::number(txLoad) + "%)" +
-                              " Rx:" + QString::number(rxSpeedKB, 'f', 2) + "KB/s(" + QString::number(rxLoad) + "%)");
+    //收发速度显示与颜色控制
+    QString txSpeedStr;
+    QString rxSpeedStr;
+    #define HIGH_LOAD_WARNING    95
+    if(txSpeedKB==0)
+    {
+        txSpeedStr = " Tx:" + QString::number(txSpeedKB) + "KB/s(" + QString::number(txLoad) + "%)";
+    }
+    else if(txSpeedKB < 1000)
+    {
+        txSpeedStr = " Tx:" + QString::number(txSpeedKB, 'f', 2) + "KB/s(" + QString::number(txLoad) + "%)";
+    }else
+    {
+        txSpeedStr = " Tx:" + QString::number(txSpeedKB, 'g', 2) + "KB/s(" + QString::number(txLoad) + "%)";
+    }
+    if(txLoad > HIGH_LOAD_WARNING)
+    {
+        txSpeedStr = "<font color=#FF5A5A>" + txSpeedStr + "</font>";
+    }
+    if(rxSpeedKB==0)
+    {
+        rxSpeedStr = " Rx:" + QString::number(rxSpeedKB) + "KB/s(" + QString::number(rxLoad) + "%)";
+    }
+    else if(rxSpeedKB < 1000)
+    {
+        rxSpeedStr = " Rx:" + QString::number(rxSpeedKB, 'f', 2) + "KB/s(" + QString::number(rxLoad) + "%)";
+    }else
+    {
+        rxSpeedStr = " Rx:" + QString::number(rxSpeedKB, 'g', 2) + "KB/s(" + QString::number(rxLoad) + "%)";
+    }
+    if(rxLoad > HIGH_LOAD_WARNING)
+    {
+        rxSpeedStr = "<font color=#FF5A5A>" + rxSpeedStr + "</font>";
+    }
+    statusSpeedLabel->setText(txSpeedStr + rxSpeedStr);
 
     //显示远端下载的信息
     if(http->getMsgList().size()>0 && secCnt%10==0){
@@ -1969,7 +2002,7 @@ void MainWindow::on_actiondebug_triggered(bool checked)
 {
     if(checked){
         debugTimer.setTimerType(Qt::PreciseTimer);
-        debugTimer.start(100);
+        debugTimer.start(20);
         connect(&debugTimer, SIGNAL(timeout()), this, SLOT(debugTimerSlot()));
     }else{
         debugTimer.stop();
@@ -2770,4 +2803,9 @@ void MainWindow::on_actionSendComment_triggered(bool checked)
         ui->function->setTitle(tr("功能"));
     }
     ui->actionSendComment->setChecked(checked);
+}
+
+void MainWindow::on_actionAutoRefreshYAxis_triggered(bool checked)
+{
+    ui->actionAutoRefreshYAxis->setChecked(checked);
 }

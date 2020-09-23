@@ -700,7 +700,7 @@ p, li { white-space: pre-wrap; }
      <addaction name="actionFloat"/>
      <addaction name="actionSumCheck"/>
     </widget>
-    <widget class="QMenu" name="setting">
+    <widget class="QMenu" name="plotterSetting">
      <property name="title">
       <string>设置</string>
      </property>
@@ -718,7 +718,7 @@ p, li { white-space: pre-wrap; }
      <addaction name="separator"/>
     </widget>
     <addaction name="actionPlotterSwitch"/>
-    <addaction name="setting"/>
+    <addaction name="plotterSetting"/>
     <addaction name="separator"/>
     <addaction name="actionValueDisplay"/>
     <addaction name="separator"/>
@@ -911,7 +911,7 @@ p, li { white-space: pre-wrap; }
     <string>绘图测试</string>
    </property>
    <property name="statusTip">
-    <string>请短接Tx和Rx后使用。</string>
+    <string>请短接Tx和Rx后使用。且波特率大于115200</string>
    </property>
    <property name="whatsThis">
     <string/>
