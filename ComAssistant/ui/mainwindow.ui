@@ -911,7 +911,7 @@ p, li { white-space: pre-wrap; }
     <string>绘图测试</string>
    </property>
    <property name="statusTip">
-    <string>请短接Tx和Rx后使用。</string>
+    <string>请短接Tx和Rx后使用。且波特率大于115200</string>
    </property>
    <property name="whatsThis">
     <string/>

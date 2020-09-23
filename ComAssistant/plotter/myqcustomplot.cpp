@@ -367,7 +367,7 @@ void MyQCustomPlot::showTracer(QMouseEvent *event)
         y = yRange.lower;
 
     //更新Tracer
-    QString text = "X:" + QString::number(x, 'f', 2) + " Y:" + QString::number(y, 'f', 2);
+    QString text = "X:" + QString::number(x, 'g', 6) + " Y:" + QString::number(y, 'g', 6);
     m_Tracer->updatePosition(x, y);
     m_Tracer->setText(text);
 
