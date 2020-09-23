@@ -28,7 +28,7 @@ public:
     ~MyQCustomPlot();
 
     MyTracer *m_Tracer; //坐标跟随鼠标
-    void init(QStatusBar* pBar);
+    void init(QStatusBar* pBar, QMenu* plotterSetting);
     bool saveGraphAsTxt(const QString& filePath, char separate=' ');
     QCustomPlotControl *plotControl;
     DataProtocol *protocol;
@@ -52,7 +52,8 @@ private slots:
     void showTracer(QMouseEvent *event);
 
 private:
-    QStatusBar* bar;
+    QStatusBar* bar = nullptr;
+    QMenu* setting = nullptr;
     qint32 key = 0;
 };
 
