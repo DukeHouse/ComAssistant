@@ -37,10 +37,12 @@ MyQCustomPlot::~MyQCustomPlot()
     delete protocol;
 }
 
-void MyQCustomPlot::init(QStatusBar* pBar, QMenu* plotterSetting)
+void MyQCustomPlot::init(QStatusBar* pBar, QMenu* plotterSetting, QAction* saveGraphData, QAction* saveGraphPicture)
 {
     bar = pBar;
     setting = plotterSetting;
+    saveData = saveGraphData;
+    savePicture = saveGraphPicture;
     plotControl = new QCustomPlotControl;
     protocol = new DataProtocol;
 
@@ -290,11 +292,21 @@ void MyQCustomPlot::contextMenuRequest(QPoint pos)
   } else  // general context menu on graphs requested
   {
     if (this->graphCount() > 0){
+        menu->addAction("曲线居中", this, SLOT(rescaleYAxis()));
+        menu->addSeparator();
         if(setting)
         {
             menu->addMenu(setting);
         }
-        menu->addAction("曲线居中", this, SLOT(rescaleYAxis()));
+        menu->addSeparator();
+        if(saveData)
+        {
+            menu->addAction(saveData);
+        }
+        if(savePicture)
+        {
+            menu->addAction(savePicture);
+        }
         menu->addSeparator();
         menu->addAction("移除所有曲线", this, SLOT(removeAllGraphs()));
     }

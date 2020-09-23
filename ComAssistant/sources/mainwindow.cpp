@@ -265,7 +265,7 @@ MainWindow::MainWindow(QWidget *parent) :
     on_actionKeyWordHighlight_triggered(ui->actionKeyWordHighlight->isChecked());
 
     //初始化绘图控制器
-    ui->customPlot->init(ui->statusBar, ui->plotterSetting);
+    ui->customPlot->init(ui->statusBar, ui->plotterSetting, ui->actionSavePlotData, ui->actionSavePlotAsPicture);
 
     //http
     http = new HTTP(this);
@@ -471,10 +471,6 @@ void MainWindow::secTimerSlot()
     rxLoad = 100 * rxSpeedKB / idealSpeed;
     if(txLoad>100)txLoad = 100;//由于电脑串口是先放进缓冲再发送，因此会出现使用率大于100%的情况
     if(rxLoad>100)rxLoad = 100;
-
-
-//    statusSpeedLabel->setText(" Tx:" + QString::number(txSpeedKB, 'f', 2) + "KB/s(" + QString::number(txLoad) + "%)" +
-//                              " Rx:" + QString::number(rxSpeedKB, 'f', 2) + "KB/s(" + QString::number(rxLoad) + "%)");
 
     //收发速度显示与颜色控制
     QString txSpeedStr;
