@@ -315,7 +315,7 @@ MainWindow::MainWindow(QWidget *parent) :
     secTimer.setTimerType(Qt::PreciseTimer);
     secTimer.start(1000);
     printToTextBrowserTimer.setTimerType(Qt::PreciseTimer);
-    printToTextBrowserTimer.start(50);
+    printToTextBrowserTimer.start(20);
     plotterParseTimer.setTimerType(Qt::PreciseTimer);
     multiStrSeqSendTimer.setTimerType(Qt::PreciseTimer);
     multiStrSeqSendTimer.setSingleShot(true);
@@ -417,6 +417,12 @@ void MainWindow::tee_textGroupsUpdate(const QByteArray &name, const QByteArray &
 
 void MainWindow::printToTextBrowserTimerSlot()
 {
+    //characterCount=0时重算窗口并重新显示
+    if(characterCount==0)
+    {
+        printToTextBrowser();
+        return;
+    }
     if(RefreshTextBrowser==false)
         return;
 
@@ -899,11 +905,11 @@ static qint32 PAGING_SIZE = 8192; //TextBrowser显示大小
 void MainWindow::printToTextBrowser()
 {
     //当前窗口显示字符调整
-    if(characterCount==0 && ui->textBrowser->height() != 0){
-        //characterCount=0且控件有高度说明characterCount未初始化，调用resizeEvent初始化，内部有了printToTextBrowser所以可以返回
+    if(characterCount==0)
+    {
         resizeEvent(nullptr);
-        return;
     }
+
     //多显示一点
     if(ui->hexDisplay->isChecked())
         PAGING_SIZE = characterCount * 1.5; //hex模式性能慢
@@ -1754,6 +1760,7 @@ void MainWindow::on_actionMultiString_triggered(bool checked)
         ui->multiString->hide();
     }
     adjustLayout();
+    characterCount=0;
 }
 
 /*
@@ -1870,6 +1877,7 @@ void MainWindow::on_actionPlotterSwitch_triggered(bool checked)
     }
 
     adjustLayout();
+    characterCount=0;
 }
 
 void MainWindow::plotterParseTimerSlot()
@@ -2485,23 +2493,37 @@ void MainWindow::on_actionValueDisplay_triggered(bool checked)
     }
 
     adjustLayout();
+    characterCount=0;
 }
 
 //复制所选文本到剪贴板
-void MainWindow::copyTextBrowser_triggered(void)
+void MainWindow::copySelectedTextBrowser_triggered(void)
 {
     QClipboard *clipboard = QApplication::clipboard();
     if(ui->textBrowser->textCursor().selectedText().isEmpty())
         return;
     clipboard->setText(ui->textBrowser->textCursor().selectedText());
 }
-
+//复制全部显示文本到剪贴板
+void MainWindow::copyAllTextBrowser_triggered(void)
+{
+    QClipboard *clipboard = QApplication::clipboard();
+    clipboard->setText(ui->textBrowser->toPlainText());
+}
+//复制全部原始数据到剪贴板
+void MainWindow::copyAllData_triggered(void)
+{
+    QClipboard *clipboard = QApplication::clipboard();
+    clipboard->setText(RxBuff);
+}
 void MainWindow::on_textBrowser_customContextMenuRequested(const QPoint &pos)
 {
     QPoint noWarning = pos;
     noWarning.x();
 
     QAction *copyText = nullptr;
+    QAction *copyAllText = nullptr;
+    QAction *copyAllData = nullptr;
     QAction *clearTextBrowser = nullptr;
     QAction *saveOriginData = nullptr;
     QAction *saveShowedData = nullptr;
@@ -2509,18 +2531,25 @@ void MainWindow::on_textBrowser_customContextMenuRequested(const QPoint &pos)
     QMenu *popMenu = new QMenu( this );
     //添加右键菜单
     copyText = new QAction(tr("复制所选文本"), this);
-    saveOriginData = new QAction(tr("保存原始数据"), this);
+    copyAllText = new QAction(tr("复制全部显示数据"), this);
+    copyAllData = new QAction(tr("复制全部原始数据"), this);
     saveShowedData = new QAction(tr("保存显示数据"), this);
+    saveOriginData = new QAction(tr("保存原始数据"), this);
     clearTextBrowser = new QAction(tr("清空数据显示区"), this);
 
     popMenu->addAction( copyText );
     popMenu->addSeparator();
-    popMenu->addAction( saveOriginData );
+    popMenu->addAction( copyAllText );
+    popMenu->addAction( copyAllData );
+    popMenu->addSeparator();
     popMenu->addAction( saveShowedData );
+    popMenu->addAction( saveOriginData );
     popMenu->addSeparator();
     popMenu->addAction( clearTextBrowser );
 
-    connect( copyText, SIGNAL(triggered() ), this, SLOT( copyTextBrowser_triggered()) );
+    connect( copyText, SIGNAL(triggered() ), this, SLOT( copySelectedTextBrowser_triggered()) );
+    connect( copyAllText, SIGNAL(triggered() ), this, SLOT( copyAllTextBrowser_triggered()) );
+    connect( copyAllData, SIGNAL(triggered() ), this, SLOT( copyAllData_triggered()) );
     connect( saveOriginData, SIGNAL(triggered() ), this, SLOT( on_actionSaveOriginData_triggered()) );
     connect( saveShowedData, SIGNAL(triggered() ), this, SLOT( on_actionSaveShowedData_triggered()) );
     connect( clearTextBrowser, SIGNAL(triggered() ), this, SLOT( clearTextBrowserSlot()) );
