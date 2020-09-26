@@ -164,6 +164,23 @@ void MainWindow::readConfig()
     //OpenGL
     ui->actionOpenGL->setChecked(Config::getOpengGLState());
     on_actionOpenGL_triggered(Config::getOpengGLState());
+    //refreshYAxis
+    ui->actionAutoRefreshYAxis->setChecked(Config::getRefreshYAxisState());
+    //line type
+    switch (Config::getLineType()) {
+    case LineType_e::Line:
+        on_actionLinePlot_triggered();
+        break;
+    case LineType_e::Scatter_Line:
+        on_actionScatterLinePlot_triggered();
+        break;
+    case LineType_e::Scatter:
+        on_actionScatterPlot_triggered();
+        break;
+    default:
+        on_actionLinePlot_triggered();
+        break;
+    }
 }
 
 void MainWindow::adjustLayout()
@@ -647,6 +664,17 @@ MainWindow::~MainWindow()
         Config::setYAxisName(ui->customPlot->yAxis->label());
         Config::setValueDisplayState(ui->actionValueDisplay->isChecked());
         Config::setOpengGLState(ui->actionOpenGL->isChecked());
+        Config::setRefreshYAxisState(ui->actionAutoRefreshYAxis->isChecked());
+        if(ui->actionLinePlot->isChecked())
+        {
+            Config::setLineType(LineType_e::Line);
+        }else if(ui->actionScatterLinePlot->isChecked())
+        {
+            Config::setLineType(LineType_e::Scatter_Line);
+        }else if(ui->actionScatterPlot->isChecked())
+        {
+            Config::setLineType(LineType_e::Scatter);
+        }
 
         //static
         Config::setLastRunTime(currentRunTime);
