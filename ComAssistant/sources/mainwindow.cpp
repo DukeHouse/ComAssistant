@@ -498,7 +498,7 @@ void MainWindow::secTimerSlot()
     //收发速度显示与颜色控制
     QString txSpeedStr;
     QString rxSpeedStr;
-    #define HIGH_LOAD_WARNING    95
+    #define HIGH_LOAD_WARNING    90
     if(txSpeedKB==0)
     {
         txSpeedStr = " Tx:" + QString::number(txSpeedKB) + "KB/s(" + QString::number(txLoad) + "%)";
@@ -2564,6 +2564,8 @@ void MainWindow::on_textBrowser_customContextMenuRequested(const QPoint &pos)
     QMenu *popMenu = new QMenu( this );
     //添加右键菜单
     copyText = new QAction(tr("复制所选文本"), this);
+    if(ui->textBrowser->textCursor().selectedText().isEmpty())
+        copyText->setEnabled(false);
     copyAllText = new QAction(tr("复制全部显示数据"), this);
     copyAllData = new QAction(tr("复制全部原始数据"), this);
     saveShowedData = new QAction(tr("保存显示数据"), this);
