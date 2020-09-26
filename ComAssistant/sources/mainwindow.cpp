@@ -2536,7 +2536,12 @@ void MainWindow::copySelectedTextBrowser_triggered(void)
 void MainWindow::copyAllTextBrowser_triggered(void)
 {
     QClipboard *clipboard = QApplication::clipboard();
-    clipboard->setText(ui->textBrowser->toPlainText());
+    if(ui->hexDisplay->isChecked())
+    {
+        clipboard->setText(hexBrowserBuff);
+        return;
+    }
+    clipboard->setText(BrowserBuff);
 }
 //复制全部原始数据到剪贴板
 void MainWindow::copyAllData_triggered(void)
