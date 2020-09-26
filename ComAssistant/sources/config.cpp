@@ -54,6 +54,8 @@ void Config::writeDefault(){
     iniFile->setValue(SECTION_PLOTTER+KEY_XAXISNAME, "Point Number");
     iniFile->setValue(SECTION_PLOTTER+KEY_YAXISNAME, "Value");
     iniFile->setValue(SECTION_PLOTTER+KEY_VALUEDISPLAYSTATE, false);
+    iniFile->setValue(SECTION_PLOTTER+KEY_OPENGLSTATE, false);
+    iniFile->setValue(SECTION_PLOTTER+KEY_REFRESHYAXIS, true);
 
     //统计信息
 //    iniFile->setValue(SECTION_PLOTTER+KEY_STARTTIME, QDateTime::currentDateTime().toString("yyyyMMddhhmmss"));
@@ -568,6 +570,32 @@ void Config::setOpengGLState(bool isOn){
 bool Config::getOpengGLState(){
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
     bool value = iniFile->value(SECTION_PLOTTER+KEY_OPENGLSTATE, false).toBool();
+    delete iniFile;
+    return value;
+}
+
+void Config::setRefreshYAxisState(bool isOn){
+    createDefaultIfNotExist();
+    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
+    iniFile->setValue(SECTION_PLOTTER+KEY_REFRESHYAXIS, isOn);
+    delete iniFile;
+}
+bool Config::getRefreshYAxisState(){
+    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
+    bool value = iniFile->value(SECTION_PLOTTER+KEY_REFRESHYAXIS, true).toBool();
+    delete iniFile;
+    return value;
+}
+
+void Config::setLineType(LineType_e type){
+    createDefaultIfNotExist();
+    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
+    iniFile->setValue(SECTION_PLOTTER+KEY_LINETYPE, type);
+    delete iniFile;
+}
+qint32 Config::getLineType(){
+    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
+    qint8 value = iniFile->value(SECTION_PLOTTER+KEY_LINETYPE, 0).toInt();
     delete iniFile;
     return value;
 }

@@ -85,7 +85,9 @@ private slots:
     void on_tabWidget_tabBarClicked(int index);
     void on_timeStampCheckBox_stateChanged(int arg1);
     void on_timeStampTimeOut_textChanged(const QString &arg1);
-    void copyTextBrowser_triggered(void);
+    void copySelectedTextBrowser_triggered(void);
+    void copyAllTextBrowser_triggered(void);
+    void copyAllData_triggered(void);
 
     //file
     void on_actionSaveOriginData_triggered();
