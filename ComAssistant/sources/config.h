@@ -61,7 +61,8 @@
 #define KEY_YAXISNAME           QString("YAxisName")
 #define KEY_VALUEDISPLAYSTATE   QString("ValueDisplayState")
 #define KEY_OPENGLSTATE         QString("OpenGLState")
-//#define KEY_LINETYPE            QString("LineType")
+#define KEY_REFRESHYAXIS        QString("RefreshYAxis")
+#define KEY_LINETYPE            QString("LineType")
 //#define KEY_XRANGELENGH         QString("xRangeLength")
 
 //static键
@@ -99,6 +100,12 @@ enum ProtocolType_e{
     Float_SumCheck,
 };
 
+enum LineType_e{
+    Line = 0,
+    Scatter_Line,
+    Scatter,
+};
+
 extern int32_t version_to_number(QString str);
 
 class Config
@@ -106,7 +113,7 @@ class Config
 public:
     #define defualtGraphName  "Graph 1;Graph 2;Graph 3;Graph 4;Graph 5;Graph 6;Graph 7;Graph 8;Graph 9;Graph 10;Graph 11;Graph 12;Graph 13;Graph 14;Graph 15;"
     //版本
-    #define VERSION_STRING  "0.3.9"
+    #define VERSION_STRING  "0.4.0"
 
     Config();
     static void writeDefault();
@@ -182,6 +189,10 @@ public:
     static bool getValueDisplayState();
     static void setOpengGLState(bool isOn);
     static bool getOpengGLState();
+    static void setRefreshYAxisState(bool isOn);
+    static bool getRefreshYAxisState();
+    static void setLineType(LineType_e type);
+    static qint32 getLineType();
 
     //static
     static void setStartTime(QString time);
