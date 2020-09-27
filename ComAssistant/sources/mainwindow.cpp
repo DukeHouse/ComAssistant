@@ -308,10 +308,10 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //数值显示器初始化
     ui->valueDisplay->setColumnCount(2);
-    ui->valueDisplay->setHorizontalHeaderItem(0,new QTableWidgetItem(tr("名称")));
-    ui->valueDisplay->setHorizontalHeaderItem(1,new QTableWidgetItem(tr("值")));
-    ui->valueDisplay->horizontalHeader()->setSectionResizeMode(0,QHeaderView::Stretch);
-    ui->valueDisplay->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
+    ui->valueDisplay->setHorizontalHeaderItem(0, new QTableWidgetItem(tr("名称")));
+    ui->valueDisplay->setHorizontalHeaderItem(1, new QTableWidgetItem(tr("值")));
+    ui->valueDisplay->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Interactive);
+    ui->valueDisplay->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     ui->valueDisplay->horizontalHeader()->setStretchLastSection(true);
 
     //加载样式表
@@ -1958,18 +1958,18 @@ void MainWindow::plotterParseTimerSlot()
             ui->valueDisplay->setRowCount(oneRowData.size());
             //设置列，固定的
             ui->valueDisplay->setColumnCount(2);
-            ui->valueDisplay->setHorizontalHeaderItem(0,new QTableWidgetItem(tr("名称")));
-            ui->valueDisplay->setHorizontalHeaderItem(1,new QTableWidgetItem(tr("值")));
+            ui->valueDisplay->setHorizontalHeaderItem(0, new QTableWidgetItem(tr("名称")));
+            ui->valueDisplay->setHorizontalHeaderItem(1, new QTableWidgetItem(tr("值")));
             ui->valueDisplay->horizontalHeader()->setStretchLastSection(true);
-            ui->valueDisplay->horizontalHeader()->setSectionResizeMode(0,QHeaderView::Stretch);
-            ui->valueDisplay->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
+            ui->valueDisplay->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Interactive);
+            ui->valueDisplay->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
         }
         //添加数据
         qint32 min = oneRowData.size() < ui->customPlot->plotControl->getNameSetsFromPlot().size() ? oneRowData.size() : ui->customPlot->plotControl->getNameSetsFromPlot().size();
         for(qint32 i=0; i < min; i++){
             //这里会重复new对象导致内存溢出吗
-            ui->valueDisplay->setItem(i,0,new QTableWidgetItem(ui->customPlot->plotControl->getNameSetsFromPlot().at(i)));
-            ui->valueDisplay->setItem(i,1,new QTableWidgetItem(QString::number(oneRowData.at(i),'f')));
+            ui->valueDisplay->setItem(i, 0, new QTableWidgetItem(ui->customPlot->plotControl->getNameSetsFromPlot().at(i)));
+            ui->valueDisplay->setItem(i, 1, new QTableWidgetItem(QString::number(oneRowData.at(i),'g')));
             //不可编辑
             ui->valueDisplay->item(i,0)->setFlags(ui->valueDisplay->item(i,0)->flags() & (~Qt::ItemIsEditable));
             ui->valueDisplay->item(i,1)->setFlags(ui->valueDisplay->item(i,1)->flags() & (~Qt::ItemIsEditable));
@@ -2591,6 +2591,11 @@ void MainWindow::on_textBrowser_customContextMenuRequested(const QPoint &pos)
     popMenu->exec( QCursor::pos() );
     delete popMenu;
     delete clearTextBrowser;
+    delete saveOriginData;
+    delete saveShowedData;
+    delete copyAllData;
+    delete copyAllText;
+    delete copyText;
 }
 
 void MainWindow::clearTextBrowserSlot()
