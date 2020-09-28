@@ -2,6 +2,9 @@
 #include "ui_mainwindow.h"
 #include <QHotkey>
 
+#define RECORDER_FILE_PATH           "ComAssistantRecorder.dat"
+#define BACKUP_RECORDER_FILE_PATH    "ComAssistantRecorder_back.dat"
+
 static qint32   g_multiStr_cur_index;
 static QColor   g_background_color;
 static QFont    g_font;
@@ -315,10 +318,10 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->valueDisplay->horizontalHeader()->setStretchLastSection(true);
 
     //加载样式表
-    QFile file(":/style.css");
-    file.open(QFile::ReadOnly);
-    QString style = file.readAll();
-    file.close();
+    QFile styleFile(":/style.css");
+    styleFile.open(QFile::ReadOnly);
+    QString style = styleFile.readAll();
+    styleFile.close();
     this->setStyleSheet(style);
     g_font = Config::getGUIFont();
     ui->textBrowser->document()->setDefaultFont(g_font);
@@ -327,6 +330,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->customPlot->plotControl->setupFont(ui->customPlot, g_font);
 
     this->setWindowTitle(tr("纸飞机串口助手") + " - V"+Config::getVersion());
+
+    this->setAcceptDrops(true);
 
     //启动定时器
     secTimer.setTimerType(Qt::PreciseTimer);
@@ -369,6 +374,102 @@ MainWindow::MainWindow(QWidget *parent) :
         on_actionManual_triggered();
         //弹出声明
         on_actionAbout_triggered();        
+    }
+
+    readRecorderFile();
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    //点击关闭时删除记录文件
+    QFile recorderFile(RECORDER_FILE_PATH);
+    if(recorderFile.exists())
+    {
+        recorderFile.remove();
+    }
+}
+
+//启动时检测有无记录数据文件
+void MainWindow::readRecorderFile()
+{
+    QFile recorderFile(RECORDER_FILE_PATH);
+    if(recorderFile.exists() && recorderFile.size())
+    {
+        qint32 button;
+        button = QMessageBox::information(this, tr("提示"),
+                                          tr("检测到记录数据文件，可能是上次未正确关闭程序导致的，恢复数据还是丢弃？"),
+                                          QMessageBox::Ok, QMessageBox::Discard, QMessageBox::Cancel);
+        if(button == QMessageBox::Discard)
+        {
+            recorderFile.remove();
+        }
+        else if(button == QMessageBox::Cancel)
+        {
+            //重命名前确保没有含新名字的文件
+            QFile backFile(BACKUP_RECORDER_FILE_PATH);
+            if(backFile.exists())
+                backFile.remove();
+            if(backFile.exists())
+            {
+                QMessageBox::information(this, tr("提示"),
+                                        tr("旧备份记录数据文件删除失败，请自行处理：") + BACKUP_RECORDER_FILE_PATH);
+                return;
+            }
+            //重命名
+            recorderFile.rename(BACKUP_RECORDER_FILE_PATH);
+            QMessageBox::information(this, tr("提示"),
+                                    tr("记录数据文件已另存为") + BACKUP_RECORDER_FILE_PATH + tr("。请在程序运行目录下自行处理。"));
+        }
+        else if(button == QMessageBox::Ok)
+        {
+            //读文件
+            if(recorderFile.open(QFile::ReadOnly)){
+                on_clearWindows_clicked();
+                RxBuff.clear();
+                RxBuff = recorderFile.readAll();
+                recorderFile.close();
+                //删除文件
+                recorderFile.remove();
+                //文件分包
+                #define PACKSIZE 4096
+                parseFileBuffIndex = 0;
+                parseFileBuff.clear();
+                while(RxBuff.size()>PACKSIZE){
+                    parseFileBuff.append(RxBuff.mid(0,PACKSIZE));
+                    RxBuff.remove(0,PACKSIZE);
+                }
+                parseFileBuff.append(RxBuff); //一定会有一个元素
+                RxBuff.clear();
+                if(parseFileBuff.size()<1){
+                    return;
+                }
+
+                //重置绘图器解析点，以触发解析
+                if(ui->actionPlotterSwitch->isChecked())
+                    plotterParsePosInRxBuff = 0;
+
+                ui->textBrowser->clear();
+                ui->textBrowser->appendPlainText("File size: " + QString::number(recorderFile.size()) + " Byte");
+                ui->textBrowser->appendPlainText("Read containt:\n");
+                BrowserBuff.clear();
+                BrowserBuff.append(ui->textBrowser->toPlainText());
+
+                //关闭不必要的控件
+                ui->sendButton->setEnabled(false);
+                ui->multiString->setEnabled(false);
+                cycleSendTimer.stop();
+                ui->cycleSendCheck->setEnabled(false);
+                ui->cycleSendCheck->setChecked(false);
+                ui->clearWindows->setText(tr("中  止"));
+
+                // 解析读取的数据
+                parseFile = true;
+                unshowedRxBuff.clear();
+                emit parseFileSignal();
+            }else{
+                QMessageBox::information(this,tr("提示"),tr("文件打开失败。"));
+            }
+        }
     }
 }
 
@@ -574,10 +675,12 @@ void MainWindow::debugTimerSlot()
                   QString::number(static_cast<double>(num4),'f') + "," +
                   QString::number(static_cast<double>(num5),'f') + "," +
                   QString::number(static_cast<double>(num6),'f') + "}\n";
-        tmp +=  "{voltage:the vol is ### V}\n"
-                "{current:the cur is @@@ A}\n";
+        tmp += "{voltage:the vol is ### V}\n"
+               "{current:the cur is @@@ A}\n"
+               "{cnt:the cnt is $$$}\n";
         tmp.replace("###", QString::number(3.3 + qrand()/static_cast<double>(RAND_MAX)/10.0, 'f', 3));
         tmp.replace("@@@", QString::number(0.0 + qrand()/static_cast<double>(RAND_MAX)/20.0, 'f', 3));
+        tmp.replace("$$$", QString::number(static_cast<qint32>(count * 10)));
         if(serial.isOpen()){
             serial.write(tmp.toLocal8Bit());
         }
@@ -687,6 +790,7 @@ MainWindow::~MainWindow()
     }else{
         Config::writeDefault();
     }
+
     p_textExtractThread->quit();
     p_textExtractThread->wait();
 //    delete p_textExtract; //deleteLater自动删除？
@@ -804,6 +908,16 @@ void MainWindow::on_comSwitch_clicked(bool checked)
     on_refreshCom_clicked();
 }
 
+void MainWindow::recordDataToFile(QByteArray &buff)
+{
+    QFile file(RECORDER_FILE_PATH);
+    QTextStream stream(&file);
+    if(file.open(QFile::WriteOnly|QFile::Append)){
+        stream<<buff;
+        file.close();
+    }
+}
+
 /*
  * Function:从串口读取数据
 */
@@ -873,6 +987,8 @@ void MainWindow::readSerialPort()
 
     //数据交付给文本解析引擎
     emit tee_appendData(tmpReadBuff);
+
+    recordDataToFile(tmpReadBuff);
 
     //时间戳选项
     if(ui->timeStampCheckBox->isChecked() && timeStampTimer.isActive()==false){
@@ -1282,6 +1398,10 @@ void MainWindow::on_clearWindows_clicked()
 
     //数值显示器
     deleteValueDisplaySlot();
+
+    //实时数据记录仪
+    QFile recorderFile(RECORDER_FILE_PATH);
+    recorderFile.remove();
 
     //更新收发统计
     statusStatisticLabel->setText(serial.getTxRxString());
@@ -2877,4 +2997,84 @@ void MainWindow::on_actionSendComment_triggered(bool checked)
 void MainWindow::on_actionAutoRefreshYAxis_triggered(bool checked)
 {
     ui->actionAutoRefreshYAxis->setChecked(checked);
+}
+
+//拖拽进入时
+void MainWindow::dragEnterEvent(QDragEnterEvent *e)
+{
+    if(e->mimeData()->hasFormat("text/uri-list")) //只能打开文本文件
+        e->acceptProposedAction(); //可以在这个窗口部件上拖放对象
+}
+
+//拖拽松开时
+void MainWindow::dropEvent(QDropEvent *e)
+{
+    //获取文件路径列表
+    QStringList text = e->mimeData()->text().split('\n');
+    if(text.size() != 1)
+    {
+        QMessageBox::information(this, tr("提示"), tr("仅支持单个dat文件解析。"));
+        return;
+    }
+    //获取单个文件路径并剔除前缀
+    QString path;
+    path = text.at(0);
+    path = path.mid(8);
+    if(!path.endsWith("dat"))
+    {
+        QMessageBox::information(this, tr("提示"), tr("仅支持单个dat文件解析。"));
+        return;
+    }
+    if(QMessageBox::information(this, tr("提示"),
+                                tr("确认解析该文件？") + "\n" + path,
+                                QMessageBox::Ok, QMessageBox::Cancel) != QMessageBox::Ok)
+    {
+        return;
+    }
+    //解析文件
+    QFile file(path);
+    if(file.open(QFile::ReadOnly)){
+        on_clearWindows_clicked();
+        RxBuff.clear();
+        RxBuff = file.readAll();
+        file.close();
+        //文件分包
+        #define PACKSIZE 4096
+        parseFileBuffIndex = 0;
+        parseFileBuff.clear();
+        while(RxBuff.size()>PACKSIZE){
+            parseFileBuff.append(RxBuff.mid(0,PACKSIZE));
+            RxBuff.remove(0,PACKSIZE);
+        }
+        parseFileBuff.append(RxBuff); //一定会有一个元素
+        RxBuff.clear();
+        if(parseFileBuff.size()<1){
+            return;
+        }
+
+        //重置绘图器解析点，以触发解析
+        if(ui->actionPlotterSwitch->isChecked())
+            plotterParsePosInRxBuff = 0;
+
+        ui->textBrowser->clear();
+        ui->textBrowser->appendPlainText("File size: " + QString::number(file.size()) + " Byte");
+        ui->textBrowser->appendPlainText("Read containt:\n");
+        BrowserBuff.clear();
+        BrowserBuff.append(ui->textBrowser->toPlainText());
+
+        //关闭不必要的控件
+        ui->sendButton->setEnabled(false);
+        ui->multiString->setEnabled(false);
+        cycleSendTimer.stop();
+        ui->cycleSendCheck->setEnabled(false);
+        ui->cycleSendCheck->setChecked(false);
+        ui->clearWindows->setText(tr("中  止"));
+
+        // 解析读取的数据
+        parseFile = true;
+        unshowedRxBuff.clear();
+        emit parseFileSignal();
+    }else{
+        QMessageBox::information(this,tr("提示"),tr("文件打开失败。"));
+    }
 }
