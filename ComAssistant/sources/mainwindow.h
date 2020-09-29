@@ -161,13 +161,18 @@ private:
     bool registPopupHotKey(QString keySequence);
     void layoutConfig();
     void adjustLayout();
+    void openInteractiveUI();
+    void closeInteractiveUI();
+    int32_t divideDataToPacks(QByteArray &input, QByteArrayList &output, int32_t pack_size, bool &divideFlag);
+    int32_t parseDatFile(QString path, bool removeAfterRead);
     void recordDataToFile(QByteArray &buff);
     void readRecorderFile();
     Ui::MainWindow *ui;
     mySerialPort serial;
 
     QLabel *statusSpeedLabel, *statusStatisticLabel, *statusRemoteMsgLabel, *statusTimer; //状态栏标签
-
+    
+    bool sendFile = false;
     bool parseFile = false;
     QByteArrayList parseFileBuff;    //解析文件分包缓冲
     int parseFileBuffIndex = 0;
