@@ -389,6 +389,98 @@ void MainWindow::closeEvent(QCloseEvent *event)
     }
 }
 
+//打开可交互控件
+void MainWindow::openInteractiveUI()
+{
+    ui->comSwitch->setEnabled(true);
+    ui->sendButton->setEnabled(true);
+    ui->multiString->setEnabled(true);
+    ui->cycleSendCheck->setEnabled(true);
+    ui->clearWindows->setText(tr("清  空"));
+}
+
+//关闭可交互控件
+void MainWindow::closeInteractiveUI()
+{
+    ui->comSwitch->setEnabled(false);
+    ui->sendButton->setEnabled(false);
+    ui->multiString->setEnabled(false);
+    cycleSendTimer.stop();
+    ui->cycleSendCheck->setEnabled(false);
+    ui->cycleSendCheck->setChecked(false);
+    ui->clearWindows->setText(tr("中  止"));
+}
+
+//文件分包函数，所有传入的参数都可能被修改
+int32_t MainWindow::divideDataToPacks(QByteArray &input, QByteArrayList &output, int32_t pack_size, bool &divideFlag)
+{
+    closeInteractiveUI();
+
+    int32_t pack_num = input.size() / pack_size;
+    int32_t pack_cnt = 0;
+    while(input.size() > pack_size && divideFlag){
+        output.append(input.mid(0, pack_size));
+        input.remove(0, pack_size);
+        ui->statusBar->showMessage(tr("文件分包进度：") + QString::number(100 * pack_cnt /pack_num) + "%", 2000);
+        pack_cnt++;
+        if(pack_cnt % 5 == 0)
+            qApp->processEvents();
+    }
+    output.append(input); //一定会有一个元素
+    input.clear();
+
+    //是否撤销解析
+    if(output.size() < 1 || divideFlag == false){
+        openInteractiveUI();
+        ui->statusBar->showMessage("", 2000);
+        return -1;
+    }
+    return 0;
+}
+
+int32_t MainWindow::parseDatFile(QString path, bool removeAfterRead)
+{
+    int32_t ret = 0;
+    QFile file(path);
+    //读文件
+    if(file.open(QFile::ReadOnly)){
+        on_clearWindows_clicked();
+        RxBuff.clear();
+        RxBuff = file.readAll();
+        file.close();
+        if(removeAfterRead)
+        {
+            file.remove();
+        }
+
+        //文件分包
+        #define PACKSIZE 1024   //暂时不清楚为什么调大了会漏数据
+        parseFileBuffIndex = 0;
+        parseFileBuff.clear();
+        parseFile = true;
+        if(divideDataToPacks(RxBuff, parseFileBuff, PACKSIZE, parseFile))
+            return -1;
+
+        //重置绘图器解析点，以触发解析
+        if(ui->actionPlotterSwitch->isChecked())
+            plotterParsePosInRxBuff = 0;
+
+        ui->textBrowser->clear();
+        ui->textBrowser->appendPlainText("File size: " + QString::number(file.size()) + " Byte");
+        ui->textBrowser->appendPlainText("Read containt:\n");
+        BrowserBuff.clear();
+        BrowserBuff.append(ui->textBrowser->toPlainText());
+
+        // 解析读取的数据
+        unshowedRxBuff.clear();
+        emit parseFileSignal();
+    }else{
+        QMessageBox::information(this,tr("提示"),tr("文件打开失败。"));
+        return -1;
+    }
+    return 0;
+}
+
 //启动时检测有无记录数据文件
 void MainWindow::readRecorderFile()
 {
@@ -423,52 +515,7 @@ void MainWindow::readRecorderFile()
         else if(button == QMessageBox::Ok)
         {
             //读文件
-            if(recorderFile.open(QFile::ReadOnly)){
-                on_clearWindows_clicked();
-                RxBuff.clear();
-                RxBuff = recorderFile.readAll();
-                recorderFile.close();
-                //删除文件
-                recorderFile.remove();
-                //文件分包
-                #define PACKSIZE 4096
-                parseFileBuffIndex = 0;
-                parseFileBuff.clear();
-                while(RxBuff.size()>PACKSIZE){
-                    parseFileBuff.append(RxBuff.mid(0,PACKSIZE));
-                    RxBuff.remove(0,PACKSIZE);
-                }
-                parseFileBuff.append(RxBuff); //一定会有一个元素
-                RxBuff.clear();
-                if(parseFileBuff.size()<1){
-                    return;
-                }
-
-                //重置绘图器解析点，以触发解析
-                if(ui->actionPlotterSwitch->isChecked())
-                    plotterParsePosInRxBuff = 0;
-
-                ui->textBrowser->clear();
-                ui->textBrowser->appendPlainText("File size: " + QString::number(recorderFile.size()) + " Byte");
-                ui->textBrowser->appendPlainText("Read containt:\n");
-                BrowserBuff.clear();
-                BrowserBuff.append(ui->textBrowser->toPlainText());
-
-                //关闭不必要的控件
-                ui->sendButton->setEnabled(false);
-                ui->multiString->setEnabled(false);
-                cycleSendTimer.stop();
-                ui->cycleSendCheck->setEnabled(false);
-                ui->cycleSendCheck->setChecked(false);
-                ui->clearWindows->setText(tr("中  止"));
-
-                // 解析读取的数据
-                parseFile = true;
-                unshowedRxBuff.clear();
-                emit parseFileSignal();
-            }else{
-                QMessageBox::information(this,tr("提示"),tr("文件打开失败。"));
-            }
+            parseDatFile(RECORDER_FILE_PATH, true);
         }
     }
 }
@@ -1038,10 +1085,7 @@ void MainWindow::parseFileSlot()
         parseFile = false;
         parseFileBuffIndex = 0;
         parseFileBuff.clear();
-        ui->sendButton->setEnabled(true);
-        ui->multiString->setEnabled(true);
-        ui->cycleSendCheck->setEnabled(true);
-        ui->clearWindows->setText(tr("清  空"));
+        openInteractiveUI();
     }
 }
 
@@ -1102,6 +1146,11 @@ void MainWindow::serialBytesWritten(qint64 bytes)
         if(SendFileBuffIndex == SendFileBuff.size()){
             SendFileBuffIndex = 0;
             SendFileBuff.clear();
+            sendFile = false;
+            ui->sendButton->setEnabled(true);
+            ui->multiString->setEnabled(true);
+            ui->cycleSendCheck->setEnabled(true);
+            ui->clearWindows->setText(tr("清  空"));
         }
     }
 
@@ -1341,20 +1390,17 @@ void MainWindow::on_clearWindows_clicked()
         parseFileBuff.clear();
         parseFileBuffIndex = 0;
         parseFile = 0;
-        ui->sendButton->setEnabled(true);
-        ui->multiString->setEnabled(true);
-        ui->cycleSendCheck->setEnabled(true);
+        openInteractiveUI();
         return;
     }
 
-    //文件发送中止，第二次才清空
-    if(!SendFileBuff.isEmpty())
+    //文件发送中止
+    if(sendFile)
     {
-        SendFileBuff.clear();
         SendFileBuffIndex = 0;
-        ui->sendButton->setEnabled(true);
-        ui->multiString->setEnabled(true);
-        ui->cycleSendCheck->setEnabled(true);
+        SendFileBuff.clear();
+        sendFile = false;
+        openInteractiveUI();
         return;
     }
 
@@ -1637,59 +1683,16 @@ void MainWindow::on_actionOpenOriginData_triggered()
     //记录上次路径
     lastFileDialogPath = readPath;
     lastFileDialogPath = lastFileDialogPath.mid(0, lastFileDialogPath.lastIndexOf('/')+1);
-    //读取文件
-    QFile file(readPath);
-    //读文件
-    if(file.open(QFile::ReadOnly)){
-        //记录上一次文件名
-        lastFileName = readPath;
-        while(lastFileName.indexOf('/')!=-1){
-            lastFileName = lastFileName.mid(lastFileName.indexOf('/')+1);
-        }
-        on_clearWindows_clicked();
-        RxBuff.clear();
-        RxBuff = file.readAll();
-        file.close();
 
-        //文件分包
-        #define PACKSIZE 4096
-        parseFileBuffIndex = 0;
-        parseFileBuff.clear();
-        while(RxBuff.size()>PACKSIZE){
-            parseFileBuff.append(RxBuff.mid(0,PACKSIZE));
-            RxBuff.remove(0,PACKSIZE);
-        }
-        parseFileBuff.append(RxBuff); //一定会有一个元素
-        RxBuff.clear();
-        if(parseFileBuff.size()<1){
-            return;
-        }
-
-        //重置绘图器解析点，以触发解析
-        if(ui->actionPlotterSwitch->isChecked())
-            plotterParsePosInRxBuff = 0;
-
-        ui->textBrowser->clear();
-        ui->textBrowser->appendPlainText("File size: " + QString::number(file.size()) + " Byte");
-        ui->textBrowser->appendPlainText("Read containt:\n");
-        BrowserBuff.clear();
-        BrowserBuff.append(ui->textBrowser->toPlainText());
-
-        //关闭不必要的控件
-        ui->sendButton->setEnabled(false);
-        ui->multiString->setEnabled(false);
-        cycleSendTimer.stop();
-        ui->cycleSendCheck->setEnabled(false);
-        ui->cycleSendCheck->setChecked(false);
-        ui->clearWindows->setText(tr("中  止"));
-
-        // 解析读取的数据
-        parseFile = true;
-        unshowedRxBuff.clear();
-        emit parseFileSignal();
-    }else{
-        QMessageBox::information(this,tr("提示"),tr("文件打开失败。"));
+    if (parseDatFile(readPath, false))
+    {
         lastFileName.clear();
+        return;
+    }
+    //记录上一次文件名
+    lastFileName = readPath;
+    while(lastFileName.indexOf('/')!=-1){
+        lastFileName = lastFileName.mid(lastFileName.indexOf('/')+1);
     }
 }
 
@@ -2384,12 +2387,15 @@ void MainWindow::on_actionKeyWordHighlight_triggered(bool checked)
 */
 void MainWindow::on_actionUsageStatistic_triggered()
 {
+    static uint32_t lastTotalTx = Config::getTotalTxCnt().toUInt();
+    static uint32_t lastTotalRx = Config::getTotalRxCnt().toUInt();
+    static uint32_t lastTotalRunTime = Config::getTotalRunTime().toUInt();
     double currentTx = serial.getTxCnt();
     double currentRx = serial.getRxCnt();
     double currentRunTime_f = currentRunTime;
-    double totalTx = Config::getTotalTxCnt().toUInt() + currentTx;
-    double totalRx = Config::getTotalRxCnt().toUInt() + currentRx;
-    double totalRunTime = Config::getTotalRunTime().toUInt() + currentRunTime_f;
+    double totalTx = lastTotalTx + currentTx;
+    double totalRx = lastTotalRx + currentRx;
+    double totalRunTime = lastTotalRunTime + currentRunTime_f;
     double totalTxRx_MB = totalTx/1024/1024 + totalRx/1024/1024;
     //单位
     QString totalTxUnit;
@@ -2582,15 +2588,9 @@ void MainWindow::on_actionSendFile_triggered()
         #define PACKSIZE_SENDFILE 256
         SendFileBuffIndex = 0;
         SendFileBuff.clear();
-        while(TxBuff.size()>PACKSIZE_SENDFILE){
-            SendFileBuff.append(TxBuff.mid(0,PACKSIZE_SENDFILE));
-            TxBuff.remove(0,PACKSIZE_SENDFILE);
-        }
-        SendFileBuff.append(TxBuff); //一定会有一个元素
-        TxBuff.clear();
-        if(SendFileBuff.size()<1){
-            return;
-        }
+        sendFile = true;
+        if(divideDataToPacks(TxBuff, SendFileBuff, PACKSIZE_SENDFILE, sendFile))
+            return ;
 
         if(serial.isOpen()){
             ui->textBrowser->clear();
@@ -2604,18 +2604,13 @@ void MainWindow::on_actionSendFile_triggered()
             hexBrowserBuff.clear();
             hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
 
-            //关闭不必要的控件
-            ui->sendButton->setEnabled(false);
-            ui->multiString->setEnabled(false);
-            cycleSendTimer.stop();
-            ui->cycleSendCheck->setEnabled(false);
-            ui->cycleSendCheck->setChecked(false);
-            ui->clearWindows->setText(tr("中  止"));
-
             serial.write(SendFileBuff.at(SendFileBuffIndex++));//后续缓冲的发送在串口发送完成的槽里
         }
-        else
+        else{
+            openInteractiveUI();
+            sendFile = false;
             QMessageBox::information(this,tr("提示"),tr("请先打开串口。"));
+        }
     }else{
         QMessageBox::information(this,tr("提示"),tr("文件打开失败。"));
         lastFileName.clear();
@@ -3031,50 +3026,5 @@ void MainWindow::dropEvent(QDropEvent *e)
     {
         return;
     }
-    //解析文件
-    QFile file(path);
-    if(file.open(QFile::ReadOnly)){
-        on_clearWindows_clicked();
-        RxBuff.clear();
-        RxBuff = file.readAll();
-        file.close();
-        //文件分包
-        #define PACKSIZE 4096
-        parseFileBuffIndex = 0;
-        parseFileBuff.clear();
-        while(RxBuff.size()>PACKSIZE){
-            parseFileBuff.append(RxBuff.mid(0,PACKSIZE));
-            RxBuff.remove(0,PACKSIZE);
-        }
-        parseFileBuff.append(RxBuff); //一定会有一个元素
-        RxBuff.clear();
-        if(parseFileBuff.size()<1){
-            return;
-        }
-
-        //重置绘图器解析点，以触发解析
-        if(ui->actionPlotterSwitch->isChecked())
-            plotterParsePosInRxBuff = 0;
-
-        ui->textBrowser->clear();
-        ui->textBrowser->appendPlainText("File size: " + QString::number(file.size()) + " Byte");
-        ui->textBrowser->appendPlainText("Read containt:\n");
-        BrowserBuff.clear();
-        BrowserBuff.append(ui->textBrowser->toPlainText());
-
-        //关闭不必要的控件
-        ui->sendButton->setEnabled(false);
-        ui->multiString->setEnabled(false);
-        cycleSendTimer.stop();
-        ui->cycleSendCheck->setEnabled(false);
-        ui->cycleSendCheck->setChecked(false);
-        ui->clearWindows->setText(tr("中  止"));
-
-        // 解析读取的数据
-        parseFile = true;
-        unshowedRxBuff.clear();
-        emit parseFileSignal();
-    }else{
-        QMessageBox::information(this,tr("提示"),tr("文件打开失败。"));
-    }
+    parseDatFile(path, false);
 }
