@@ -225,7 +225,7 @@ private:
     QThread *p_textExtractThread;
     TextExtractEngine *p_textExtract;
 signals:
-    void tee_appendData(const QString &str);
+    void tee_appendAndParseData(const QString &str);
     void tee_clearData(const QString &name);
     qint32 tee_saveData(const QString &path, const QString &name, const bool& savePackBuff);
     void tee_parseData(void);

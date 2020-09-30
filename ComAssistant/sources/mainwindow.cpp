@@ -351,9 +351,8 @@ MainWindow::MainWindow(QWidget *parent) :
     p_textExtract       = new TextExtractEngine();
     p_textExtract->moveToThread(p_textExtractThread);
     connect(p_textExtractThread, SIGNAL(finished()), p_textExtract, SLOT(deleteLater()));
-    connect(this, SIGNAL(tee_appendData(const QString &)), p_textExtract, SLOT(appendData(const QString &)));
+    connect(this, SIGNAL(tee_appendAndParseData(const QString &)), p_textExtract, SLOT(appendAndParseData(const QString &)));
     connect(this, SIGNAL(tee_clearData(const QString &)), p_textExtract, SLOT(clearData(const QString )));
-    connect(this, SIGNAL(tee_parseData()), p_textExtract, SLOT(parseData()));
     connect(this, SIGNAL(tee_saveData(const QString &, const QString &, const bool& )),
             p_textExtract, SLOT(saveData(const QString &, const QString &, const bool& )));
     connect(p_textExtract, SIGNAL(textGroupsUpdate(const QByteArray &, const QByteArray &)),
@@ -440,7 +439,6 @@ int32_t MainWindow::divideDataToPacks(QByteArray &input, QByteArrayList &output,
 
 int32_t MainWindow::parseDatFile(QString path, bool removeAfterRead)
 {
-    int32_t ret = 0;
     QFile file(path);
     //读文件
     if(file.open(QFile::ReadOnly)){
@@ -454,7 +452,7 @@ int32_t MainWindow::parseDatFile(QString path, bool removeAfterRead)
         }
 
         //文件分包
-        #define PACKSIZE 1024   //暂时不清楚为什么调大了会漏数据
+        #define PACKSIZE 4096   //需要和text_extract_engine保持一致，否则那边会丢数据或者解析卡顿
         parseFileBuffIndex = 0;
         parseFileBuff.clear();
         parseFile = true;
@@ -591,8 +589,6 @@ void MainWindow::printToTextBrowserTimerSlot()
     if(RefreshTextBrowser==false)
         return;
 
-    emit tee_parseData();
-
     //打印数据
     printToTextBrowser();
 
@@ -706,13 +702,25 @@ void MainWindow::debugTimerSlot()
 
     static double count;
     float num1, num2, num3, num4, num5, num6;
-    num1 = static_cast<float>(qSin(count/0.3843));
-    num2 = static_cast<float>(qCos(count/0.3843));
-    num3 = static_cast<float>(qCos(count/0.6157)+qSin(count/0.3843));
-    num4 = static_cast<float>(qCos(count/0.6157)-qSin(count/0.3843));
-    num5 = static_cast<float>(qSin(count/0.3843)+qrand()/static_cast<double>(RAND_MAX)*1*qSin(count/0.6157));
-    num6 = static_cast<float>(qCos(count/0.3843)+qrand()/static_cast<double>(RAND_MAX)*1*qCos(count/0.6157));
-
+//    if(count > 100)
+//    {
+//        ui->statusBar->showMessage("结束啦");
+//        return;
+//    }
+    num1 = count * 10;
+    num2 = count * 10;
+    num3 = count * 10;
+    num4 = count * 10;
+    num5 = count * 10;
+    num6 = count * 10;
+//    num1 = static_cast<float>(qSin(count / 0.3843));
+//    num2 = static_cast<float>(qCos(count / 0.3843));
+//    num3 = static_cast<float>(qCos(count / 0.6157) + qSin(count / 0.3843));
+//    num4 = static_cast<float>(qCos(count / 0.6157) - qSin(count / 0.3843));
+//    num5 = static_cast<float>(qSin(count / 0.3843) + qrand() / static_cast<double>(RAND_MAX) * 1 * qSin(count / 0.6157));
+//    num6 = static_cast<float>(qCos(count / 0.3843) + qrand() / static_cast<double>(RAND_MAX) * 1 * qCos(count / 0.6157));
+//    num5 = static_cast<float>(qSin(count / 0.3843) + qSin(count / 0.3843) * qSin(count / 0.3843));
+//    num6 = static_cast<float>(qCos(count / 0.3843) + qCos(count / 0.3843) * qCos(count / 0.3843));
     if(ui->actionAscii->isChecked()){
         QString tmp;
         tmp = "{plotter:" +
@@ -722,6 +730,7 @@ void MainWindow::debugTimerSlot()
                   QString::number(static_cast<double>(num4),'f') + "," +
                   QString::number(static_cast<double>(num5),'f') + "," +
                   QString::number(static_cast<double>(num6),'f') + "}\n";
+
         tmp += "{voltage:the vol is ### V}\n"
                "{current:the cur is @@@ A}\n"
                "{cnt:the cnt is $$$}\n";
@@ -1033,7 +1042,7 @@ void MainWindow::readSerialPort()
     }
 
     //数据交付给文本解析引擎
-    emit tee_appendData(tmpReadBuff);
+    emit tee_appendAndParseData(tmpReadBuff);
 
     recordDataToFile(tmpReadBuff);
 
