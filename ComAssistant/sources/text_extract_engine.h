@@ -50,10 +50,9 @@ public:
     ~TextExtractEngine();
 
 public slots:
-    void appendData(const QString &newData);
+    void appendAndParseData(const QString &newData);
     void clearData(const QString &name);
     qint32 saveData(const QString &path, const QString &name, const bool& savePackBuff);
-    void parseData();
 signals:
     void textGroupsUpdate(const QByteArray &name, const QByteArray &data);
     void saveDataResult(const qint32& result, const QString &path, const qint32 fileSize);
@@ -74,7 +73,6 @@ private:
     void inline appendPackDataToTextGroups(QByteArray &name, QByteArray &data,  QByteArray& pack);
     bool inline parseNameAndDataFromPack(QByteArray &pack);
     void parsePacksFromBuffer(QByteArray &buffer, QByteArray &restBuffer);
-    bool needParse = false;
     QVector<textGroup_t> textGroups;  //classified text groups: one tab page one group
     rawData_t rawData;
 };
