@@ -510,8 +510,11 @@ void MainWindow::readRecorderFile()
             }
             //重命名
             recorderFile.rename(BACKUP_RECORDER_FILE_PATH);
+            QDir appDir(QCoreApplication::applicationDirPath());
             QMessageBox::information(this, tr("提示"),
-                                    tr("记录数据文件已另存为") + BACKUP_RECORDER_FILE_PATH + tr("。请在程序运行目录下自行处理。"));
+                                     tr("记录数据文件已另存到程序所在目录：") + "\n" +
+                                     appDir.absoluteFilePath(BACKUP_RECORDER_FILE_PATH) + "\n" +
+                                     tr("请自行处理。"));
         }
         else if(button == QMessageBox::Ok)
         {
@@ -833,6 +836,9 @@ MainWindow::~MainWindow()
         }else if(ui->actionScatterPlot->isChecked())
         {
             Config::setLineType(LineType_e::Scatter);
+        }else
+        {
+            Config::setLineType(LineType_e::Line);
         }
 
         //static
@@ -2242,25 +2248,52 @@ void MainWindow::verticalScrollBarActionTriggered(qint32 action)
 
 void MainWindow::on_actionLinePlot_triggered()
 {
-    ui->actionLinePlot->setChecked(true);
-    ui->actionScatterLinePlot->setChecked(false);
-    ui->actionScatterPlot->setChecked(false);
+    if(ui->customPlot->selectedGraphs().size() == 0)
+    {
+        ui->actionLinePlot->setChecked(true);
+        ui->actionScatterLinePlot->setChecked(false);
+        ui->actionScatterPlot->setChecked(false);
+    }
+    else
+    {
+        ui->actionLinePlot->setChecked(false);
+        ui->actionScatterLinePlot->setChecked(false);
+        ui->actionScatterPlot->setChecked(false);
+    }
     ui->customPlot->plotControl->setupLineType(ui->customPlot, QCustomPlotControl::Line);
 }
 
 void MainWindow::on_actionScatterLinePlot_triggered()
 {
-    ui->actionLinePlot->setChecked(false);
-    ui->actionScatterLinePlot->setChecked(true);
-    ui->actionScatterPlot->setChecked(false);
+    if(ui->customPlot->selectedGraphs().size() == 0)
+    {
+        ui->actionLinePlot->setChecked(false);
+        ui->actionScatterLinePlot->setChecked(true);
+        ui->actionScatterPlot->setChecked(false);
+    }
+    else
+    {
+        ui->actionLinePlot->setChecked(false);
+        ui->actionScatterLinePlot->setChecked(false);
+        ui->actionScatterPlot->setChecked(false);
+    }
     ui->customPlot->plotControl->setupLineType(ui->customPlot, QCustomPlotControl::ScatterLine);
 }
 
 void MainWindow::on_actionScatterPlot_triggered()
 {
-    ui->actionLinePlot->setChecked(false);
-    ui->actionScatterLinePlot->setChecked(false);
-    ui->actionScatterPlot->setChecked(true);
+    if(ui->customPlot->selectedGraphs().size() == 0)
+    {
+        ui->actionLinePlot->setChecked(false);
+        ui->actionScatterLinePlot->setChecked(false);
+        ui->actionScatterPlot->setChecked(true);
+    }
+    else
+    {
+        ui->actionLinePlot->setChecked(false);
+        ui->actionScatterLinePlot->setChecked(false);
+        ui->actionScatterPlot->setChecked(false);
+    }
     ui->customPlot->plotControl->setupLineType(ui->customPlot, QCustomPlotControl::Scatter);
 }
 

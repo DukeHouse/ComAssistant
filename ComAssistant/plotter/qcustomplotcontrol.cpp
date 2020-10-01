@@ -281,9 +281,27 @@ bool QCustomPlotControl::setupPlotName(QCustomPlot* customPlot, QVector<QString>
 
 void QCustomPlotControl::setupScatterStyle(QCustomPlot* customPlot, bool enable)
 {
+    if(customPlot->selectedGraphs().size() > 0)
+    {
+        //获取图像编号
+        int index = 0;
+        for(;index < customPlot->graphCount(); index++){
+            if(customPlot->graph(index)->name() == customPlot->selectedGraphs().first()->name()){
+                break;
+            }
+        }
+        if(enable)
+        {
+            customPlot->selectedGraphs().first()->setScatterStyle(QCPScatterStyle(scatterShapeSet.at(index), 4));
+        }else{
+            customPlot->selectedGraphs().first()->setScatterStyle(QCPScatterStyle::ssNone);
+        }
+        customPlot->replot();
+        return;
+    }
     if(enable){
         for(int i = 0; i < customPlot->graphCount(); i++){
-            customPlot->graph(i)->setScatterStyle(QCPScatterStyle(scatterShapeSet.at(i),4));
+            customPlot->graph(i)->setScatterStyle(QCPScatterStyle(scatterShapeSet.at(i), 4));
         }
     }else{
         for(int i = 0; i < customPlot->graphCount(); i++){
@@ -293,6 +311,7 @@ void QCustomPlotControl::setupScatterStyle(QCustomPlot* customPlot, bool enable)
     customPlot->replot();
 }
 
+//not used yet
 void QCustomPlotControl::setupScatterStyle(QCustomPlot* customPlot, QCPScatterStyle::ScatterShape shape)
 {
     if(shape != QCPScatterStyle::ssNone){
@@ -309,6 +328,12 @@ void QCustomPlotControl::setupScatterStyle(QCustomPlot* customPlot, QCPScatterSt
 
 void QCustomPlotControl::setupLineStyle(QCustomPlot* customPlot, QCPGraph::LineStyle style)
 {
+    if(customPlot->selectedGraphs().size() > 0)
+    {
+        customPlot->selectedGraphs().first()->setLineStyle(style);
+        customPlot->replot();
+        return;
+    }
     for(int i = 0; i < customPlot->graphCount(); i++){
         customPlot->graph(i)->setLineStyle(style);
     }
