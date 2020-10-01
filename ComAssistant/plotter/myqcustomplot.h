@@ -46,6 +46,9 @@ private slots:
     void rescaleYAxis();
     void removeAllGraphs();
     void hideSelectedGraph();
+    void hideAllGraph();
+    void showAllGraph();
+    bool isAllGraphHide();
     void contextMenuRequest(QPoint pos);
     void moveLegend();
     void graphClicked(QCPAbstractPlottable *plottable, int dataIndex);

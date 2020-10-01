@@ -278,6 +278,37 @@ void MyQCustomPlot::hideSelectedGraph()
     }
 }
 
+void MyQCustomPlot::hideAllGraph()
+{
+    int index = 0;
+    for(;index < this->graphCount(); index++){
+        this->graph(index)->setVisible(false);
+        this->legend->item(index)->setTextColor(Qt::gray);
+    }
+    this->replot();
+}
+
+void MyQCustomPlot::showAllGraph()
+{
+    int index = 0;
+    for(;index < this->graphCount(); index++){
+        this->graph(index)->setVisible(true);
+        this->legend->item(index)->setTextColor(Qt::black);
+    }
+    this->replot();
+}
+
+bool MyQCustomPlot::isAllGraphHide(void)
+{
+    int index = 0;
+    for(;index < this->graphCount(); index++){
+        if(this->graph(index)->visible()){
+            return false;
+        }
+    }
+    return true;
+}
+
 void MyQCustomPlot::contextMenuRequest(QPoint pos)
 {
   QMenu *menu = new QMenu(this);
@@ -289,32 +320,33 @@ void MyQCustomPlot::contextMenuRequest(QPoint pos)
     menu->addAction(tr("移动到右上角"), this, SLOT(moveLegend()))->setData(static_cast<int>(Qt::AlignTop|Qt::AlignRight));
     menu->addAction(tr("移动到右下角"), this, SLOT(moveLegend()))->setData(static_cast<int>(Qt::AlignBottom|Qt::AlignRight));
     menu->addAction(tr("移动到左下角"), this, SLOT(moveLegend()))->setData(static_cast<int>(Qt::AlignBottom|Qt::AlignLeft));
-  } else  // general context menu on graphs requested
-  {
-    if (this->graphCount() > 0){
-        menu->addAction(tr("曲线居中"), this, SLOT(rescaleYAxis()));
-        menu->addSeparator();
-        if(setting)
-        {
-            menu->addMenu(setting);
-        }
-        menu->addSeparator();
-        if(saveData)
-        {
-            menu->addAction(saveData);
-        }
-        if(savePicture)
-        {
-            menu->addAction(savePicture);
-        }
-        menu->addSeparator();
-        menu->addAction(tr("移除所有曲线"), this, SLOT(removeAllGraphs()));
-    }
+  }
+  // general context menu on graphs requested
+  if (this->graphCount() > 0){
+      menu->addSeparator();
+      menu->addAction(tr("曲线居中"), this, SLOT(rescaleYAxis()));
+      menu->addSeparator();
+      if(setting)
+      {
+          menu->addMenu(setting);
+      }
+      menu->addSeparator();
+      if(saveData)
+      {
+          menu->addAction(saveData);
+      }
+      if(savePicture)
+      {
+          menu->addAction(savePicture);
+      }
+      menu->addSeparator();
+      if (this->selectedGraphs().size() > 0){
+          menu->addAction(tr("移除所选曲线"), this, SLOT(removeSelectedGraph()));
+      }
+      menu->addAction(tr("移除所有曲线"), this, SLOT(removeAllGraphs()));
   }
   //选择了曲线
   if (this->selectedGraphs().size() > 0){
-    menu->addSeparator();
-    menu->addAction(tr("移除所选曲线"), this, SLOT(removeSelectedGraph()));
     menu->addSeparator();
     //所选曲线是否可见
     if(this->selectedGraphs().first()->visible()){
@@ -323,7 +355,13 @@ void MyQCustomPlot::contextMenuRequest(QPoint pos)
         menu->addAction(tr("显示所选曲线"), this, SLOT(hideSelectedGraph()));
     }
   }
-
+  if(isAllGraphHide())
+  {
+      menu->addAction(tr("显示所有曲线"), this, SLOT(showAllGraph()));
+  }else
+  {
+      menu->addAction(tr("隐藏所有曲线"), this, SLOT(hideAllGraph()));
+  }
   menu->popup(this->mapToGlobal(pos));
 }
 
