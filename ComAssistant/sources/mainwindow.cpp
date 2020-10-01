@@ -2,6 +2,9 @@
 #include "ui_mainwindow.h"
 #include <QHotkey>
 
+#define RECORDER_FILE_PATH           "ComAssistantRecorder.dat"
+#define BACKUP_RECORDER_FILE_PATH    "ComAssistantRecorder_back.dat"
+
 static qint32   g_multiStr_cur_index;
 static QColor   g_background_color;
 static QFont    g_font;
@@ -308,17 +311,17 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //数值显示器初始化
     ui->valueDisplay->setColumnCount(2);
-    ui->valueDisplay->setHorizontalHeaderItem(0,new QTableWidgetItem(tr("名称")));
-    ui->valueDisplay->setHorizontalHeaderItem(1,new QTableWidgetItem(tr("值")));
-    ui->valueDisplay->horizontalHeader()->setSectionResizeMode(0,QHeaderView::Stretch);
-    ui->valueDisplay->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
+    ui->valueDisplay->setHorizontalHeaderItem(0, new QTableWidgetItem(tr("名称")));
+    ui->valueDisplay->setHorizontalHeaderItem(1, new QTableWidgetItem(tr("值")));
+    ui->valueDisplay->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Interactive);
+    ui->valueDisplay->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     ui->valueDisplay->horizontalHeader()->setStretchLastSection(true);
 
     //加载样式表
-    QFile file(":/style.css");
-    file.open(QFile::ReadOnly);
-    QString style = file.readAll();
-    file.close();
+    QFile styleFile(":/style.css");
+    styleFile.open(QFile::ReadOnly);
+    QString style = styleFile.readAll();
+    styleFile.close();
     this->setStyleSheet(style);
     g_font = Config::getGUIFont();
     ui->textBrowser->document()->setDefaultFont(g_font);
@@ -327,6 +330,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->customPlot->plotControl->setupFont(ui->customPlot, g_font);
 
     this->setWindowTitle(tr("纸飞机串口助手") + " - V"+Config::getVersion());
+
+    this->setAcceptDrops(true);
 
     //启动定时器
     secTimer.setTimerType(Qt::PreciseTimer);
@@ -346,9 +351,8 @@ MainWindow::MainWindow(QWidget *parent) :
     p_textExtract       = new TextExtractEngine();
     p_textExtract->moveToThread(p_textExtractThread);
     connect(p_textExtractThread, SIGNAL(finished()), p_textExtract, SLOT(deleteLater()));
-    connect(this, SIGNAL(tee_appendData(const QString &)), p_textExtract, SLOT(appendData(const QString &)));
+    connect(this, SIGNAL(tee_appendAndParseData(const QString &)), p_textExtract, SLOT(appendAndParseData(const QString &)));
     connect(this, SIGNAL(tee_clearData(const QString &)), p_textExtract, SLOT(clearData(const QString )));
-    connect(this, SIGNAL(tee_parseData()), p_textExtract, SLOT(parseData()));
     connect(this, SIGNAL(tee_saveData(const QString &, const QString &, const bool& )),
             p_textExtract, SLOT(saveData(const QString &, const QString &, const bool& )));
     connect(p_textExtract, SIGNAL(textGroupsUpdate(const QByteArray &, const QByteArray &)),
@@ -369,6 +373,151 @@ MainWindow::MainWindow(QWidget *parent) :
         on_actionManual_triggered();
         //弹出声明
         on_actionAbout_triggered();        
+    }
+
+    readRecorderFile();
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    //点击关闭时删除记录文件
+    QFile recorderFile(RECORDER_FILE_PATH);
+    if(recorderFile.exists())
+    {
+        recorderFile.remove();
+    }
+}
+
+//打开可交互控件
+void MainWindow::openInteractiveUI()
+{
+    ui->comSwitch->setEnabled(true);
+    ui->sendButton->setEnabled(true);
+    ui->multiString->setEnabled(true);
+    ui->cycleSendCheck->setEnabled(true);
+    ui->clearWindows->setText(tr("清  空"));
+}
+
+//关闭可交互控件
+void MainWindow::closeInteractiveUI()
+{
+    ui->comSwitch->setEnabled(false);
+    ui->sendButton->setEnabled(false);
+    ui->multiString->setEnabled(false);
+    cycleSendTimer.stop();
+    ui->cycleSendCheck->setEnabled(false);
+    ui->cycleSendCheck->setChecked(false);
+    ui->clearWindows->setText(tr("中  止"));
+}
+
+//文件分包函数，所有传入的参数都可能被修改
+int32_t MainWindow::divideDataToPacks(QByteArray &input, QByteArrayList &output, int32_t pack_size, bool &divideFlag)
+{
+    closeInteractiveUI();
+
+    int32_t pack_num = input.size() / pack_size;
+    int32_t pack_cnt = 0;
+    while(input.size() > pack_size && divideFlag){
+        output.append(input.mid(0, pack_size));
+        input.remove(0, pack_size);
+        ui->statusBar->showMessage(tr("文件分包进度：") +
+                                   QString::number(100 * pack_cnt /pack_num) +
+                                   "%", 2000);
+        pack_cnt++;
+        if(pack_cnt % 5 == 0)
+            qApp->processEvents();
+    }
+    output.append(input); //一定会有一个元素
+    input.clear();
+
+    //是否撤销解析
+    if(output.size() < 1 || divideFlag == false){
+        openInteractiveUI();
+        ui->statusBar->showMessage("", 2000);
+        return -1;
+    }
+    return 0;
+}
+
+int32_t MainWindow::parseDatFile(QString path, bool removeAfterRead)
+{
+    QFile file(path);
+    QByteArray buff;
+    //读文件
+    if(file.open(QFile::ReadOnly)){
+        on_clearWindows_clicked();
+        buff.clear();
+        buff = file.readAll();
+        file.close();
+        if(removeAfterRead)
+        {
+            file.remove();
+        }
+
+        //文件分包
+        #define PACKSIZE 4096
+        parseFileBuffIndex = 0;
+        parseFileBuff.clear();
+        parseFile = true;
+        if(divideDataToPacks(buff, parseFileBuff, PACKSIZE, parseFile))
+            return -1;
+        RxBuff.clear();
+        //重置绘图器解析点，以触发解析
+        if(ui->actionPlotterSwitch->isChecked())
+            plotterParsePosInRxBuff = RxBuff.size();
+
+        ui->textBrowser->clear();
+        ui->textBrowser->appendPlainText("File size: " + QString::number(file.size()) + " Byte");
+        ui->textBrowser->appendPlainText("Read containt:\n");
+        BrowserBuff.clear();
+        BrowserBuff.append(ui->textBrowser->toPlainText());
+
+        // 解析读取的数据
+        unshowedRxBuff.clear();
+        emit parseFileSignal();
+    }else{
+        QMessageBox::information(this,tr("提示"),tr("文件打开失败。"));
+        return -1;
+    }
+    return 0;
+}
+
+//启动时检测有无记录数据文件
+void MainWindow::readRecorderFile()
+{
+    QFile recorderFile(RECORDER_FILE_PATH);
+    if(recorderFile.exists() && recorderFile.size())
+    {
+        qint32 button;
+        button = QMessageBox::information(this, tr("提示"),
+                                          tr("检测到记录数据文件，可能是上次未正确关闭程序导致的，恢复数据还是丢弃？"),
+                                          QMessageBox::Ok, QMessageBox::Discard, QMessageBox::Cancel);
+        if(button == QMessageBox::Discard)
+        {
+            recorderFile.remove();
+        }
+        else if(button == QMessageBox::Cancel)
+        {
+            //重命名前确保没有含新名字的文件
+            QFile backFile(BACKUP_RECORDER_FILE_PATH);
+            if(backFile.exists())
+                backFile.remove();
+            if(backFile.exists())
+            {
+                QMessageBox::information(this, tr("提示"),
+                                        tr("旧备份记录数据文件删除失败，请自行处理：") + BACKUP_RECORDER_FILE_PATH);
+                return;
+            }
+            //重命名
+            recorderFile.rename(BACKUP_RECORDER_FILE_PATH);
+            QMessageBox::information(this, tr("提示"),
+                                    tr("记录数据文件已另存为") + BACKUP_RECORDER_FILE_PATH + tr("。请在程序运行目录下自行处理。"));
+        }
+        else if(button == QMessageBox::Ok)
+        {
+            //读文件
+            parseDatFile(RECORDER_FILE_PATH, true);
+        }
     }
 }
 
@@ -442,8 +591,6 @@ void MainWindow::printToTextBrowserTimerSlot()
     }
     if(RefreshTextBrowser==false)
         return;
-
-    emit tee_parseData();
 
     //打印数据
     printToTextBrowser();
@@ -558,13 +705,22 @@ void MainWindow::debugTimerSlot()
 
     static double count;
     float num1, num2, num3, num4, num5, num6;
-    num1 = static_cast<float>(qSin(count/0.3843));
-    num2 = static_cast<float>(qCos(count/0.3843));
-    num3 = static_cast<float>(qCos(count/0.6157)+qSin(count/0.3843));
-    num4 = static_cast<float>(qCos(count/0.6157)-qSin(count/0.3843));
-    num5 = static_cast<float>(qSin(count/0.3843)+qrand()/static_cast<double>(RAND_MAX)*1*qSin(count/0.6157));
-    num6 = static_cast<float>(qCos(count/0.3843)+qrand()/static_cast<double>(RAND_MAX)*1*qCos(count/0.6157));
-
+    //直线
+//    num1 = count * 10;
+//    num2 = count * 10;
+//    num3 = count * 10;
+//    num4 = count * 10;
+//    num5 = count * 10;
+//    num6 = count * 10;
+    //正弦
+    num1 = static_cast<float>(qSin(count / 0.3843));
+    num2 = static_cast<float>(qCos(count / 0.3843));
+    num3 = static_cast<float>(qCos(count / 0.6157) + qSin(count / 0.3843));
+    num4 = static_cast<float>(qCos(count / 0.6157) - qSin(count / 0.3843));
+    num5 = static_cast<float>(qSin(count / 0.3843) + qSin(count / 0.3843) * qSin(count / 0.3843));
+    num6 = static_cast<float>(qCos(count / 0.3843) + qSin(count / 0.3843) * qCos(count / 0.3843));
+//    num5 = static_cast<float>(qSin(count / 0.3843) + qrand() / static_cast<double>(RAND_MAX) * 1 * qSin(count / 0.6157));
+//    num6 = static_cast<float>(qCos(count / 0.3843) + qrand() / static_cast<double>(RAND_MAX) * 1 * qCos(count / 0.6157));
     if(ui->actionAscii->isChecked()){
         QString tmp;
         tmp = "{plotter:" +
@@ -574,10 +730,13 @@ void MainWindow::debugTimerSlot()
                   QString::number(static_cast<double>(num4),'f') + "," +
                   QString::number(static_cast<double>(num5),'f') + "," +
                   QString::number(static_cast<double>(num6),'f') + "}\n";
-        tmp +=  "{voltage:the vol is ### V}\n"
-                "{current:the cur is @@@ A}\n";
+
+        tmp += "{voltage:the vol is ### V}\n"
+               "{current:the cur is @@@ A}\n"
+               "{cnt:the cnt is $$$}\n";
         tmp.replace("###", QString::number(3.3 + qrand()/static_cast<double>(RAND_MAX)/10.0, 'f', 3));
         tmp.replace("@@@", QString::number(0.0 + qrand()/static_cast<double>(RAND_MAX)/20.0, 'f', 3));
+        tmp.replace("$$$", QString::number(static_cast<qint32>(count * 10)));
         if(serial.isOpen()){
             serial.write(tmp.toLocal8Bit());
         }
@@ -687,6 +846,7 @@ MainWindow::~MainWindow()
     }else{
         Config::writeDefault();
     }
+
     p_textExtractThread->quit();
     p_textExtractThread->wait();
 //    delete p_textExtract; //deleteLater自动删除？
@@ -704,7 +864,7 @@ MainWindow::~MainWindow()
 void MainWindow::on_refreshCom_clicked()
 {   
     if(ui->refreshCom->isEnabled()==false){
-        ui->statusBar->showMessage(tr("刷新功能被禁用"),1000);
+        ui->statusBar->showMessage(tr("刷新功能被禁用"), 2000);
         return;
     }
 
@@ -804,6 +964,16 @@ void MainWindow::on_comSwitch_clicked(bool checked)
     on_refreshCom_clicked();
 }
 
+void MainWindow::recordDataToFile(QByteArray &buff)
+{
+    QFile file(RECORDER_FILE_PATH);
+    QTextStream stream(&file);
+    if(file.open(QFile::WriteOnly|QFile::Append)){
+        stream<<buff;
+        file.close();
+    }
+}
+
 /*
  * Function:从串口读取数据
 */
@@ -872,7 +1042,9 @@ void MainWindow::readSerialPort()
     }
 
     //数据交付给文本解析引擎
-    emit tee_appendData(tmpReadBuff);
+    emit tee_appendAndParseData(tmpReadBuff);
+
+    recordDataToFile(tmpReadBuff);
 
     //时间戳选项
     if(ui->timeStampCheckBox->isChecked() && timeStampTimer.isActive()==false){
@@ -916,16 +1088,15 @@ void MainWindow::parseFileSlot()
         ui->customPlot->replot();
     }
     if(parseFileBuffIndex!=parseFileBuff.size()){
-        ui->statusBar->showMessage(tr("解析进度：")+QString::number(static_cast<qint32>(100.0*(parseFileBuffIndex+1.0)/parseFileBuff.size()))+"% ",1000);
+        ui->statusBar->showMessage(tr("解析进度：") +
+                                   QString::number(100*(parseFileBuffIndex+1)/parseFileBuff.size()) +
+                                   "% ", 1000);
         emit parseFileSignal();
     }else{
         parseFile = false;
         parseFileBuffIndex = 0;
         parseFileBuff.clear();
-        ui->sendButton->setEnabled(true);
-        ui->multiString->setEnabled(true);
-        ui->cycleSendCheck->setEnabled(true);
-        ui->clearWindows->setText(tr("清  空"));
+        openInteractiveUI();
     }
 }
 
@@ -981,11 +1152,18 @@ void MainWindow::serialBytesWritten(qint64 bytes)
     statisticTxByteCnt += bytes;
 
     if(SendFileBuff.size()>0 && SendFileBuffIndex!=SendFileBuff.size()){
-        ui->statusBar->showMessage(tr("发送进度：")+QString::number(static_cast<qint32>(100.0*(SendFileBuffIndex+1.0)/SendFileBuff.size()))+"%",1000);
+        ui->statusBar->showMessage(tr("发送进度：") +
+                                   QString::number(100*(SendFileBuffIndex+1)/SendFileBuff.size()) +
+                                   "%",1000);
         serial.write(SendFileBuff.at(SendFileBuffIndex++));
         if(SendFileBuffIndex == SendFileBuff.size()){
             SendFileBuffIndex = 0;
             SendFileBuff.clear();
+            sendFile = false;
+            ui->sendButton->setEnabled(true);
+            ui->multiString->setEnabled(true);
+            ui->cycleSendCheck->setEnabled(true);
+            ui->clearWindows->setText(tr("清  空"));
         }
     }
 
@@ -1225,20 +1403,17 @@ void MainWindow::on_clearWindows_clicked()
         parseFileBuff.clear();
         parseFileBuffIndex = 0;
         parseFile = 0;
-        ui->sendButton->setEnabled(true);
-        ui->multiString->setEnabled(true);
-        ui->cycleSendCheck->setEnabled(true);
+        openInteractiveUI();
         return;
     }
 
-    //文件发送中止，第二次才清空
-    if(!SendFileBuff.isEmpty())
+    //文件发送中止
+    if(sendFile)
     {
-        SendFileBuff.clear();
         SendFileBuffIndex = 0;
-        ui->sendButton->setEnabled(true);
-        ui->multiString->setEnabled(true);
-        ui->cycleSendCheck->setEnabled(true);
+        SendFileBuff.clear();
+        sendFile = false;
+        openInteractiveUI();
         return;
     }
 
@@ -1263,7 +1438,11 @@ void MainWindow::on_clearWindows_clicked()
     emit tee_clearData("");
     for(qint32 i = 0; i < ui->tabWidget->count(); i++){
         if(ui->tabWidget->tabText(i) != MAIN_TAB_NAME){
-            ui->tabWidget->removeTab(i);
+            if(ui->tabWidget->widget(i) != nullptr)
+            {
+                delete ui->tabWidget->widget(i);
+            }
+//            ui->tabWidget->removeTab(i);
             emit tee_clearData(ui->tabWidget->tabText(i));
             i = 0;//重置计数器
         }
@@ -1278,10 +1457,14 @@ void MainWindow::on_clearWindows_clicked()
     ui->customPlot->yAxis->setRange(0,5);
     ui->customPlot->xAxis->setRange(0, ui->customPlot->plotControl->getXAxisLength(), Qt::AlignRight);
     ui->customPlot->replot();
-    plotterParsePosInRxBuff = 0;
+    plotterParsePosInRxBuff = RxBuff.size();
 
     //数值显示器
     deleteValueDisplaySlot();
+
+    //实时数据记录仪
+    QFile recorderFile(RECORDER_FILE_PATH);
+    recorderFile.remove();
 
     //更新收发统计
     statusStatisticLabel->setText(serial.getTxRxString());
@@ -1517,59 +1700,16 @@ void MainWindow::on_actionOpenOriginData_triggered()
     //记录上次路径
     lastFileDialogPath = readPath;
     lastFileDialogPath = lastFileDialogPath.mid(0, lastFileDialogPath.lastIndexOf('/')+1);
-    //读取文件
-    QFile file(readPath);
-    //读文件
-    if(file.open(QFile::ReadOnly)){
-        //记录上一次文件名
-        lastFileName = readPath;
-        while(lastFileName.indexOf('/')!=-1){
-            lastFileName = lastFileName.mid(lastFileName.indexOf('/')+1);
-        }
-        on_clearWindows_clicked();
-        RxBuff.clear();
-        RxBuff = file.readAll();
-        file.close();
 
-        //文件分包
-        #define PACKSIZE 4096
-        parseFileBuffIndex = 0;
-        parseFileBuff.clear();
-        while(RxBuff.size()>PACKSIZE){
-            parseFileBuff.append(RxBuff.mid(0,PACKSIZE));
-            RxBuff.remove(0,PACKSIZE);
-        }
-        parseFileBuff.append(RxBuff); //一定会有一个元素
-        RxBuff.clear();
-        if(parseFileBuff.size()<1){
-            return;
-        }
-
-        //重置绘图器解析点，以触发解析
-        if(ui->actionPlotterSwitch->isChecked())
-            plotterParsePosInRxBuff = 0;
-
-        ui->textBrowser->clear();
-        ui->textBrowser->appendPlainText("File size: " + QString::number(file.size()) + " Byte");
-        ui->textBrowser->appendPlainText("Read containt:\n");
-        BrowserBuff.clear();
-        BrowserBuff.append(ui->textBrowser->toPlainText());
-
-        //关闭不必要的控件
-        ui->sendButton->setEnabled(false);
-        ui->multiString->setEnabled(false);
-        cycleSendTimer.stop();
-        ui->cycleSendCheck->setEnabled(false);
-        ui->cycleSendCheck->setChecked(false);
-        ui->clearWindows->setText(tr("中  止"));
-
-        // 解析读取的数据
-        parseFile = true;
-        unshowedRxBuff.clear();
-        emit parseFileSignal();
-    }else{
-        QMessageBox::information(this,tr("提示"),tr("文件打开失败。"));
+    if (parseDatFile(readPath, false))
+    {
         lastFileName.clear();
+        return;
+    }
+    //记录上一次文件名
+    lastFileName = readPath;
+    while(lastFileName.indexOf('/')!=-1){
+        lastFileName = lastFileName.mid(lastFileName.indexOf('/')+1);
     }
 }
 
@@ -1642,9 +1782,9 @@ void MainWindow::on_comList_textActivated(const QString &arg1)
         on_comSwitch_clicked(false);
         on_comSwitch_clicked(true);
         if(serial.isOpen())
-            ui->statusBar->showMessage(tr("已重新启动串口"),1000);
+            ui->statusBar->showMessage(tr("已重新启动串口"), 2000);
         else
-            ui->statusBar->showMessage(tr("串口重启失败"),1000);
+            ui->statusBar->showMessage(tr("串口重启失败"), 2000);
     }
 }
 
@@ -1927,11 +2067,6 @@ void MainWindow::plotterParseTimerSlot()
     //关定时器，防止数据量过大导致咬尾振荡
     plotterParseTimer.stop();
 
-    //添加解析长度限制，防止数据量过大振荡
-    if(RxBuff.size() - plotterParsePosInRxBuff > maxParseLengthLimit)
-    {
-        plotterParsePosInRxBuff = RxBuff.size() - maxParseLengthLimit;
-    }
     parsedLength = ui->customPlot->protocol->parse(RxBuff, plotterParsePosInRxBuff, maxParseLengthLimit, g_enableSumCheck);
     plotterParsePosInRxBuff += parsedLength;
 
@@ -1942,7 +2077,7 @@ void MainWindow::plotterParseTimerSlot()
         if(ui->actionPlotterSwitch->isChecked()){
             //关闭刷新，数据全部填充完后统一刷新
             if(false == ui->customPlot->plotControl->displayToPlotter(ui->customPlot, oneRowData, false, false))
-                ui->statusBar->showMessage(tr("出现一组异常绘图数据，已丢弃。"), 1000);
+                ui->statusBar->showMessage(tr("出现一组异常绘图数据，已丢弃。"), 2000);
         }
     }
     if(ui->actionAutoRefreshYAxis->isChecked())
@@ -1958,31 +2093,30 @@ void MainWindow::plotterParseTimerSlot()
             ui->valueDisplay->setRowCount(oneRowData.size());
             //设置列，固定的
             ui->valueDisplay->setColumnCount(2);
-            ui->valueDisplay->setHorizontalHeaderItem(0,new QTableWidgetItem(tr("名称")));
-            ui->valueDisplay->setHorizontalHeaderItem(1,new QTableWidgetItem(tr("值")));
+            ui->valueDisplay->setHorizontalHeaderItem(0, new QTableWidgetItem(tr("名称")));
+            ui->valueDisplay->setHorizontalHeaderItem(1, new QTableWidgetItem(tr("值")));
             ui->valueDisplay->horizontalHeader()->setStretchLastSection(true);
-            ui->valueDisplay->horizontalHeader()->setSectionResizeMode(0,QHeaderView::Stretch);
-            ui->valueDisplay->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
+            ui->valueDisplay->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Interactive);
+            ui->valueDisplay->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
         }
         //添加数据
         qint32 min = oneRowData.size() < ui->customPlot->plotControl->getNameSetsFromPlot().size() ? oneRowData.size() : ui->customPlot->plotControl->getNameSetsFromPlot().size();
         for(qint32 i=0; i < min; i++){
             //这里会重复new对象导致内存溢出吗
-            ui->valueDisplay->setItem(i,0,new QTableWidgetItem(ui->customPlot->plotControl->getNameSetsFromPlot().at(i)));
-            ui->valueDisplay->setItem(i,1,new QTableWidgetItem(QString::number(oneRowData.at(i),'f')));
+            ui->valueDisplay->setItem(i, 0, new QTableWidgetItem(ui->customPlot->plotControl->getNameSetsFromPlot().at(i)));
+            ui->valueDisplay->setItem(i, 1, new QTableWidgetItem(QString::number(oneRowData.at(i),'g')));
             //不可编辑
             ui->valueDisplay->item(i,0)->setFlags(ui->valueDisplay->item(i,0)->flags() & (~Qt::ItemIsEditable));
             ui->valueDisplay->item(i,1)->setFlags(ui->valueDisplay->item(i,1)->flags() & (~Qt::ItemIsEditable));
         }
     }
 
-    //单次最大解析长度限制提示（文件解析模式下不提示）
-    if(parsedLength == maxParseLengthLimit && parseFile==false){
+    //单次解析接近长度限制提示(文件解析模式下要显示解析进度，所以不显示这个)
+    if((parsedLength*100/maxParseLengthLimit>90) && parseFile == false){
         QString temp;
-        temp = temp + tr("警告：绘图器繁忙，待解析数据长度：") + QString::number(RxBuff.size() - plotterParsePosInRxBuff) + "Byte";
+        temp = temp + tr("绘图器繁忙，待解析数据长度：") + QString::number(RxBuff.size() - plotterParsePosInRxBuff) + "Byte";
         ui->statusBar->showMessage(temp, 2000);
     }
-
     //解析周期动态调整
     int32_t elapsed_time = elapsedTimer.elapsed();
     double parseSpeed = parsedLength/(elapsed_time/1000.0)/1024.0;
@@ -2264,12 +2398,15 @@ void MainWindow::on_actionKeyWordHighlight_triggered(bool checked)
 */
 void MainWindow::on_actionUsageStatistic_triggered()
 {
+    static uint32_t lastTotalTx = Config::getTotalTxCnt().toUInt();
+    static uint32_t lastTotalRx = Config::getTotalRxCnt().toUInt();
+    static uint32_t lastTotalRunTime = Config::getTotalRunTime().toUInt();
     double currentTx = serial.getTxCnt();
     double currentRx = serial.getRxCnt();
     double currentRunTime_f = currentRunTime;
-    double totalTx = Config::getTotalTxCnt().toUInt() + currentTx;
-    double totalRx = Config::getTotalRxCnt().toUInt() + currentRx;
-    double totalRunTime = Config::getTotalRunTime().toUInt() + currentRunTime_f;
+    double totalTx = lastTotalTx + currentTx;
+    double totalRx = lastTotalRx + currentRx;
+    double totalRunTime = lastTotalRunTime + currentRunTime_f;
     double totalTxRx_MB = totalTx/1024/1024 + totalRx/1024/1024;
     //单位
     QString totalTxUnit;
@@ -2462,15 +2599,9 @@ void MainWindow::on_actionSendFile_triggered()
         #define PACKSIZE_SENDFILE 256
         SendFileBuffIndex = 0;
         SendFileBuff.clear();
-        while(TxBuff.size()>PACKSIZE_SENDFILE){
-            SendFileBuff.append(TxBuff.mid(0,PACKSIZE_SENDFILE));
-            TxBuff.remove(0,PACKSIZE_SENDFILE);
-        }
-        SendFileBuff.append(TxBuff); //一定会有一个元素
-        TxBuff.clear();
-        if(SendFileBuff.size()<1){
-            return;
-        }
+        sendFile = true;
+        if(divideDataToPacks(TxBuff, SendFileBuff, PACKSIZE_SENDFILE, sendFile))
+            return ;
 
         if(serial.isOpen()){
             ui->textBrowser->clear();
@@ -2484,18 +2615,13 @@ void MainWindow::on_actionSendFile_triggered()
             hexBrowserBuff.clear();
             hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
 
-            //关闭不必要的控件
-            ui->sendButton->setEnabled(false);
-            ui->multiString->setEnabled(false);
-            cycleSendTimer.stop();
-            ui->cycleSendCheck->setEnabled(false);
-            ui->cycleSendCheck->setChecked(false);
-            ui->clearWindows->setText(tr("中  止"));
-
             serial.write(SendFileBuff.at(SendFileBuffIndex++));//后续缓冲的发送在串口发送完成的槽里
         }
-        else
+        else{
+            openInteractiveUI();
+            sendFile = false;
             QMessageBox::information(this,tr("提示"),tr("请先打开串口。"));
+        }
     }else{
         QMessageBox::information(this,tr("提示"),tr("文件打开失败。"));
         lastFileName.clear();
@@ -2591,6 +2717,11 @@ void MainWindow::on_textBrowser_customContextMenuRequested(const QPoint &pos)
     popMenu->exec( QCursor::pos() );
     delete popMenu;
     delete clearTextBrowser;
+    delete saveOriginData;
+    delete saveShowedData;
+    delete copyAllData;
+    delete copyAllText;
+    delete copyText;
 }
 
 void MainWindow::clearTextBrowserSlot()
@@ -2838,7 +2969,11 @@ void MainWindow::on_tabWidget_tabCloseRequested(int index)
         return;
     }
     emit tee_clearData(ui->tabWidget->tabText(index));
-    ui->tabWidget->removeTab(index);    
+    if(ui->tabWidget->widget(index) != nullptr)
+    {
+        delete ui->tabWidget->widget(index);
+    }
+//    ui->tabWidget->removeTab(index);
 }
 
 void MainWindow::on_tabWidget_tabBarClicked(int index)
@@ -2872,4 +3007,39 @@ void MainWindow::on_actionSendComment_triggered(bool checked)
 void MainWindow::on_actionAutoRefreshYAxis_triggered(bool checked)
 {
     ui->actionAutoRefreshYAxis->setChecked(checked);
+}
+
+//拖拽进入时
+void MainWindow::dragEnterEvent(QDragEnterEvent *e)
+{
+    if(e->mimeData()->hasFormat("text/uri-list")) //只能打开文本文件
+        e->acceptProposedAction(); //可以在这个窗口部件上拖放对象
+}
+
+//拖拽松开时
+void MainWindow::dropEvent(QDropEvent *e)
+{
+    //获取文件路径列表
+    QStringList text = e->mimeData()->text().split('\n');
+    if(text.size() != 1)
+    {
+        QMessageBox::information(this, tr("提示"), tr("仅支持单个dat文件解析。"));
+        return;
+    }
+    //获取单个文件路径并剔除前缀
+    QString path;
+    path = text.at(0);
+    path = path.mid(8);
+    if(!path.endsWith("dat"))
+    {
+        QMessageBox::information(this, tr("提示"), tr("仅支持单个dat文件解析。"));
+        return;
+    }
+    if(QMessageBox::information(this, tr("提示"),
+                                tr("确认解析该文件？") + "\n" + path,
+                                QMessageBox::Ok, QMessageBox::Cancel) != QMessageBox::Ok)
+    {
+        return;
+    }
+    parseDatFile(path, false);
 }

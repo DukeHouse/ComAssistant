@@ -101,6 +101,7 @@ private slots:
     void on_actionMultiString_triggered(bool checked);
     void on_actionSTM32_ISP_triggered();
     void on_actionPopupHotkey_triggered();
+    void on_actionSendComment_triggered(bool checked);
 
     //setting
     void on_actionCOM_Config_triggered();
@@ -124,6 +125,7 @@ private slots:
     void on_actiondebug_triggered(bool checked);
     void on_actionSumCheck_triggered(bool checked);
     void on_actionOpenGL_triggered(bool checked);
+    void on_actionAutoRefreshYAxis_triggered(bool checked);
 
     //help
     void on_actionManual_triggered();
@@ -152,10 +154,6 @@ private slots:
     void deleteSeedSlot();
     void clearSeedsSlot();
 
-    void on_actionSendComment_triggered(bool checked);
-
-    void on_actionAutoRefreshYAxis_triggered(bool checked);
-
 private:
     QString formatTime(int ms);
     bool needSaveConfig = true;
@@ -163,11 +161,18 @@ private:
     bool registPopupHotKey(QString keySequence);
     void layoutConfig();
     void adjustLayout();
+    void openInteractiveUI();
+    void closeInteractiveUI();
+    int32_t divideDataToPacks(QByteArray &input, QByteArrayList &output, int32_t pack_size, bool &divideFlag);
+    int32_t parseDatFile(QString path, bool removeAfterRead);
+    void recordDataToFile(QByteArray &buff);
+    void readRecorderFile();
     Ui::MainWindow *ui;
     mySerialPort serial;
 
     QLabel *statusSpeedLabel, *statusStatisticLabel, *statusRemoteMsgLabel, *statusTimer; //状态栏标签
-
+    
+    bool sendFile = false;
     bool parseFile = false;
     QByteArrayList parseFileBuff;    //解析文件分包缓冲
     int parseFileBuffIndex = 0;
@@ -220,7 +225,7 @@ private:
     QThread *p_textExtractThread;
     TextExtractEngine *p_textExtract;
 signals:
-    void tee_appendData(const QString &str);
+    void tee_appendAndParseData(const QString &str);
     void tee_clearData(const QString &name);
     qint32 tee_saveData(const QString &path, const QString &name, const bool& savePackBuff);
     void tee_parseData(void);
@@ -234,7 +239,9 @@ protected:
     void resizeEvent(QResizeEvent* event);
     void keyPressEvent(QKeyEvent *e);
     void keyReleaseEvent(QKeyEvent *e);
-
+    void closeEvent(QCloseEvent*event);
+    void dragEnterEvent(QDragEnterEvent *e);
+    void dropEvent(QDropEvent *e);
 };
 
 #endif // MAINWINDOW_H

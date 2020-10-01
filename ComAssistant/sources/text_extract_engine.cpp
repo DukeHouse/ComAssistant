@@ -105,28 +105,11 @@ void TextExtractEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& res
     restBuffer = buffer.mid(lastScannedIndex);
 }
 
-//往缓存中追加数据（不作解析），限制解析长度保证性能
-void TextExtractEngine::appendData(const QString &newData)
+void TextExtractEngine::appendAndParseData(const QString &newData)
 {
-    #define MAX_PARSE_BUFFER 2048
     rawData.buff.append(newData);
-    if(rawData.buff.size() > MAX_PARSE_BUFFER)
-    {
-        rawData.buff.remove(0, rawData.buff.size() - MAX_PARSE_BUFFER);
-    }
-    needParse = true;
-
+    parsePacksFromBuffer(rawData.buff, rawData.buff);
 //    qDebug()<<"ThreadID:"<<QThread::currentThreadId()<<"size:"<<rawData.buff.size();
-}
-
-//解析缓存中的数据，通常定时调用
-void TextExtractEngine::parseData()
-{
-    if(needParse)
-    {
-        parsePacksFromBuffer(rawData.buff, rawData.buff);
-        needParse = false;
-    }
 }
 
 //从文本组集合中清除指定名称的文本组
