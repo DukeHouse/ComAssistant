@@ -420,7 +420,9 @@ int32_t MainWindow::divideDataToPacks(QByteArray &input, QByteArrayList &output,
     while(input.size() > pack_size && divideFlag){
         output.append(input.mid(0, pack_size));
         input.remove(0, pack_size);
-        ui->statusBar->showMessage(tr("文件分包进度：") + QString::number(100 * pack_cnt /pack_num) + "%", 2000);
+        ui->statusBar->showMessage(tr("文件分包进度：") +
+                                   QString::number(100 * pack_cnt /pack_num) +
+                                   "%", 2000);
         pack_cnt++;
         if(pack_cnt % 5 == 0)
             qApp->processEvents();
@@ -440,11 +442,12 @@ int32_t MainWindow::divideDataToPacks(QByteArray &input, QByteArrayList &output,
 int32_t MainWindow::parseDatFile(QString path, bool removeAfterRead)
 {
     QFile file(path);
+    QByteArray buff;
     //读文件
     if(file.open(QFile::ReadOnly)){
         on_clearWindows_clicked();
-        RxBuff.clear();
-        RxBuff = file.readAll();
+        buff.clear();
+        buff = file.readAll();
         file.close();
         if(removeAfterRead)
         {
@@ -452,16 +455,16 @@ int32_t MainWindow::parseDatFile(QString path, bool removeAfterRead)
         }
 
         //文件分包
-        #define PACKSIZE 4096   //需要和text_extract_engine保持一致，否则那边会丢数据或者解析卡顿
+        #define PACKSIZE 4096
         parseFileBuffIndex = 0;
         parseFileBuff.clear();
         parseFile = true;
-        if(divideDataToPacks(RxBuff, parseFileBuff, PACKSIZE, parseFile))
+        if(divideDataToPacks(buff, parseFileBuff, PACKSIZE, parseFile))
             return -1;
-
+        RxBuff.clear();
         //重置绘图器解析点，以触发解析
         if(ui->actionPlotterSwitch->isChecked())
-            plotterParsePosInRxBuff = 0;
+            plotterParsePosInRxBuff = RxBuff.size();
 
         ui->textBrowser->clear();
         ui->textBrowser->appendPlainText("File size: " + QString::number(file.size()) + " Byte");
@@ -702,25 +705,22 @@ void MainWindow::debugTimerSlot()
 
     static double count;
     float num1, num2, num3, num4, num5, num6;
-//    if(count > 100)
-//    {
-//        ui->statusBar->showMessage("结束啦");
-//        return;
-//    }
-    num1 = count * 10;
-    num2 = count * 10;
-    num3 = count * 10;
-    num4 = count * 10;
-    num5 = count * 10;
-    num6 = count * 10;
-//    num1 = static_cast<float>(qSin(count / 0.3843));
-//    num2 = static_cast<float>(qCos(count / 0.3843));
-//    num3 = static_cast<float>(qCos(count / 0.6157) + qSin(count / 0.3843));
-//    num4 = static_cast<float>(qCos(count / 0.6157) - qSin(count / 0.3843));
+    //直线
+//    num1 = count * 10;
+//    num2 = count * 10;
+//    num3 = count * 10;
+//    num4 = count * 10;
+//    num5 = count * 10;
+//    num6 = count * 10;
+    //正弦
+    num1 = static_cast<float>(qSin(count / 0.3843));
+    num2 = static_cast<float>(qCos(count / 0.3843));
+    num3 = static_cast<float>(qCos(count / 0.6157) + qSin(count / 0.3843));
+    num4 = static_cast<float>(qCos(count / 0.6157) - qSin(count / 0.3843));
+    num5 = static_cast<float>(qSin(count / 0.3843) + qSin(count / 0.3843) * qSin(count / 0.3843));
+    num6 = static_cast<float>(qCos(count / 0.3843) + qSin(count / 0.3843) * qCos(count / 0.3843));
 //    num5 = static_cast<float>(qSin(count / 0.3843) + qrand() / static_cast<double>(RAND_MAX) * 1 * qSin(count / 0.6157));
 //    num6 = static_cast<float>(qCos(count / 0.3843) + qrand() / static_cast<double>(RAND_MAX) * 1 * qCos(count / 0.6157));
-//    num5 = static_cast<float>(qSin(count / 0.3843) + qSin(count / 0.3843) * qSin(count / 0.3843));
-//    num6 = static_cast<float>(qCos(count / 0.3843) + qCos(count / 0.3843) * qCos(count / 0.3843));
     if(ui->actionAscii->isChecked()){
         QString tmp;
         tmp = "{plotter:" +
@@ -864,7 +864,7 @@ MainWindow::~MainWindow()
 void MainWindow::on_refreshCom_clicked()
 {   
     if(ui->refreshCom->isEnabled()==false){
-        ui->statusBar->showMessage(tr("刷新功能被禁用"),1000);
+        ui->statusBar->showMessage(tr("刷新功能被禁用"), 2000);
         return;
     }
 
@@ -1088,7 +1088,9 @@ void MainWindow::parseFileSlot()
         ui->customPlot->replot();
     }
     if(parseFileBuffIndex!=parseFileBuff.size()){
-        ui->statusBar->showMessage(tr("解析进度：")+QString::number(static_cast<qint32>(100.0*(parseFileBuffIndex+1.0)/parseFileBuff.size()))+"% ",1000);
+        ui->statusBar->showMessage(tr("解析进度：") +
+                                   QString::number(100*(parseFileBuffIndex+1)/parseFileBuff.size()) +
+                                   "% ", 1000);
         emit parseFileSignal();
     }else{
         parseFile = false;
@@ -1150,7 +1152,9 @@ void MainWindow::serialBytesWritten(qint64 bytes)
     statisticTxByteCnt += bytes;
 
     if(SendFileBuff.size()>0 && SendFileBuffIndex!=SendFileBuff.size()){
-        ui->statusBar->showMessage(tr("发送进度：")+QString::number(static_cast<qint32>(100.0*(SendFileBuffIndex+1.0)/SendFileBuff.size()))+"%",1000);
+        ui->statusBar->showMessage(tr("发送进度：") +
+                                   QString::number(100*(SendFileBuffIndex+1)/SendFileBuff.size()) +
+                                   "%",1000);
         serial.write(SendFileBuff.at(SendFileBuffIndex++));
         if(SendFileBuffIndex == SendFileBuff.size()){
             SendFileBuffIndex = 0;
@@ -1449,7 +1453,7 @@ void MainWindow::on_clearWindows_clicked()
     ui->customPlot->yAxis->setRange(0,5);
     ui->customPlot->xAxis->setRange(0, ui->customPlot->plotControl->getXAxisLength(), Qt::AlignRight);
     ui->customPlot->replot();
-    plotterParsePosInRxBuff = 0;
+    plotterParsePosInRxBuff = RxBuff.size();
 
     //数值显示器
     deleteValueDisplaySlot();
@@ -1774,9 +1778,9 @@ void MainWindow::on_comList_textActivated(const QString &arg1)
         on_comSwitch_clicked(false);
         on_comSwitch_clicked(true);
         if(serial.isOpen())
-            ui->statusBar->showMessage(tr("已重新启动串口"),1000);
+            ui->statusBar->showMessage(tr("已重新启动串口"), 2000);
         else
-            ui->statusBar->showMessage(tr("串口重启失败"),1000);
+            ui->statusBar->showMessage(tr("串口重启失败"), 2000);
     }
 }
 
@@ -2059,11 +2063,6 @@ void MainWindow::plotterParseTimerSlot()
     //关定时器，防止数据量过大导致咬尾振荡
     plotterParseTimer.stop();
 
-    //添加解析长度限制，防止数据量过大振荡
-    if(RxBuff.size() - plotterParsePosInRxBuff > maxParseLengthLimit)
-    {
-        plotterParsePosInRxBuff = RxBuff.size() - maxParseLengthLimit;
-    }
     parsedLength = ui->customPlot->protocol->parse(RxBuff, plotterParsePosInRxBuff, maxParseLengthLimit, g_enableSumCheck);
     plotterParsePosInRxBuff += parsedLength;
 
@@ -2074,7 +2073,7 @@ void MainWindow::plotterParseTimerSlot()
         if(ui->actionPlotterSwitch->isChecked()){
             //关闭刷新，数据全部填充完后统一刷新
             if(false == ui->customPlot->plotControl->displayToPlotter(ui->customPlot, oneRowData, false, false))
-                ui->statusBar->showMessage(tr("出现一组异常绘图数据，已丢弃。"), 1000);
+                ui->statusBar->showMessage(tr("出现一组异常绘图数据，已丢弃。"), 2000);
         }
     }
     if(ui->actionAutoRefreshYAxis->isChecked())
@@ -2108,13 +2107,12 @@ void MainWindow::plotterParseTimerSlot()
         }
     }
 
-    //单次最大解析长度限制提示（文件解析模式下不提示）
-    if(parsedLength == maxParseLengthLimit && parseFile==false){
+    //单次解析接近长度限制提示(文件解析模式下要显示解析进度，所以不显示这个)
+    if((parsedLength*100/maxParseLengthLimit>90) && parseFile == false){
         QString temp;
-        temp = temp + tr("警告：绘图器繁忙，待解析数据长度：") + QString::number(RxBuff.size() - plotterParsePosInRxBuff) + "Byte";
+        temp = temp + tr("绘图器繁忙，待解析数据长度：") + QString::number(RxBuff.size() - plotterParsePosInRxBuff) + "Byte";
         ui->statusBar->showMessage(temp, 2000);
     }
-
     //解析周期动态调整
     int32_t elapsed_time = elapsedTimer.elapsed();
     double parseSpeed = parsedLength/(elapsed_time/1000.0)/1024.0;
