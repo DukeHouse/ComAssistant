@@ -1438,7 +1438,11 @@ void MainWindow::on_clearWindows_clicked()
     emit tee_clearData("");
     for(qint32 i = 0; i < ui->tabWidget->count(); i++){
         if(ui->tabWidget->tabText(i) != MAIN_TAB_NAME){
-            ui->tabWidget->removeTab(i);
+            if(ui->tabWidget->widget(i) != nullptr)
+            {
+                delete ui->tabWidget->widget(i);
+            }
+//            ui->tabWidget->removeTab(i);
             emit tee_clearData(ui->tabWidget->tabText(i));
             i = 0;//重置计数器
         }
@@ -2965,7 +2969,11 @@ void MainWindow::on_tabWidget_tabCloseRequested(int index)
         return;
     }
     emit tee_clearData(ui->tabWidget->tabText(index));
-    ui->tabWidget->removeTab(index);    
+    if(ui->tabWidget->widget(index) != nullptr)
+    {
+        delete ui->tabWidget->widget(index);
+    }
+//    ui->tabWidget->removeTab(index);
 }
 
 void MainWindow::on_tabWidget_tabBarClicked(int index)
