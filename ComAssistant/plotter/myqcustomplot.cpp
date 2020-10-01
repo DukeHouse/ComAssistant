@@ -57,7 +57,7 @@ void MyQCustomPlot::axisLabelDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart 
   if (part == QCPAxis::spAxisLabel) // only react when the actual axis label is clicked, not tick label or axis backbone
   {
     bool ok;
-    QString newLabel = QInputDialog::getText(this, "更改轴标签", "新的轴标签：",
+    QString newLabel = QInputDialog::getText(this, tr("更改轴标签"), tr("新的轴标签："),
                                              QLineEdit::Normal, axis->label(), &ok, Qt::WindowCloseButtonHint);
     if (ok)
     {
@@ -66,11 +66,11 @@ void MyQCustomPlot::axisLabelDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart 
     }
   }else if(part == QCPAxis::spAxis){
       if(axis==this->yAxis||axis==this->yAxis2){
-         bar->showMessage("Y轴无法手动调整", 2000);
+         bar->showMessage(tr("Y轴无法手动调整"), 2000);
          return;
       }
       bool ok;
-      double newLength = QInputDialog::getDouble(this, "更改X轴长度", "新的X轴长度：",plotControl->getXAxisLength(),
+      double newLength = QInputDialog::getDouble(this, tr("更改X轴长度"), tr("新的X轴长度："),plotControl->getXAxisLength(),
                                                  0, 10000, 1, &ok, Qt::WindowCloseButtonHint);
       if (ok)
       {
@@ -88,7 +88,7 @@ void MyQCustomPlot::legendDoubleClick(QCPLegend *legend, QCPAbstractLegendItem *
   {
     QCPPlottableLegendItem *plItem = qobject_cast<QCPPlottableLegendItem*>(item);
     bool ok;
-    QString newName = QInputDialog::getText(this, "更改曲线名称", "新的曲线名称",
+    QString newName = QInputDialog::getText(this, tr("更改曲线名称"), tr("新的曲线名称"),
                                             QLineEdit::Normal, plItem->plottable()->name(), &ok, Qt::WindowCloseButtonHint);
     if (ok)
     {
@@ -220,7 +220,7 @@ void MyQCustomPlot::recvKey(QKeyEvent *e, bool isPressAct)
 void MyQCustomPlot::removeSelectedGraph()
 {
     QMessageBox::Button res;
-    res = QMessageBox::warning(this,"警告","确定要移除所选曲线吗？",QMessageBox::Ok|QMessageBox::No);
+    res = QMessageBox::warning(this, tr("警告"), tr("确定要移除所选曲线吗？"), QMessageBox::Ok|QMessageBox::No);
     if(res == QMessageBox::No)
         return;
 
@@ -240,16 +240,16 @@ void MyQCustomPlot::rescaleYAxis()
 void MyQCustomPlot::removeAllGraphs()
 {
     QMessageBox::Button res;
-    res = QMessageBox::warning(this,"警告","确定要移除所有曲线吗？",QMessageBox::Ok|QMessageBox::No);
+    res = QMessageBox::warning(this,tr("警告"), tr("确定要移除所有曲线吗？"), QMessageBox::Ok|QMessageBox::No);
     if(res == QMessageBox::No)
         return;
 
     protocol->clearBuff();
     plotControl->clearPlotter(this, -1);
     while(this->graphCount()>1){
-        this->removeGraph(this->graphCount()-1);
+        this->removeGraph(this->graphCount() - 1);
     }
-    this->yAxis->setRange(0,5);
+    this->yAxis->setRange(0, 5);
     this->xAxis->setRange(0, plotControl->getXAxisLength(), Qt::AlignRight);
     this->replot();
 }
@@ -285,14 +285,14 @@ void MyQCustomPlot::contextMenuRequest(QPoint pos)
 
   if (this->legend->selectTest(pos, false) >= 0) // context menu on legend requested
   {
-    menu->addAction("移动到左上角", this, SLOT(moveLegend()))->setData(static_cast<int>(Qt::AlignTop|Qt::AlignLeft));
-    menu->addAction("移动到右上角", this, SLOT(moveLegend()))->setData(static_cast<int>(Qt::AlignTop|Qt::AlignRight));
-    menu->addAction("移动到右下角", this, SLOT(moveLegend()))->setData(static_cast<int>(Qt::AlignBottom|Qt::AlignRight));
-    menu->addAction("移动到左下角", this, SLOT(moveLegend()))->setData(static_cast<int>(Qt::AlignBottom|Qt::AlignLeft));
+    menu->addAction(tr("移动到左上角"), this, SLOT(moveLegend()))->setData(static_cast<int>(Qt::AlignTop|Qt::AlignLeft));
+    menu->addAction(tr("移动到右上角"), this, SLOT(moveLegend()))->setData(static_cast<int>(Qt::AlignTop|Qt::AlignRight));
+    menu->addAction(tr("移动到右下角"), this, SLOT(moveLegend()))->setData(static_cast<int>(Qt::AlignBottom|Qt::AlignRight));
+    menu->addAction(tr("移动到左下角"), this, SLOT(moveLegend()))->setData(static_cast<int>(Qt::AlignBottom|Qt::AlignLeft));
   } else  // general context menu on graphs requested
   {
     if (this->graphCount() > 0){
-        menu->addAction("曲线居中", this, SLOT(rescaleYAxis()));
+        menu->addAction(tr("曲线居中"), this, SLOT(rescaleYAxis()));
         menu->addSeparator();
         if(setting)
         {
@@ -308,19 +308,19 @@ void MyQCustomPlot::contextMenuRequest(QPoint pos)
             menu->addAction(savePicture);
         }
         menu->addSeparator();
-        menu->addAction("移除所有曲线", this, SLOT(removeAllGraphs()));
+        menu->addAction(tr("移除所有曲线"), this, SLOT(removeAllGraphs()));
     }
   }
   //选择了曲线
   if (this->selectedGraphs().size() > 0){
     menu->addSeparator();
-    menu->addAction("移除所选曲线", this, SLOT(removeSelectedGraph()));
+    menu->addAction(tr("移除所选曲线"), this, SLOT(removeSelectedGraph()));
     menu->addSeparator();
     //所选曲线是否可见
     if(this->selectedGraphs().first()->visible()){
-        menu->addAction("隐藏所选曲线", this, SLOT(hideSelectedGraph()));
+        menu->addAction(tr("隐藏所选曲线"), this, SLOT(hideSelectedGraph()));
     }else{
-        menu->addAction("显示所选曲线", this, SLOT(hideSelectedGraph()));
+        menu->addAction(tr("显示所选曲线"), this, SLOT(hideSelectedGraph()));
     }
   }
 

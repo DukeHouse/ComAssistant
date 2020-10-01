@@ -510,8 +510,11 @@ void MainWindow::readRecorderFile()
             }
             //重命名
             recorderFile.rename(BACKUP_RECORDER_FILE_PATH);
+            QDir appDir(QCoreApplication::applicationDirPath());
             QMessageBox::information(this, tr("提示"),
-                                    tr("记录数据文件已另存为") + BACKUP_RECORDER_FILE_PATH + tr("。请在程序运行目录下自行处理。"));
+                                     tr("记录数据文件已另存到程序所在目录：") + "\n" +
+                                     appDir.absoluteFilePath(BACKUP_RECORDER_FILE_PATH) + "\n" +
+                                     tr("请自行处理。"));
         }
         else if(button == QMessageBox::Ok)
         {
