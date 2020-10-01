@@ -836,6 +836,9 @@ MainWindow::~MainWindow()
         }else if(ui->actionScatterPlot->isChecked())
         {
             Config::setLineType(LineType_e::Scatter);
+        }else
+        {
+            Config::setLineType(LineType_e::Line);
         }
 
         //static
@@ -2245,25 +2248,52 @@ void MainWindow::verticalScrollBarActionTriggered(qint32 action)
 
 void MainWindow::on_actionLinePlot_triggered()
 {
-    ui->actionLinePlot->setChecked(true);
-    ui->actionScatterLinePlot->setChecked(false);
-    ui->actionScatterPlot->setChecked(false);
+    if(ui->customPlot->selectedGraphs().size() == 0)
+    {
+        ui->actionLinePlot->setChecked(true);
+        ui->actionScatterLinePlot->setChecked(false);
+        ui->actionScatterPlot->setChecked(false);
+    }
+    else
+    {
+        ui->actionLinePlot->setChecked(false);
+        ui->actionScatterLinePlot->setChecked(false);
+        ui->actionScatterPlot->setChecked(false);
+    }
     ui->customPlot->plotControl->setupLineType(ui->customPlot, QCustomPlotControl::Line);
 }
 
 void MainWindow::on_actionScatterLinePlot_triggered()
 {
-    ui->actionLinePlot->setChecked(false);
-    ui->actionScatterLinePlot->setChecked(true);
-    ui->actionScatterPlot->setChecked(false);
+    if(ui->customPlot->selectedGraphs().size() == 0)
+    {
+        ui->actionLinePlot->setChecked(false);
+        ui->actionScatterLinePlot->setChecked(true);
+        ui->actionScatterPlot->setChecked(false);
+    }
+    else
+    {
+        ui->actionLinePlot->setChecked(false);
+        ui->actionScatterLinePlot->setChecked(false);
+        ui->actionScatterPlot->setChecked(false);
+    }
     ui->customPlot->plotControl->setupLineType(ui->customPlot, QCustomPlotControl::ScatterLine);
 }
 
 void MainWindow::on_actionScatterPlot_triggered()
 {
-    ui->actionLinePlot->setChecked(false);
-    ui->actionScatterLinePlot->setChecked(false);
-    ui->actionScatterPlot->setChecked(true);
+    if(ui->customPlot->selectedGraphs().size() == 0)
+    {
+        ui->actionLinePlot->setChecked(false);
+        ui->actionScatterLinePlot->setChecked(false);
+        ui->actionScatterPlot->setChecked(true);
+    }
+    else
+    {
+        ui->actionLinePlot->setChecked(false);
+        ui->actionScatterLinePlot->setChecked(false);
+        ui->actionScatterPlot->setChecked(false);
+    }
     ui->customPlot->plotControl->setupLineType(ui->customPlot, QCustomPlotControl::Scatter);
 }
 
