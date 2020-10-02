@@ -223,7 +223,6 @@ void MainWindow::adjustLayout()
                    << static_cast<qint32>(length * (1 - FACT_COE));
         ui->splitter_display->setSizes(lengthList);
     }
-
 }
 
 void MainWindow::layoutConfig()
@@ -586,13 +585,13 @@ void MainWindow::tee_textGroupsUpdate(const QByteArray &name, const QByteArray &
 
 void MainWindow::printToTextBrowserTimerSlot()
 {
-    //characterCount=0时重算窗口并重新显示
-    if(characterCount==0)
+    //characterCount=0时或者窗口大小改变时重算窗口并重新显示
+    if(characterCount == 0 || windowSize != ui->textBrowser->size())
     {
         printToTextBrowser();
         return;
     }
-    if(RefreshTextBrowser==false)
+    if(RefreshTextBrowser == false)
         return;
 
     //打印数据
@@ -699,6 +698,7 @@ void MainWindow::secTimerSlot()
     currentRunTime++;
 }
 
+static double debugTimerSlotCnt = 0;
 void MainWindow::debugTimerSlot()
 {
     #define BYTE0(dwTemp)   static_cast<char>((*reinterpret_cast<char *>(&dwTemp)))
@@ -706,22 +706,21 @@ void MainWindow::debugTimerSlot()
     #define BYTE2(dwTemp)   static_cast<char>((*(reinterpret_cast<char *>(&dwTemp) + 2)))
     #define BYTE3(dwTemp)   static_cast<char>((*(reinterpret_cast<char *>(&dwTemp) + 3)))
 
-    static double count;
     float num1, num2, num3, num4, num5, num6;
     //直线
-//    num1 = count * 10;
-//    num2 = count * 10;
-//    num3 = count * 10;
-//    num4 = count * 10;
-//    num5 = count * 10;
-//    num6 = count * 10;
+//    num1 = debugTimerSlotCnt * 10;
+//    num2 = debugTimerSlotCnt * 10;
+//    num3 = debugTimerSlotCnt * 10;
+//    num4 = debugTimerSlotCnt * 10;
+//    num5 = debugTimerSlotCnt * 10;
+//    num6 = debugTimerSlotCnt * 10;
     //正弦
-    num1 = static_cast<float>(qSin(count / 0.3843));
-    num2 = static_cast<float>(qCos(count / 0.3843));
-    num3 = static_cast<float>(qCos(count / 0.6157) + qSin(count / 0.3843));
-    num4 = static_cast<float>(qCos(count / 0.6157) - qSin(count / 0.3843));
-    num5 = static_cast<float>(qSin(count / 0.3843) + qSin(count / 0.3843) * qSin(count / 0.3843));
-    num6 = static_cast<float>(qCos(count / 0.3843) + qSin(count / 0.3843) * qCos(count / 0.3843));
+    num1 = static_cast<float>(qSin(debugTimerSlotCnt / 0.3843));
+    num2 = static_cast<float>(qCos(debugTimerSlotCnt / 0.3843));
+    num3 = static_cast<float>(qCos(debugTimerSlotCnt / 0.6157) + qSin(debugTimerSlotCnt / 0.3843));
+    num4 = static_cast<float>(qCos(debugTimerSlotCnt / 0.6157) - qSin(debugTimerSlotCnt / 0.3843));
+    num5 = static_cast<float>(qSin(debugTimerSlotCnt / 0.3843) + qSin(debugTimerSlotCnt / 0.3843) * qSin(debugTimerSlotCnt / 0.3843));
+    num6 = static_cast<float>(qCos(debugTimerSlotCnt / 0.3843) + qSin(debugTimerSlotCnt / 0.3843) * qCos(debugTimerSlotCnt / 0.3843));
 //    num5 = static_cast<float>(qSin(count / 0.3843) + qrand() / static_cast<double>(RAND_MAX) * 1 * qSin(count / 0.6157));
 //    num6 = static_cast<float>(qCos(count / 0.3843) + qrand() / static_cast<double>(RAND_MAX) * 1 * qCos(count / 0.6157));
     if(ui->actionAscii->isChecked()){
@@ -739,7 +738,7 @@ void MainWindow::debugTimerSlot()
                "{cnt:the cnt is $$$}\n";
         tmp.replace("###", QString::number(3.3 + qrand()/static_cast<double>(RAND_MAX)/10.0, 'f', 3));
         tmp.replace("@@@", QString::number(0.0 + qrand()/static_cast<double>(RAND_MAX)/20.0, 'f', 3));
-        tmp.replace("$$$", QString::number(static_cast<qint32>(count * 10)));
+        tmp.replace("$$$", QString::number(static_cast<qint32>(debugTimerSlotCnt * 10)));
         if(serial.isOpen()){
             serial.write(tmp.toLocal8Bit());
         }
@@ -757,9 +756,7 @@ void MainWindow::debugTimerSlot()
         }
     }
 
-    if(ui->actionPlotterSwitch->isChecked()||ui->actionValueDisplay->isChecked()){
-        count = count + 0.1;
-    }
+    debugTimerSlotCnt = debugTimerSlotCnt + 0.1;
 }
 
 MainWindow::~MainWindow()
@@ -1110,8 +1107,9 @@ static qint32 PAGING_SIZE = 8192; //TextBrowser显示大小
 void MainWindow::printToTextBrowser()
 {
     //当前窗口显示字符调整
-    if(characterCount==0)
+    if(characterCount == 0 || windowSize != ui->textBrowser->size())
     {
+        windowSize = ui->textBrowser->size();
         resizeEvent(nullptr);
     }
 
@@ -1934,7 +1932,6 @@ void MainWindow::on_actionMultiString_triggered(bool checked)
         ui->multiString->hide();
     }
     adjustLayout();
-    characterCount=0;
 }
 
 /*
@@ -2051,7 +2048,6 @@ void MainWindow::on_actionPlotterSwitch_triggered(bool checked)
     }
 
     adjustLayout();
-    characterCount=0;
 }
 
 void MainWindow::plotterParseTimerSlot()
@@ -2177,6 +2173,7 @@ void MainWindow::on_actionFloat_triggered(bool checked)
 void MainWindow::on_actiondebug_triggered(bool checked)
 {
     if(checked){
+        debugTimerSlotCnt = 0;
         debugTimer.setTimerType(Qt::PreciseTimer);
         debugTimer.start(20);
         connect(&debugTimer, SIGNAL(timeout()), this, SLOT(debugTimerSlot()));
@@ -2680,7 +2677,6 @@ void MainWindow::on_actionValueDisplay_triggered(bool checked)
     }
 
     adjustLayout();
-    characterCount=0;
 }
 
 //复制所选文本到剪贴板

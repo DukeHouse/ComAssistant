@@ -218,6 +218,7 @@ private:
     QVBoxLayout *central = NULL;
 
     //窗口显示字符统计
+    QSize windowSize;
     int characterCount = 0; //可显示字符数
 
     //文本提取引擎
