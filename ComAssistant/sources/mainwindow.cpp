@@ -223,7 +223,6 @@ void MainWindow::adjustLayout()
                    << static_cast<qint32>(length * (1 - FACT_COE));
         ui->splitter_display->setSizes(lengthList);
     }
-
 }
 
 void MainWindow::layoutConfig()
@@ -586,13 +585,13 @@ void MainWindow::tee_textGroupsUpdate(const QByteArray &name, const QByteArray &
 
 void MainWindow::printToTextBrowserTimerSlot()
 {
-    //characterCount=0时重算窗口并重新显示
-    if(characterCount==0)
+    //characterCount=0时或者窗口大小改变时重算窗口并重新显示
+    if(characterCount == 0 || windowSize != ui->textBrowser->size())
     {
         printToTextBrowser();
         return;
     }
-    if(RefreshTextBrowser==false)
+    if(RefreshTextBrowser == false)
         return;
 
     //打印数据
@@ -1110,8 +1109,9 @@ static qint32 PAGING_SIZE = 8192; //TextBrowser显示大小
 void MainWindow::printToTextBrowser()
 {
     //当前窗口显示字符调整
-    if(characterCount==0)
+    if(characterCount == 0 || windowSize != ui->textBrowser->size())
     {
+        windowSize = ui->textBrowser->size();
         resizeEvent(nullptr);
     }
 
@@ -1934,7 +1934,6 @@ void MainWindow::on_actionMultiString_triggered(bool checked)
         ui->multiString->hide();
     }
     adjustLayout();
-    characterCount=0;
 }
 
 /*
@@ -2051,7 +2050,6 @@ void MainWindow::on_actionPlotterSwitch_triggered(bool checked)
     }
 
     adjustLayout();
-    characterCount=0;
 }
 
 void MainWindow::plotterParseTimerSlot()
@@ -2680,7 +2678,6 @@ void MainWindow::on_actionValueDisplay_triggered(bool checked)
     }
 
     adjustLayout();
-    characterCount=0;
 }
 
 //复制所选文本到剪贴板
