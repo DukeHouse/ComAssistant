@@ -164,7 +164,7 @@ void MainWindow::readConfig()
     ui->actionValueDisplay->setChecked(Config::getValueDisplayState());
     on_actionValueDisplay_triggered(Config::getValueDisplayState());
     //图像名字集
-    ui->customPlot->plotControl->setNameSet(ui->customPlot, Config::getPlotterGraphNames(ui->customPlot->plotControl->getMaxValidGraphNumber()));
+    ui->customPlot->plotControl->setNameSet(Config::getPlotterGraphNames(ui->customPlot->plotControl->getMaxValidGraphNumber()));
     //OpenGL
     ui->actionOpenGL->setChecked(Config::getOpengGLState());
     on_actionOpenGL_triggered(Config::getOpengGLState());
@@ -329,7 +329,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->textBrowser->document()->setDefaultFont(g_font);
     ui->textEdit->document()->setDefaultFont(g_font);
     ui->multiString->setFont(g_font);
-    ui->customPlot->plotControl->setupFont(ui->customPlot, g_font);
+    ui->customPlot->plotControl->setupFont(g_font);
 
     this->setWindowTitle(tr("纸飞机串口助手") + " - V"+Config::getVersion());
 
@@ -1458,7 +1458,7 @@ void MainWindow::on_clearWindows_clicked()
 
     //绘图器相关
     ui->customPlot->protocol->clearBuff();
-    ui->customPlot->plotControl->clearPlotter(ui->customPlot, -1);
+    ui->customPlot->plotControl->clearPlotter(-1);
     while(ui->customPlot->graphCount()>1){
         ui->customPlot->removeGraph(ui->customPlot->graphCount()-1);
     }
@@ -2090,7 +2090,7 @@ void MainWindow::plotterParseTimerSlot()
         //绘图显示器
         if(ui->actionPlotterSwitch->isChecked()){
             //关闭刷新，数据全部填充完后统一刷新
-            if(false == ui->customPlot->plotControl->addDataToPlotter(ui->customPlot, oneRowData, g_xAxisSource))
+            if(false == ui->customPlot->plotControl->addDataToPlotter(oneRowData, g_xAxisSource))
                 ui->statusBar->showMessage(tr("出现一组异常绘图数据，已丢弃。"), 2000);
         }
     }
@@ -2271,7 +2271,7 @@ void MainWindow::on_actionLinePlot_triggered()
         ui->actionScatterLinePlot->setChecked(false);
         ui->actionScatterPlot->setChecked(false);
     }
-    ui->customPlot->plotControl->setupLineType(ui->customPlot, QCustomPlotControl::Line);
+    ui->customPlot->plotControl->setupLineType(QCustomPlotControl::Line);
 }
 
 void MainWindow::on_actionScatterLinePlot_triggered()
@@ -2288,7 +2288,7 @@ void MainWindow::on_actionScatterLinePlot_triggered()
         ui->actionScatterLinePlot->setChecked(false);
         ui->actionScatterPlot->setChecked(false);
     }
-    ui->customPlot->plotControl->setupLineType(ui->customPlot, QCustomPlotControl::ScatterLine);
+    ui->customPlot->plotControl->setupLineType(QCustomPlotControl::ScatterLine);
 }
 
 void MainWindow::on_actionScatterPlot_triggered()
@@ -2305,7 +2305,7 @@ void MainWindow::on_actionScatterPlot_triggered()
         ui->actionScatterLinePlot->setChecked(false);
         ui->actionScatterPlot->setChecked(false);
     }
-    ui->customPlot->plotControl->setupLineType(ui->customPlot, QCustomPlotControl::Scatter);
+    ui->customPlot->plotControl->setupLineType(QCustomPlotControl::Scatter);
 }
 
 void MainWindow::on_actionResetDefaultConfig_triggered(bool checked)
@@ -2863,7 +2863,7 @@ void MainWindow::on_actionFontSetting_triggered()
         ui->textBrowser->document()->setDefaultFont(g_font);
         ui->textEdit->document()->setDefaultFont(g_font);
         ui->multiString->setFont(g_font);
-        ui->customPlot->plotControl->setupFont(ui->customPlot, g_font);
+        ui->customPlot->plotControl->setupFont(g_font);
 
         QPlainTextEdit *textEdit = nullptr;
         for(qint32 i = 0; i < ui->tabWidget->count(); i++){
@@ -3137,7 +3137,7 @@ void MainWindow::on_actionSelectXAxis_triggered(bool checked)
             }
             //并清空图像(不删除句柄)
             ui->customPlot->protocol->clearBuff();
-            ui->customPlot->plotControl->clearPlotter(ui->customPlot, -1);
+            ui->customPlot->plotControl->clearPlotter(-1);
 //            while(ui->customPlot->graphCount()>1){
 //                ui->customPlot->removeGraph(ui->customPlot->graphCount() - 1);
 //            }
