@@ -18,17 +18,38 @@
 #include "mytracer.h"
 
 #include <QStatusBar>
+
+#define    XAxis_Cnt        0
+#define    XAxis_Graph0     1
+#define    XAxis_Graph1     2
+#define    XAxis_Graph2     3
+#define    XAxis_Graph3     4
+#define    XAxis_Graph4     5
+#define    XAxis_Graph5     6
+#define    XAxis_Graph6     7
+#define    XAxis_Graph7     8
+#define    XAxis_Graph8     9
+#define    XAxis_Graph9     10
+#define    XAxis_Graph10    11
+#define    XAxis_Graph11    12
+#define    XAxis_Graph12    13
+#define    XAxis_Graph13    14
+#define    XAxis_Graph14    15
+//        XAxis_Graph15,
+
 class QCustomPlotControl;
 
 class MyQCustomPlot:public QCustomPlot
 {
     Q_OBJECT
 public:
+
     MyQCustomPlot(QWidget* parent = nullptr);
     ~MyQCustomPlot();
 
     MyTracer *m_Tracer; //坐标跟随鼠标
-    void init(QStatusBar* pBar, QMenu* plotterSetting, QAction* saveGraphData, QAction* saveGraphPicture);
+    void init(QStatusBar* pBar, QMenu* plotterSetting, QAction* saveGraphData, QAction* saveGraphPicture,
+              qint32 *xSource, bool *autoRescaleYAxisFlag);
     bool saveGraphAsTxt(const QString& filePath, char separate=' ');
     QCustomPlotControl *plotControl;
     DataProtocol *protocol;
@@ -60,6 +81,8 @@ private:
     QAction* saveData = nullptr;
     QAction* savePicture = nullptr;
     qint32 key = 0;
+    qint32 *xAxisSource = nullptr;
+    bool *autoRescaleYAxis = nullptr;
 };
 
 #endif // MYQCUSTOMPLOT_H

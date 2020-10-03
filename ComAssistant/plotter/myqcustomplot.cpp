@@ -37,7 +37,8 @@ MyQCustomPlot::~MyQCustomPlot()
     delete protocol;
 }
 
-void MyQCustomPlot::init(QStatusBar* pBar, QMenu* plotterSetting, QAction* saveGraphData, QAction* saveGraphPicture)
+void MyQCustomPlot::init(QStatusBar* pBar, QMenu* plotterSetting, QAction* saveGraphData, QAction* saveGraphPicture,
+                         qint32 *xSource, bool *autoRescaleYAxisFlag)
 {
     bar = pBar;
     setting = plotterSetting;
@@ -45,7 +46,8 @@ void MyQCustomPlot::init(QStatusBar* pBar, QMenu* plotterSetting, QAction* saveG
     savePicture = saveGraphPicture;
     plotControl = new QCustomPlotControl;
     protocol = new DataProtocol;
-
+    xAxisSource = xSource;
+    autoRescaleYAxis = autoRescaleYAxisFlag;
     plotControl->setupPlotter(this);
 }
 
@@ -183,9 +185,17 @@ void MyQCustomPlot::mouseWheel(QWheelEvent *w)
             this->axisRect()->setRangeZoom(Qt::Horizontal|Qt::Vertical);
             break;
         default:
-            //只调X轴
-            this->axisRect()->setRangeZoom(Qt::Horizontal);
-            //更新X轴长度
+            if(autoRescaleYAxis && *autoRescaleYAxis == true)
+            {
+                //调X轴
+                this->axisRect()->setRangeZoom(Qt::Horizontal);
+            }
+            else
+            {
+                //调XY轴
+                this->axisRect()->setRangeZoom(Qt::Horizontal|Qt::Vertical);
+            }
+            //记忆X轴长度
             plotControl->setXAxisLength(this->xAxis->range().upper - this->xAxis->range().lower);
             break;
         }
@@ -234,6 +244,10 @@ void MyQCustomPlot::removeSelectedGraph()
 void MyQCustomPlot::rescaleYAxis()
 {
     this->yAxis->rescale(true);
+    if(xAxisSource && *xAxisSource != XAxis_Cnt)
+    {
+        this->xAxis->rescale(true);
+    }
     this->replot();
 }
 
@@ -324,7 +338,7 @@ void MyQCustomPlot::contextMenuRequest(QPoint pos)
   // general context menu on graphs requested
   if (this->graphCount() > 0){
       menu->addSeparator();
-      menu->addAction(tr("曲线居中"), this, SLOT(rescaleYAxis()));
+      menu->addAction(tr("寻找曲线"), this, SLOT(rescaleYAxis()));
       menu->addSeparator();
       if(setting)
       {
@@ -402,12 +416,19 @@ void MyQCustomPlot::showTracer(QMouseEvent *event)
     QSharedPointer<QCPGraphDataContainer> tmpContainer;
     tmpContainer = this->selectedGraphs().first()->data();
 
-    //获取x轴坐标
-    double x = this->xAxis->pixelToCoord(event->pos().x());
-    x = static_cast<int>(x+0.5);// 四舍五入取整
-    //获取Y轴坐标
+    //获取x,y轴坐标
+    double x = 0;
     double y = 0;
-    y = (tmpContainer->constBegin()+static_cast<int>(x))->mainValue();
+    if(xAxisSource && xAxisSource != XAxis_Cnt)
+    {
+        x = this->xAxis->pixelToCoord(event->pos().x());
+        y = this->yAxis->pixelToCoord(event->pos().y());
+    }else
+    {
+        x = this->xAxis->pixelToCoord(event->pos().x());
+        x = static_cast<int>(x+0.5);// 四舍五入取整
+        y = (tmpContainer->constBegin() + static_cast<int>(x))->mainValue();
+    }
 
     //范围约束
     QCPRange xRange = this->axisRect()->axis(QCPAxis::atBottom, 0)->range();
