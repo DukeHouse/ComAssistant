@@ -11,6 +11,7 @@
 #include "axistag.h"
 
 using namespace std;
+
 class MyQCustomPlot;
 
 class QCustomPlotControl
@@ -33,7 +34,7 @@ public:
 //    void adjustXRange(QCustomPlot* customPlot, const QCPRange& qcpRange);
 //    void adjustXRange(QCustomPlot* customPlot, bool enlarge);
     //把数据显示到绘图器上
-    bool displayToPlotter(QCustomPlot* customPlot, const QVector<double>& rowData, bool refresh, bool rescaleY);
+    bool addDataToPlotter(QCustomPlot* customPlot, const QVector<double>& rowData, qint32 xSource);
 //    设置字体
     void setupFont(MyQCustomPlot* customPlot, QFont font);
     //设置openGL
@@ -52,8 +53,6 @@ public:
     void setupLegendVisible(QCustomPlot* customPlot, bool visible=true);
     //设置图像可见性
     void setupGraphVisible(QCustomPlot* customPlot, bool visible);
-    //设置绘图器指针
-    void setupCustomPlotPointer(QCustomPlot* pointer);
     //设置交互功能
     void setupInteractions(QCustomPlot* customPlot);
     //设置轴盒子

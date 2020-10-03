@@ -85,7 +85,7 @@ bool QCustomPlotControl::setXAxisLength(double length)
         return false;
     xRange.upper = 0;
     xRange.lower = -length;
-    customPlot->xAxis->setRange(xAxisCnt, xRange.upper - xRange.lower, Qt::AlignRight);
+//    customPlot->xAxis->setRange(xAxisCnt, xRange.upper - xRange.lower, Qt::AlignRight);
     return true;
 }
 
@@ -153,7 +153,7 @@ bool QCustomPlotControl::addGraph(QCustomPlot* customPlot, int num)
 /*
  * Function:把数据取出来显示到绘图器上
 */
-bool QCustomPlotControl::displayToPlotter(QCustomPlot* customPlot, const QVector<double>& rowData, bool refresh = true, bool rescaleY = true)
+bool QCustomPlotControl::addDataToPlotter(QCustomPlot* customPlot, const QVector<double>& rowData, qint32 xSource)
 {
     QElapsedTimer time;
     time.start();
@@ -169,8 +169,21 @@ bool QCustomPlotControl::displayToPlotter(QCustomPlot* customPlot, const QVector
 
     //填充数据
     int minCnt = colorSet.size()>rowData.size()?rowData.size():colorSet.size();
-    for(int i = 0; i < minCnt; i++){
-        customPlot->graph(i)->addData(xAxisCnt, rowData.at(i));
+    switch(xSource)
+    {
+    case XAxis_Cnt:
+        for(int i = 0; i < minCnt; i++){
+            customPlot->graph(i)->addData(xAxisCnt, rowData.at(i));
+        }
+        // make key axis range scroll with the data (at a constant range size of 200):
+        customPlot->xAxis->setRange(xAxisCnt, xRange.upper - xRange.lower, Qt::AlignRight);
+        xAxisCnt++;
+        break;
+    default:
+        for(int i = 0; i < minCnt; i++){
+            customPlot->graph(i)->addData(rowData.at(xSource - 1), rowData.at(i)); //注意 xSource - 1是因为xSource=1时表示选择第0条曲线，xSource = 0 时表示时间
+        }
+        break;
     }
 
     //Graph1的动态标签
@@ -178,16 +191,8 @@ bool QCustomPlotControl::displayToPlotter(QCustomPlot* customPlot, const QVector
 //    mTag1->updatePosition(graph1Value);
 //    mTag1->setText(QString::number(graph1Value, 'f', 2));
 
-    // make key axis range scroll with the data (at a constant range size of 200):
-    customPlot->xAxis->setRange(xAxisCnt, xRange.upper - xRange.lower, Qt::AlignRight);
-    if(rescaleY)
-        customPlot->yAxis->rescale(true);//调Y轴在数据量大时也很耗时
 
-    //刷新操作很耗时，因此添加开关
-    if(refresh)
-        customPlot->replot();
-
-    xAxisCnt++;
+    //刷新操作和调Y轴在数据量大时都很耗时，不要加一个数据就刷新一次
 
 //    qDebug()<<"displayToPlotter "<<time.elapsed();
     return true;
@@ -380,11 +385,6 @@ void QCustomPlotControl::setupGraphVisible(QCustomPlot* customPlot, bool visible
     }else{
         customPlot->legend->setVisible(false);
     }
-}
-
-void QCustomPlotControl::setupCustomPlotPointer(QCustomPlot* pointer)
-{
-    customPlot=pointer;
 }
 
 void QCustomPlotControl::setupInteractions(QCustomPlot* customPlot)
