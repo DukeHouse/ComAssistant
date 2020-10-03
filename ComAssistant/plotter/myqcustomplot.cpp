@@ -244,7 +244,7 @@ void MyQCustomPlot::removeSelectedGraph()
 void MyQCustomPlot::rescaleYAxis()
 {
     this->yAxis->rescale(true);
-    if(xAxisSource && *xAxisSource != XAxis_Cnt)
+    if(xAxisSource && (*xAxisSource != XAxis_Cnt))
     {
         this->xAxis->rescale(true);
     }
@@ -259,7 +259,7 @@ void MyQCustomPlot::removeAllGraphs()
         return;
 
     protocol->clearBuff();
-    plotControl->clearPlotter(this, -1);
+    plotControl->clearPlotter(-1);
     while(this->graphCount()>1){
         this->removeGraph(this->graphCount() - 1);
     }
@@ -419,7 +419,7 @@ void MyQCustomPlot::showTracer(QMouseEvent *event)
     //获取x,y轴坐标
     double x = 0;
     double y = 0;
-    if(xAxisSource && xAxisSource != XAxis_Cnt)
+    if(xAxisSource && (*xAxisSource != XAxis_Cnt))
     {
         x = this->xAxis->pixelToCoord(event->pos().x());
         y = this->yAxis->pixelToCoord(event->pos().y());

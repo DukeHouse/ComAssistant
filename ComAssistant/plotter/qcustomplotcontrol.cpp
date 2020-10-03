@@ -57,11 +57,11 @@ QCustomPlotControl::QCustomPlotControl()
                     << QCPScatterStyle::ssCustom;    ///< custom painter operations are performed per scatter (As QPainterPath, see \ref setCustomPath)
 }
 
-QCustomPlotControl::QCustomPlotControl(QCustomPlot* customPlot)
+QCustomPlotControl::QCustomPlotControl(MyQCustomPlot* plot)
 {
     QCustomPlotControl();
-    QCustomPlotControl::customPlot = customPlot;
-    setupPlotter(customPlot);
+    customPlot = plot;
+    setupPlotter(plot);
 }
 
 QCustomPlotControl::~QCustomPlotControl()
@@ -110,7 +110,7 @@ QVector<QString> QCustomPlotControl::getNameSetsFromPlot()
     return nameSet;
 }
 
-void QCustomPlotControl::setNameSet(QCustomPlot* customPlot, QVector<QString> names)
+void QCustomPlotControl::setNameSet(QVector<QString> names)
 {
     int min = (names.size() - colorSet.size()) > 0 ? colorSet.size() : names.size();
     for (int i = 0; i<min ; i++) {
@@ -121,7 +121,7 @@ void QCustomPlotControl::setNameSet(QCustomPlot* customPlot, QVector<QString> na
     }
 }
 
-bool QCustomPlotControl::addGraph(QCustomPlot* customPlot, int num)
+bool QCustomPlotControl::addGraph(int num)
 {
     if(num<1 || num > colorSet.size())
         return false;
@@ -140,11 +140,11 @@ bool QCustomPlotControl::addGraph(QCustomPlot* customPlot, int num)
         customPlot->graph(i)->setAdaptiveSampling(true);
     }
     //设置画笔
-    setupPenWidth(customPlot);
+    setupPenWidth();
 
     //设置线型
-    setupLineType(customPlot, lineType);
-    setNameSet(customPlot, nameSet);
+    setupLineType(lineType);
+    setNameSet(nameSet);
     customPlot->replot();
 
     return true;
@@ -153,7 +153,7 @@ bool QCustomPlotControl::addGraph(QCustomPlot* customPlot, int num)
 /*
  * Function:把数据取出来显示到绘图器上
 */
-bool QCustomPlotControl::addDataToPlotter(QCustomPlot* customPlot, const QVector<double>& rowData, qint32 xSource)
+bool QCustomPlotControl::addDataToPlotter(const QVector<double>& rowData, qint32 xSource)
 {
     QElapsedTimer time;
     time.start();
@@ -163,7 +163,7 @@ bool QCustomPlotControl::addDataToPlotter(QCustomPlot* customPlot, const QVector
     //判断是否需要添加曲线
     if(rowData.size()>customPlot->graphCount()){
         if(customPlot->graphCount()<colorSet.size()){
-            addGraph(customPlot, rowData.size() - customPlot->graphCount());
+            addGraph(rowData.size() - customPlot->graphCount());
         }
     }
 
@@ -198,7 +198,7 @@ bool QCustomPlotControl::addDataToPlotter(QCustomPlot* customPlot, const QVector
     return true;
 }
 
-void QCustomPlotControl::clearPlotter(QCustomPlot* customPlot, int index)
+void QCustomPlotControl::clearPlotter(int index)
 {
     if(index > customPlot->graphCount()-1)
         return;
@@ -215,7 +215,7 @@ void QCustomPlotControl::clearPlotter(QCustomPlot* customPlot, int index)
     customPlot->replot();
 }
 
-void QCustomPlotControl::setupFont(MyQCustomPlot* customPlot, QFont font)
+void QCustomPlotControl::setupFont(QFont font)
 {
     customPlot->legend->setFont(font);
     customPlot->legend->setSelectedFont(font);
@@ -234,12 +234,12 @@ void QCustomPlotControl::setupFont(MyQCustomPlot* customPlot, QFont font)
     customPlot->m_Tracer->setLabelFont(font);
 }
 
-void QCustomPlotControl::setupOpenGL(QCustomPlot* customPlot, bool enabled)
+void QCustomPlotControl::setupOpenGL(bool enabled)
 {
     customPlot->setOpenGl(enabled);
 }
 
-void QCustomPlotControl::setupPenWidth(QCustomPlot* customPlot, double width)
+void QCustomPlotControl::setupPenWidth(double width)
 {
     for(int i = 0; i < customPlot->graphCount(); i++){
         //设置画笔
@@ -251,7 +251,7 @@ void QCustomPlotControl::setupPenWidth(QCustomPlot* customPlot, double width)
     customPlot->replot();
 }
 
-void QCustomPlotControl::setupAxisTick(QCustomPlot* customPlot, int axisTickLenth, int axisSubTickLenth)
+void QCustomPlotControl::setupAxisTick(int axisTickLenth, int axisSubTickLenth)
 {
     customPlot->xAxis->setTickLengthIn(axisTickLenth);
     customPlot->yAxis->setTickLengthIn(axisTickLenth);
@@ -264,13 +264,13 @@ void QCustomPlotControl::setupAxisTick(QCustomPlot* customPlot, int axisTickLent
     customPlot->yAxis2->setSubTickLengthIn(axisSubTickLenth);
 }
 
-void QCustomPlotControl::setupAxisLabel(QCustomPlot* customPlot, QString xLabel, QString yLabel)
+void QCustomPlotControl::setupAxisLabel(QString xLabel, QString yLabel)
 {
     customPlot->xAxis->setLabel(xLabel);
     customPlot->yAxis->setLabel(yLabel);
 }
 
-bool QCustomPlotControl::setupPlotName(QCustomPlot* customPlot, QVector<QString> nameStr)
+bool QCustomPlotControl::setupPlotName(QVector<QString> nameStr)
 {
     if(nameStr.size() <= 0)
         return false;
@@ -284,7 +284,7 @@ bool QCustomPlotControl::setupPlotName(QCustomPlot* customPlot, QVector<QString>
     return true;
 }
 
-void QCustomPlotControl::setupScatterStyle(QCustomPlot* customPlot, bool enable)
+void QCustomPlotControl::setupScatterStyle(bool enable)
 {
     if(customPlot->selectedGraphs().size() > 0)
     {
@@ -317,7 +317,7 @@ void QCustomPlotControl::setupScatterStyle(QCustomPlot* customPlot, bool enable)
 }
 
 //not used yet
-void QCustomPlotControl::setupScatterStyle(QCustomPlot* customPlot, QCPScatterStyle::ScatterShape shape)
+void QCustomPlotControl::setupScatterStyle(QCPScatterStyle::ScatterShape shape)
 {
     if(shape != QCPScatterStyle::ssNone){
         for(int i = 0; i < customPlot->graphCount(); i++){
@@ -331,7 +331,7 @@ void QCustomPlotControl::setupScatterStyle(QCustomPlot* customPlot, QCPScatterSt
     customPlot->replot();
 }
 
-void QCustomPlotControl::setupLineStyle(QCustomPlot* customPlot, QCPGraph::LineStyle style)
+void QCustomPlotControl::setupLineStyle(QCPGraph::LineStyle style)
 {
     if(customPlot->selectedGraphs().size() > 0)
     {
@@ -346,22 +346,22 @@ void QCustomPlotControl::setupLineStyle(QCustomPlot* customPlot, QCPGraph::LineS
 }
 
 
-void QCustomPlotControl::setupLineType(QCustomPlot* customPlot, LineType_e type)
+void QCustomPlotControl::setupLineType(LineType_e type)
 {
     switch(type){
         case Line:
-            setupLineStyle(customPlot, QCPGraph::lsLine);
-            setupScatterStyle(customPlot,false);
+            setupLineStyle(QCPGraph::lsLine);
+            setupScatterStyle(false);
             lineType = Line;
             break;
         case ScatterLine:
-            setupLineStyle(customPlot, QCPGraph::lsLine);
-            setupScatterStyle(customPlot,true);
+            setupLineStyle(QCPGraph::lsLine);
+            setupScatterStyle(true);
             lineType = ScatterLine;
             break;
         case Scatter:
-            setupLineStyle(customPlot, QCPGraph::lsNone);
-            setupScatterStyle(customPlot,true);
+            setupLineStyle(QCPGraph::lsNone);
+            setupScatterStyle(true);
             lineType = Scatter;
             break;
     }
@@ -369,7 +369,7 @@ void QCustomPlotControl::setupLineType(QCustomPlot* customPlot, LineType_e type)
     customPlot->replot();
 }
 
-void QCustomPlotControl::setupLegendVisible(QCustomPlot* customPlot, bool visible)
+void QCustomPlotControl::setupLegendVisible(bool visible)
 {
     if(visible){
         customPlot->legend->setVisible(true);
@@ -378,7 +378,7 @@ void QCustomPlotControl::setupLegendVisible(QCustomPlot* customPlot, bool visibl
     }
 }
 
-void QCustomPlotControl::setupGraphVisible(QCustomPlot* customPlot, bool visible)
+void QCustomPlotControl::setupGraphVisible(bool visible)
 {
     if(visible){
         customPlot->legend->setVisible(true);
@@ -387,7 +387,7 @@ void QCustomPlotControl::setupGraphVisible(QCustomPlot* customPlot, bool visible
     }
 }
 
-void QCustomPlotControl::setupInteractions(QCustomPlot* customPlot)
+void QCustomPlotControl::setupInteractions()
 {
     //设置交互功能：范围可拖拽、范围可缩放、轴可选择、图例可选择、绘图区可选择
     customPlot->setInteractions(QCP::iRangeDrag |
@@ -403,7 +403,7 @@ void QCustomPlotControl::setupInteractions(QCustomPlot* customPlot)
 }
 
 //修改自源码的setupFullAxesBox
-void QCustomPlotControl::setupAxesBox(QCustomPlot* customPlot, bool connectRanges)
+void QCustomPlotControl::setupAxesBox(bool connectRanges)
 {
   QCPAxis *xAxis, *yAxis, *xAxis2, *yAxis2;
   if (customPlot->axisRect()->axisCount(QCPAxis::atBottom) == 0)
@@ -458,10 +458,10 @@ void QCustomPlotControl::setupAxesBox(QCustomPlot* customPlot, bool connectRange
   }
 }
 
-void QCustomPlotControl::setupPlotter(QCustomPlot* customPlot)
+void QCustomPlotControl::setupPlotter(MyQCustomPlot* plot)
 {
     //设置一个指针直接控制customPlot解决槽函数要访问ui类下的customPlot的问题
-    QCustomPlotControl::customPlot = customPlot;
+    customPlot = plot;
 
     //添加一条示例曲线。更多曲线的添加动态完成。
     if(customPlot->graphCount()==0){
@@ -478,30 +478,30 @@ void QCustomPlotControl::setupPlotter(QCustomPlot* customPlot)
         customPlot->graph(0)->setAdaptiveSampling(true);
     }
     //设置OpenGL
-    setupOpenGL(customPlot,false);
+    setupOpenGL(false);
     //设置画笔
-    setupPenWidth(customPlot);
+    setupPenWidth();
     //设置轴间隔
-    setupAxisTick(customPlot);
+    setupAxisTick();
     //设置轴标签
-    setupAxisLabel(customPlot);
+    setupAxisLabel();
     //设置曲线名称
-    setupPlotName(customPlot);
+    setupPlotName();
     //设置线型
-    setupLineType(customPlot, lineType);
+    setupLineType(lineType);
     //设置图例可见性
-    setupLegendVisible(customPlot, true);
+    setupLegendVisible(true);
     //设置图例位置
     customPlot->axisRect()->insetLayout()->setInsetAlignment(0,Qt::AlignLeft|Qt::AlignTop);
     //设置交互功能
-    setupInteractions(customPlot);
+    setupInteractions();
 
     //设置轴
-    setupAxesBox(customPlot);
+    setupAxesBox();
     //设置X轴范围
     customPlot->xAxis->setRange(xRange);
     //设置曲线名称
-    setNameSet(customPlot, nameSet);
+    setNameSet(nameSet);
     //设置间隔给tag留出显示位置
     customPlot->axisRect()->axis(QCPAxis::atRight, 0)->setPadding(40);
 
