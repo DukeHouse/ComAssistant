@@ -353,7 +353,8 @@ MainWindow::MainWindow(QWidget *parent) :
     p_textExtract       = new TextExtractEngine();
     p_textExtract->moveToThread(p_textExtractThread);
     connect(p_textExtractThread, SIGNAL(finished()), p_textExtract, SLOT(deleteLater()));
-    connect(this, SIGNAL(tee_appendAndParseData(const QString &)), p_textExtract, SLOT(appendAndParseData(const QString &)));
+    connect(this, SIGNAL(tee_appendData(const QString &)), p_textExtract, SLOT(appendData(const QString &)));
+    connect(this, SIGNAL(tee_parseData()), p_textExtract, SLOT(parseData()));
     connect(this, SIGNAL(tee_clearData(const QString &)), p_textExtract, SLOT(clearData(const QString )));
     connect(this, SIGNAL(tee_saveData(const QString &, const QString &, const bool& )),
             p_textExtract, SLOT(saveData(const QString &, const QString &, const bool& )));
@@ -1048,8 +1049,8 @@ void MainWindow::readSerialPort()
         }
     }
 
-    //数据交付给文本解析引擎
-    emit tee_appendAndParseData(tmpReadBuff);
+    //数据交付给文本解析引擎(追加数据和解析分开防止高频解析带来的CPU压力)
+    emit tee_appendData(tmpReadBuff);
 
     recordDataToFile(tmpReadBuff);
 
@@ -1116,6 +1117,9 @@ void MainWindow::printToTextBrowser()
         windowSize = ui->textBrowser->size();
         resizeEvent(nullptr);
     }
+
+    //触发文本提取引擎解析
+    emit tee_parseData();
 
     //多显示一点
     if(ui->hexDisplay->isChecked())
@@ -2065,6 +2069,7 @@ void MainWindow::on_actionPlotterSwitch_triggered(bool checked)
 void MainWindow::plotterParseTimerSlot()
 {
     QElapsedTimer elapsedTimer;
+    int8_t needReplot = 0;
     int32_t maxParseLengthLimit = 2048;
     int32_t parsedLength;
     QVector<double> oneRowData;
@@ -2083,6 +2088,12 @@ void MainWindow::plotterParseTimerSlot()
 
     parsedLength = ui->customPlot->protocol->parse(RxBuff, plotterParsePosInRxBuff, maxParseLengthLimit, g_enableSumCheck);
     plotterParsePosInRxBuff += parsedLength;
+    //如果解析长度为0，待解析数据量超过单次解析限制，则前面扫描过的数据丢弃掉
+    if(parsedLength == 0 && RxBuff.size() - plotterParsePosInRxBuff > maxParseLengthLimit)
+    {
+        plotterParsePosInRxBuff += maxParseLengthLimit;
+        ui->statusBar->showMessage(tr("数据匹配绘图协议失败，已丢弃。"), 2000);
+    }
 
     //数据填充
     while(ui->customPlot->protocol->parsedBuffSize()>0){
@@ -2092,6 +2103,7 @@ void MainWindow::plotterParseTimerSlot()
             //关闭刷新，数据全部填充完后统一刷新
             if(false == ui->customPlot->plotControl->addDataToPlotter(oneRowData, g_xAxisSource))
                 ui->statusBar->showMessage(tr("出现一组异常绘图数据，已丢弃。"), 2000);
+            needReplot = 1;
         }
     }
     if(ui->actionAutoRefreshYAxis->isChecked())
@@ -2099,7 +2111,9 @@ void MainWindow::plotterParseTimerSlot()
         ui->customPlot->yAxis->rescale(true);
     }
     //曲线刷新
-    ui->customPlot->replot();   //<10ms
+    if(needReplot){
+        ui->customPlot->replot();   //<10ms
+    }
 
     //数值显示器
     if(ui->actionValueDisplay->isChecked()){
@@ -2130,7 +2144,7 @@ void MainWindow::plotterParseTimerSlot()
     //单次解析接近长度限制提示(文件解析模式下要显示解析进度，所以不显示这个)
     if((parsedLength*100/maxParseLengthLimit>90) && parseFile == false){
         QString temp;
-        temp = temp + tr("绘图器繁忙，待解析数据长度：") + QString::number(RxBuff.size() - plotterParsePosInRxBuff) + "Byte";
+        temp = temp + tr("绘图器繁忙，待解析数据：") + QString::number(RxBuff.size() - plotterParsePosInRxBuff) + "Byte";
         ui->statusBar->showMessage(temp, 2000);
     }
     //解析周期动态调整

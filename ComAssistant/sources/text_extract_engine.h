@@ -16,10 +16,7 @@
 
 /*
  * TODO:
- * 1. clear支持指定按name清除
- * 2. 支持按name保存为文件功能
- * 3. Vector显示到textPlainEdit控件效率如何？要不要改为QByteArray
- * 4. 绘图器解析是不是有缺陷？
+ * 1. Vector显示到textPlainEdit控件效率如何？要不要改为QByteArray
  */
 
 class textGroup_t
@@ -50,6 +47,8 @@ public:
     ~TextExtractEngine();
 
 public slots:
+    void appendData(const QString &newData);
+    void parseData();
     void appendAndParseData(const QString &newData);
     void clearData(const QString &name);
     qint32 saveData(const QString &path, const QString &name, const bool& savePackBuff);
