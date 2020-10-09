@@ -105,17 +105,26 @@ void TextExtractEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& res
     restBuffer = buffer.mid(lastScannedIndex);
 }
 
-void TextExtractEngine::appendAndParseData(const QString &newData)
+void TextExtractEngine::appendData(const QString &newData)
+{
+    rawData.buff.append(newData);
+}
+
+void TextExtractEngine::parseData()
 {
     #define MAX_EXTRACT_LENGTH 2048
-    rawData.buff.append(newData);
     parsePacksFromBuffer(rawData.buff, rawData.buff);
-    //必须在解析完成后剔除前面已扫描过的数据
+    //在解析完成后剔除前面已扫描过的数据
     if(rawData.buff.size() > MAX_EXTRACT_LENGTH)
     {
         rawData.buff = rawData.buff.mid(rawData.buff.size() - MAX_EXTRACT_LENGTH);
-        qDebug()<<"appendAndParseData: data overflow";
     }
+}
+
+void TextExtractEngine::appendAndParseData(const QString &newData)
+{
+    appendData(newData);
+    parseData();
 //    qDebug()<<"ThreadID:"<<QThread::currentThreadId()<<"size:"<<rawData.buff.size();
 }
 
