@@ -168,6 +168,7 @@ void MainWindow::readConfig()
     //OpenGL
     ui->actionOpenGL->setChecked(Config::getOpengGLState());
     on_actionOpenGL_triggered(Config::getOpengGLState());
+
     //refreshYAxis
     on_actionAutoRefreshYAxis_triggered(Config::getRefreshYAxisState());
     //line type
@@ -284,10 +285,14 @@ MainWindow::MainWindow(QWidget *parent) :
     //加载高亮规则
     on_actionKeyWordHighlight_triggered(ui->actionKeyWordHighlight->isChecked());
 
+    //fft
+    fft_window = new FFT_Dialog(ui->actionFFTShow, this);
+
     //初始化绘图控制器
     ui->customPlot->init(ui->statusBar, ui->plotterSetting,
                          ui->actionSavePlotData, ui->actionSavePlotAsPicture,
-                         &g_xAxisSource, &autoRefreshYAxisFlag);
+                         &g_xAxisSource, &autoRefreshYAxisFlag,
+                         fft_window);//这个fft_window现在是空指针
 
     //http
     http = new HTTP(this);
@@ -330,6 +335,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->textEdit->document()->setDefaultFont(g_font);
     ui->multiString->setFont(g_font);
     ui->customPlot->plotControl->setupFont(g_font);
+    fft_window->setupPlotterFont(g_font);
 
     this->setWindowTitle(tr("纸飞机串口助手") + " - V"+Config::getVersion());
 
@@ -367,6 +373,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //显示界面
     this->show();
+
     //调整窗体布局
     adjustLayout();
     //是否首次运行
@@ -379,10 +386,13 @@ MainWindow::MainWindow(QWidget *parent) :
     }
 
     readRecorderFile();
+
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
+    Q_UNUSED(event);
+
     //点击关闭时删除记录文件
     QFile recorderFile(RECORDER_FILE_PATH);
     if(recorderFile.exists())
@@ -702,6 +712,7 @@ void MainWindow::secTimerSlot()
     currentRunTime++;
 }
 
+#define DEBUG_TIMER_FRQ (128)
 static double debugTimerSlotCnt = 0;
 void MainWindow::debugTimerSlot()
 {
@@ -710,39 +721,28 @@ void MainWindow::debugTimerSlot()
     #define BYTE2(dwTemp)   static_cast<char>((*(reinterpret_cast<char *>(&dwTemp) + 2)))
     #define BYTE3(dwTemp)   static_cast<char>((*(reinterpret_cast<char *>(&dwTemp) + 3)))
 
-    float num1, num2, num3, num4, num5, num6;
+    float num1, num2, num3, num4;
     //正弦
-    num1 = static_cast<float>(qSin(debugTimerSlotCnt / 0.3843));
-    num2 = static_cast<float>(qCos(debugTimerSlotCnt / 0.3843));
-    num3 = static_cast<float>(qCos(debugTimerSlotCnt / 0.6157) + qSin(debugTimerSlotCnt / 0.3843));
-    num4 = static_cast<float>(qCos(debugTimerSlotCnt / 0.6157) - qSin(debugTimerSlotCnt / 0.3843));
-    num5 = static_cast<float>(qSin(debugTimerSlotCnt / 0.3843) + qSin(debugTimerSlotCnt / 0.3843) * qSin(debugTimerSlotCnt / 0.3843));
-    num6 = static_cast<float>(qCos(debugTimerSlotCnt / 0.3843) + qSin(debugTimerSlotCnt / 0.3843) * qCos(debugTimerSlotCnt / 0.3843));
-//    num5 = static_cast<float>(qSin(count / 0.3843) + qrand() / static_cast<double>(RAND_MAX) * 1 * qSin(count / 0.6157));
-//    num6 = static_cast<float>(qCos(count / 0.3843) + qrand() / static_cast<double>(RAND_MAX) * 1 * qCos(count / 0.6157));
-    //直线
-//    num1 = debugTimerSlotCnt * 10;
-//    num2 = debugTimerSlotCnt * 10;
-//    num3 = debugTimerSlotCnt * 10;
-//    num4 = debugTimerSlotCnt * 10;
-//    num5 = debugTimerSlotCnt * 10;
-//    num6 = debugTimerSlotCnt * 10;
+    #define PI  (3.141592653)
+    #define FRQ (6)
+    num1 = static_cast<float>(1 + qSin(2 * PI * (FRQ-FRQ) * (debugTimerSlotCnt / DEBUG_TIMER_FRQ)));
+    num2 = static_cast<float>(qSin(2 * PI * (FRQ+0) * (debugTimerSlotCnt / DEBUG_TIMER_FRQ)));
+    num3 = static_cast<float>(0.8 * qSin(2 * PI * (FRQ-2) * (debugTimerSlotCnt / DEBUG_TIMER_FRQ))) +
+           static_cast<float>(0.8 * qSin(2 * PI * (FRQ+2) * (debugTimerSlotCnt / DEBUG_TIMER_FRQ)));
+    num4 = static_cast<float>(1.2 * qSin(2 * PI * (FRQ-4) * (debugTimerSlotCnt / DEBUG_TIMER_FRQ))) +
+           static_cast<float>(1.2 * qSin(2 * PI * (FRQ+4) * (debugTimerSlotCnt / DEBUG_TIMER_FRQ)));
     if(ui->actionAscii->isChecked()){
         QString tmp;
         tmp = "{plotter:" +
                   QString::number(static_cast<double>(num1),'f') + "," +
                   QString::number(static_cast<double>(num2),'f') + "," +
                   QString::number(static_cast<double>(num3),'f') + "," +
-                  QString::number(static_cast<double>(num4),'f') + "," +
-                  QString::number(static_cast<double>(num5),'f') + "," +
-                  QString::number(static_cast<double>(num6),'f') + "}\n";
+                  QString::number(static_cast<double>(num4),'f') + "}\n";
 
         tmp += "{voltage:the vol is ### V}\n"
-               "{current:the cur is @@@ A}\n"
                "{cnt:the cnt is $$$}\n";
         tmp.replace("###", QString::number(3.3 + qrand()/static_cast<double>(RAND_MAX)/10.0, 'f', 3));
-        tmp.replace("@@@", QString::number(0.0 + qrand()/static_cast<double>(RAND_MAX)/20.0, 'f', 3));
-        tmp.replace("$$$", QString::number(static_cast<qint32>(debugTimerSlotCnt * 100)));
+        tmp.replace("$$$", QString::number(static_cast<qint32>(debugTimerSlotCnt)));
         if(serial.isOpen()){
             serial.write(tmp.toLocal8Bit());
         }
@@ -752,15 +752,13 @@ void MainWindow::debugTimerSlot()
         tmp.append(BYTE0(num2));tmp.append(BYTE1(num2));tmp.append(BYTE2(num2));tmp.append(BYTE3(num2));
         tmp.append(BYTE0(num3));tmp.append(BYTE1(num3));tmp.append(BYTE2(num3));tmp.append(BYTE3(num3));
         tmp.append(BYTE0(num4));tmp.append(BYTE1(num4));tmp.append(BYTE2(num4));tmp.append(BYTE3(num4));
-        tmp.append(BYTE0(num5));tmp.append(BYTE1(num5));tmp.append(BYTE2(num5));tmp.append(BYTE3(num5));
-        tmp.append(BYTE0(num6));tmp.append(BYTE1(num6));tmp.append(BYTE2(num6));tmp.append(BYTE3(num6));
         tmp.append(static_cast<char>(0x00));tmp.append(static_cast<char>(0x00));tmp.append(static_cast<char>(0x80));tmp.append(static_cast<char>(0x7F));
         if(serial.isOpen()){
             serial.write(tmp);
         }
     }
 
-    debugTimerSlotCnt = debugTimerSlotCnt + 0.01;
+    debugTimerSlotCnt = debugTimerSlotCnt + 1;
 }
 
 MainWindow::~MainWindow()
@@ -860,10 +858,14 @@ MainWindow::~MainWindow()
 //    delete p_textExtract; //deleteLater自动删除？
     delete p_textExtractThread;
 
+    delete fft_window;
+    fft_window = nullptr;
+
     delete highlighter;
     delete ui;
     delete http;
     delete g_popupHotkey;
+    qDebug()<<"~MainWindow";
 }
 
 /*
@@ -1479,6 +1481,9 @@ void MainWindow::on_clearWindows_clicked()
     ui->customPlot->replot();
     plotterParsePosInRxBuff = RxBuff.size();
 
+    //fft
+    fft_window->clearGraph(-1);
+
     //数值显示器
     deleteValueDisplaySlot();
 
@@ -2053,6 +2058,7 @@ void MainWindow::on_actionPlotterSwitch_triggered(bool checked)
             else
                 ui->plotter->setTitle(tr("数据可视化：FLOAT协议"));
         }
+        ui->actionFFTShow->setEnabled(true);
     }else{
         ui->customPlot->hide();
 
@@ -2061,6 +2067,7 @@ void MainWindow::on_actionPlotterSwitch_triggered(bool checked)
             plotterParseTimer.stop();
 
         ui->plotter->setTitle(tr("数据可视化"));
+        ui->actionFFTShow->setEnabled(false);
     }
 
     adjustLayout();
@@ -2098,6 +2105,10 @@ void MainWindow::plotterParseTimerSlot()
     //数据填充
     while(ui->customPlot->protocol->parsedBuffSize()>0){
         oneRowData = ui->customPlot->protocol->popOneRowData();
+        if(fft_window->isVisible())
+        {
+            fft_window->appendData(oneRowData);
+        }
         //绘图显示器
         if(ui->actionPlotterSwitch->isChecked()){
             //关闭刷新，数据全部填充完后统一刷新
@@ -2111,10 +2122,11 @@ void MainWindow::plotterParseTimerSlot()
         ui->customPlot->yAxis->rescale(true);
     }
     //曲线刷新
-    if(needReplot){
-        ui->customPlot->replot();   //<10ms
+    ui->customPlot->replot();   //<10ms
+    if(fft_window->isVisible())
+    {
+        fft_window->startFFTCal();
     }
-
     //数值显示器
     if(ui->actionValueDisplay->isChecked()){
         //判断是否添加行
@@ -2203,7 +2215,7 @@ void MainWindow::on_actiondebug_triggered(bool checked)
     if(checked){
         debugTimerSlotCnt = 0;
         debugTimer.setTimerType(Qt::PreciseTimer);
-        debugTimer.start(20);
+        debugTimer.start(1000/DEBUG_TIMER_FRQ);
         connect(&debugTimer, SIGNAL(timeout()), this, SLOT(debugTimerSlot()));
     }else{
         debugTimer.stop();
@@ -2860,9 +2872,11 @@ void MainWindow::on_actionOpenGL_triggered(bool checked)
 {
     if(checked){
         ui->customPlot->setOpenGl(true);
+        fft_window->setupPlotterOpenGL(true);
     }
     else{
         ui->customPlot->setOpenGl(false);
+        fft_window->setupPlotterOpenGL(false);
     }
     ui->customPlot->replot();
 }
@@ -2878,6 +2892,7 @@ void MainWindow::on_actionFontSetting_triggered()
         ui->textEdit->document()->setDefaultFont(g_font);
         ui->multiString->setFont(g_font);
         ui->customPlot->plotControl->setupFont(g_font);
+        fft_window->setupPlotterFont(g_font);
 
         QPlainTextEdit *textEdit = nullptr;
         for(qint32 i = 0; i < ui->tabWidget->count(); i++){
@@ -3105,6 +3120,8 @@ void MainWindow::dropEvent(QDropEvent *e)
 
 void MainWindow::on_actionSelectXAxis_triggered(bool checked)
 {
+    Q_UNUSED(checked)
+
     static QString defaultXAxisLabel = ui->customPlot->xAxis->label();
     bool ok;
     QString name;
@@ -3161,4 +3178,31 @@ void MainWindow::on_actionSelectXAxis_triggered(bool checked)
             break;
         }
     }
+}
+
+void MainWindow::on_actionFFTShow_triggered(bool checked)
+{
+    ui->actionFFTShow->setChecked(checked);
+    if(!fft_window)
+        return;
+    if(checked)
+    {
+        QPoint pos = QPoint(this->pos().x() + this->geometry().width(), this->pos().y());
+        fft_window->move(pos);
+        fft_window->setVisible(true);
+        return;
+    }
+    fft_window->setVisible(false);
+    return;
+}
+
+void MainWindow::moveEvent(QMoveEvent *event)
+{
+    static QPoint lastPos;
+    if(fft_window && fft_window->isVisible())
+    {
+        QPoint pos = QPoint(event->pos() - lastPos);
+        fft_window->move(fft_window->pos() + pos);
+    }
+    lastPos = event->pos();
 }

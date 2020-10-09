@@ -719,6 +719,7 @@ p, li { white-space: pre-wrap; }
      <addaction name="actionSelectXAxis"/>
     </widget>
     <addaction name="actionPlotterSwitch"/>
+    <addaction name="actionFFTShow"/>
     <addaction name="plotterSetting"/>
     <addaction name="separator"/>
     <addaction name="actionValueDisplay"/>
@@ -1044,6 +1045,17 @@ p, li { white-space: pre-wrap; }
    </property>
    <property name="toolTip">
     <string>更改X轴数据源</string>
+   </property>
+  </action>
+  <action name="actionFFTShow">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>FFT显示</string>
+   </property>
+   <property name="statusTip">
+    <string>需要使能绘图器</string>
    </property>
   </action>
  </widget>

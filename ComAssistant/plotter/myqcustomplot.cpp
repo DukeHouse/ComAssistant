@@ -38,7 +38,7 @@ MyQCustomPlot::~MyQCustomPlot()
 }
 
 void MyQCustomPlot::init(QStatusBar* pBar, QMenu* plotterSetting, QAction* saveGraphData, QAction* saveGraphPicture,
-                         qint32 *xSource, bool *autoRescaleYAxisFlag)
+                         qint32 *xSource, bool *autoRescaleYAxisFlag, FFT_Dialog* window)
 {
     bar = pBar;
     setting = plotterSetting;
@@ -48,7 +48,8 @@ void MyQCustomPlot::init(QStatusBar* pBar, QMenu* plotterSetting, QAction* saveG
     protocol = new DataProtocol;
     xAxisSource = xSource;
     autoRescaleYAxis = autoRescaleYAxisFlag;
-    plotControl->setupPlotter(this);
+    fft_dialog = window;
+    plotControl->setupPlotter(this, window);
 }
 
 /*plotter交互*/
@@ -97,6 +98,12 @@ void MyQCustomPlot::legendDoubleClick(QCPLegend *legend, QCPAbstractLegendItem *
       plItem->plottable()->setName(newName);
       plotControl->getNameSetsFromPlot();
       this->replot();
+
+      //把新名字传递给fft窗口
+      if(fft_dialog)
+      {
+          fft_dialog->setNameSet(this->plotControl->getNameSetsFromPlot());
+      }
     }
   }
 }

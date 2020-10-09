@@ -41,6 +41,9 @@
 #include "settings_dialog.h"
 //文本提取引擎
 #include "text_extract_engine.h"
+//FFT显示
+#include "fft_dialog.h"
+#include "fft.h"
 
 namespace Ui {
 class MainWindow;
@@ -156,6 +159,8 @@ private slots:
 
     void on_actionSelectXAxis_triggered(bool checked);
 
+    void on_actionFFTShow_triggered(bool checked);
+
 private:
     QString formatTime(int ms);
     bool needSaveConfig = true;
@@ -228,6 +233,10 @@ private:
     const QString MAIN_TAB_NAME = "main";
     QThread *p_textExtractThread;
     TextExtractEngine *p_textExtract;
+
+    //fft window
+    FFT_Dialog *fft_window = nullptr;
+
 signals:
     void tee_appendData(const QByteArray &str);
     void tee_parseData(void);
@@ -246,6 +255,7 @@ protected:
     void closeEvent(QCloseEvent*event);
     void dragEnterEvent(QDragEnterEvent *e);
     void dropEvent(QDropEvent *e);
+    void moveEvent(QMoveEvent *event);
 };
 
 #endif // MAINWINDOW_H
