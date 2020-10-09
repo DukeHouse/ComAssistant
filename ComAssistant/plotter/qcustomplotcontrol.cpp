@@ -57,11 +57,12 @@ QCustomPlotControl::QCustomPlotControl()
                     << QCPScatterStyle::ssCustom;    ///< custom painter operations are performed per scatter (As QPainterPath, see \ref setCustomPath)
 }
 
-QCustomPlotControl::QCustomPlotControl(MyQCustomPlot* plot)
+QCustomPlotControl::QCustomPlotControl(MyQCustomPlot* plot, FFT_Dialog *window)
 {
     QCustomPlotControl();
     customPlot = plot;
-    setupPlotter(plot);
+    fft_dialog = window;
+    setupPlotter(plot, window);
 }
 
 QCustomPlotControl::~QCustomPlotControl()
@@ -87,6 +88,11 @@ bool QCustomPlotControl::setXAxisLength(double length)
     xRange.lower = -length;
 //    customPlot->xAxis->setRange(xAxisCnt, xRange.upper - xRange.lower, Qt::AlignRight);
     return true;
+}
+
+QVector<QColor> QCustomPlotControl::getColorSet()
+{
+    return colorSet;
 }
 
 QVector<QString> QCustomPlotControl::getNameSetsFromPlot()
@@ -118,6 +124,11 @@ void QCustomPlotControl::setNameSet(QVector<QString> names)
     }
     for (int i = 0; i < customPlot->graphCount(); i++) {
          customPlot->graph(i)->setName(nameSet[i]);
+    }
+
+    if(fft_dialog)
+    {
+        fft_dialog->setNameSet(getNameSetsFromPlot());
     }
 }
 
@@ -232,6 +243,8 @@ void QCustomPlotControl::setupFont(QFont font)
     customPlot->yAxis2->setSelectedLabelFont(font);
     customPlot->yAxis2->setLabelFont(font);
     customPlot->m_Tracer->setLabelFont(font);
+
+    customPlot->replot();
 }
 
 void QCustomPlotControl::setupOpenGL(bool enabled)
@@ -458,10 +471,11 @@ void QCustomPlotControl::setupAxesBox(bool connectRanges)
   }
 }
 
-void QCustomPlotControl::setupPlotter(MyQCustomPlot* plot)
+void QCustomPlotControl::setupPlotter(MyQCustomPlot* plot, FFT_Dialog *window)
 {
     //设置一个指针直接控制customPlot解决槽函数要访问ui类下的customPlot的问题
     customPlot = plot;
+    fft_dialog = window;
 
     //添加一条示例曲线。更多曲线的添加动态完成。
     if(customPlot->graphCount()==0){

@@ -9,6 +9,7 @@
 #include <QInputDialog>
 #include <algorithm>
 #include "axistag.h"
+#include "fft_dialog.h"
 
 using namespace std;
 
@@ -25,7 +26,7 @@ public:
     }LineType_e;
     QCustomPlotControl();
     ~QCustomPlotControl();
-    QCustomPlotControl(MyQCustomPlot* plot);
+    QCustomPlotControl(MyQCustomPlot* plot, FFT_Dialog *window);//不知道为啥用了会崩溃
 
     bool addGraph(int num=1);
     //清除指定曲线，-1清除所有曲线
@@ -58,7 +59,7 @@ public:
     //设置轴盒子
     void setupAxesBox(bool connectRanges=false);
     //设置绘图器（总设置）
-    void setupPlotter(MyQCustomPlot* plot);
+    void setupPlotter(MyQCustomPlot* plot, FFT_Dialog *window);
     //读写名字集
     QVector<QString> getNameSetsFromPlot();
     void setNameSet(QVector<QString> names);
@@ -67,12 +68,13 @@ public:
     //返回横坐标长度
     double getXAxisLength();
     bool setXAxisLength(double length);
+    //获取颜色集
+    QVector<QColor> getColorSet();
 
 private slots:
 
-
 private:
-
+    FFT_Dialog *fft_dialog = nullptr;
     MyQCustomPlot* customPlot;
     QVector<QColor> colorSet;
     QVector<QString> nameSet;

@@ -41,7 +41,9 @@ else:unix {
         LIBS += -lX11
 }
 
-SOURCES += QHotkey/QHotkey/qhotkey.cpp
+SOURCES += QHotkey/QHotkey/qhotkey.cpp \
+    sources/fft.cpp
+
 mac: SOURCES += QHotkey/QHotkey/qhotkey_mac.cpp
 else:win32: SOURCES += QHotkey/QHotkey/qhotkey_win.cpp
 else:unix: SOURCES += QHotkey/QHotkey/qhotkey_x11.cpp
@@ -84,6 +86,7 @@ SOURCES += \
     dialog/about_me_dialog.cpp \
     dialog/settings_dialog.cpp \
     dialog/stm32isp_dialog.cpp \
+    dialog/fft_dialog.cpp \
     plotter/axistag.cpp \
     plotter/dataprotocol.cpp \
     plotter/myqcustomplot.cpp \
@@ -154,6 +157,7 @@ HEADERS += \
     dialog/about_me_dialog.h \
     dialog/settings_dialog.h \
     dialog/stm32isp_dialog.h \
+    dialog/fft_dialog.h \
     plotter/axistag.h \
     plotter/dataprotocol.h \
     plotter/myqcustomplot.h \
@@ -162,6 +166,7 @@ HEADERS += \
     plotter/qcustomplotcontrol.h \
     sources/baseconversion.h \
     sources/config.h \
+    sources/fft.h \
     sources/highlighter.h \
     sources/http.h \
     sources/mainwindow.h \
@@ -172,7 +177,8 @@ FORMS += \
         ui/about_me_dialog.ui \
         ui/mainwindow.ui \
         ui/settings_dialog.ui \
-        ui/stm32isp_dialog.ui
+        ui/stm32isp_dialog.ui \
+        ui/fft_dialog.ui \
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
