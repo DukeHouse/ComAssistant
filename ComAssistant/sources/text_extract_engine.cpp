@@ -107,8 +107,15 @@ void TextExtractEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& res
 
 void TextExtractEngine::appendAndParseData(const QString &newData)
 {
+    #define MAX_EXTRACT_LENGTH 2048
     rawData.buff.append(newData);
     parsePacksFromBuffer(rawData.buff, rawData.buff);
+    //必须在解析完成后剔除前面已扫描过的数据
+    if(rawData.buff.size() > MAX_EXTRACT_LENGTH)
+    {
+        rawData.buff = rawData.buff.mid(rawData.buff.size() - MAX_EXTRACT_LENGTH);
+        qDebug()<<"appendAndParseData: data overflow";
+    }
 //    qDebug()<<"ThreadID:"<<QThread::currentThreadId()<<"size:"<<rawData.buff.size();
 }
 
