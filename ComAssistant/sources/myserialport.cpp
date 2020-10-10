@@ -137,7 +137,7 @@ int64_t mySerialPort::getTotalRxCnt()
 */
 QString mySerialPort::getTxRxString()
 {
-    return "Tx:"+QString::number(getTxCnt())+" Rx:"+QString::number(getRxCnt());
+    return "T:"+QString::number(getTxCnt())+" R:"+QString::number(getRxCnt());
 }
 
 /*
