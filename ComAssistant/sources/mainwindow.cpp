@@ -5,6 +5,7 @@
 #define RECORDER_FILE_PATH           "ComAssistantRecorder.dat"
 #define BACKUP_RECORDER_FILE_PATH    "ComAssistantRecorder_back.dat"
 
+static qint32   g_xAxisSource = XAxis_Cnt;
 static qint32   g_multiStr_cur_index;
 static QColor   g_background_color;
 static QFont    g_font;
@@ -163,12 +164,12 @@ void MainWindow::readConfig()
     ui->actionValueDisplay->setChecked(Config::getValueDisplayState());
     on_actionValueDisplay_triggered(Config::getValueDisplayState());
     //图像名字集
-    ui->customPlot->plotControl->setNameSet(ui->customPlot, Config::getPlotterGraphNames(ui->customPlot->plotControl->getMaxValidGraphNumber()));
+    ui->customPlot->plotControl->setNameSet(Config::getPlotterGraphNames(ui->customPlot->plotControl->getMaxValidGraphNumber()));
     //OpenGL
     ui->actionOpenGL->setChecked(Config::getOpengGLState());
     on_actionOpenGL_triggered(Config::getOpengGLState());
     //refreshYAxis
-    ui->actionAutoRefreshYAxis->setChecked(Config::getRefreshYAxisState());
+    on_actionAutoRefreshYAxis_triggered(Config::getRefreshYAxisState());
     //line type
     switch (Config::getLineType()) {
     case LineType_e::Line:
@@ -268,7 +269,7 @@ MainWindow::MainWindow(QWidget *parent) :
     statusSpeedLabel = new QLabel(this);
     statusStatisticLabel = new QLabel(this);
     statusTimer = new QLabel(this);
-    statusTimer->setText(tr("计时器:") + formatTime(0));
+    statusTimer->setText("Timer:" + formatTime(0));
     statusRemoteMsgLabel->setOpenExternalLinks(true);//可打开外链
     ui->statusBar->addPermanentWidget(statusRemoteMsgLabel);
     ui->statusBar->addPermanentWidget(statusTimer);
@@ -284,7 +285,9 @@ MainWindow::MainWindow(QWidget *parent) :
     on_actionKeyWordHighlight_triggered(ui->actionKeyWordHighlight->isChecked());
 
     //初始化绘图控制器
-    ui->customPlot->init(ui->statusBar, ui->plotterSetting, ui->actionSavePlotData, ui->actionSavePlotAsPicture);
+    ui->customPlot->init(ui->statusBar, ui->plotterSetting,
+                         ui->actionSavePlotData, ui->actionSavePlotAsPicture,
+                         &g_xAxisSource, &autoRefreshYAxisFlag);
 
     //http
     http = new HTTP(this);
@@ -326,7 +329,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->textBrowser->document()->setDefaultFont(g_font);
     ui->textEdit->document()->setDefaultFont(g_font);
     ui->multiString->setFont(g_font);
-    ui->customPlot->plotControl->setupFont(ui->customPlot, g_font);
+    ui->customPlot->plotControl->setupFont(g_font);
 
     this->setWindowTitle(tr("纸飞机串口助手") + " - V"+Config::getVersion());
 
@@ -350,7 +353,8 @@ MainWindow::MainWindow(QWidget *parent) :
     p_textExtract       = new TextExtractEngine();
     p_textExtract->moveToThread(p_textExtractThread);
     connect(p_textExtractThread, SIGNAL(finished()), p_textExtract, SLOT(deleteLater()));
-    connect(this, SIGNAL(tee_appendAndParseData(const QString &)), p_textExtract, SLOT(appendAndParseData(const QString &)));
+    connect(this, SIGNAL(tee_appendData(const QString &)), p_textExtract, SLOT(appendData(const QString &)));
+    connect(this, SIGNAL(tee_parseData()), p_textExtract, SLOT(parseData()));
     connect(this, SIGNAL(tee_clearData(const QString &)), p_textExtract, SLOT(clearData(const QString )));
     connect(this, SIGNAL(tee_saveData(const QString &, const QString &, const bool& )),
             p_textExtract, SLOT(saveData(const QString &, const QString &, const bool& )));
@@ -650,14 +654,14 @@ void MainWindow::secTimerSlot()
     #define HIGH_LOAD_WARNING    90
     if(txSpeedKB==0)
     {
-        txSpeedStr = " Tx:" + QString::number(txSpeedKB) + "KB/s(" + QString::number(txLoad) + "%)";
+        txSpeedStr = " T:" + QString::number(txSpeedKB) + "KB/s(" + QString::number(txLoad) + "%)";
     }
     else if(txSpeedKB < 1000)
     {
-        txSpeedStr = " Tx:" + QString::number(txSpeedKB, 'f', 2) + "KB/s(" + QString::number(txLoad) + "%)";
+        txSpeedStr = " T:" + QString::number(txSpeedKB, 'f', 2) + "KB/s(" + QString::number(txLoad) + "%)";
     }else
     {
-        txSpeedStr = " Tx:" + QString::number(txSpeedKB, 'g', 2) + "KB/s(" + QString::number(txLoad) + "%)";
+        txSpeedStr = " T:" + QString::number(txSpeedKB, 'g', 2) + "KB/s(" + QString::number(txLoad) + "%)";
     }
     if(txLoad > HIGH_LOAD_WARNING)
     {
@@ -665,14 +669,14 @@ void MainWindow::secTimerSlot()
     }
     if(rxSpeedKB==0)
     {
-        rxSpeedStr = " Rx:" + QString::number(rxSpeedKB) + "KB/s(" + QString::number(rxLoad) + "%)";
+        rxSpeedStr = " R:" + QString::number(rxSpeedKB) + "KB/s(" + QString::number(rxLoad) + "%)";
     }
     else if(rxSpeedKB < 1000)
     {
-        rxSpeedStr = " Rx:" + QString::number(rxSpeedKB, 'f', 2) + "KB/s(" + QString::number(rxLoad) + "%)";
+        rxSpeedStr = " R:" + QString::number(rxSpeedKB, 'f', 2) + "KB/s(" + QString::number(rxLoad) + "%)";
     }else
     {
-        rxSpeedStr = " Rx:" + QString::number(rxSpeedKB, 'g', 2) + "KB/s(" + QString::number(rxLoad) + "%)";
+        rxSpeedStr = " R:" + QString::number(rxSpeedKB, 'g', 2) + "KB/s(" + QString::number(rxLoad) + "%)";
     }
     if(rxLoad > HIGH_LOAD_WARNING)
     {
@@ -681,7 +685,7 @@ void MainWindow::secTimerSlot()
     statusSpeedLabel->setText(txSpeedStr + rxSpeedStr);
 
     //显示远端下载的信息
-    if(http->getMsgList().size()>0 && secCnt%10==0){
+    if(http->getMsgList().size() > 0 && secCnt % 10 == 0){
         statusRemoteMsgLabel->setText(http->getMsgList().at(msgIndex++));
         if(msgIndex == http->getMsgList().size())
             msgIndex = 0;
@@ -689,7 +693,7 @@ void MainWindow::secTimerSlot()
 
     if(ui->comSwitch->isChecked()){
         qint64 consumedTime = QDateTime::currentSecsSinceEpoch() - g_lastSecsSinceEpoch;
-        statusTimer->setText(tr("计时器:")+formatTime(consumedTime*1000));
+        statusTimer->setText("Timer:" + formatTime(consumedTime * 1000));
     }else{
         g_lastSecsSinceEpoch = QDateTime::currentSecsSinceEpoch();
     }
@@ -707,13 +711,6 @@ void MainWindow::debugTimerSlot()
     #define BYTE3(dwTemp)   static_cast<char>((*(reinterpret_cast<char *>(&dwTemp) + 3)))
 
     float num1, num2, num3, num4, num5, num6;
-    //直线
-//    num1 = debugTimerSlotCnt * 10;
-//    num2 = debugTimerSlotCnt * 10;
-//    num3 = debugTimerSlotCnt * 10;
-//    num4 = debugTimerSlotCnt * 10;
-//    num5 = debugTimerSlotCnt * 10;
-//    num6 = debugTimerSlotCnt * 10;
     //正弦
     num1 = static_cast<float>(qSin(debugTimerSlotCnt / 0.3843));
     num2 = static_cast<float>(qCos(debugTimerSlotCnt / 0.3843));
@@ -723,6 +720,13 @@ void MainWindow::debugTimerSlot()
     num6 = static_cast<float>(qCos(debugTimerSlotCnt / 0.3843) + qSin(debugTimerSlotCnt / 0.3843) * qCos(debugTimerSlotCnt / 0.3843));
 //    num5 = static_cast<float>(qSin(count / 0.3843) + qrand() / static_cast<double>(RAND_MAX) * 1 * qSin(count / 0.6157));
 //    num6 = static_cast<float>(qCos(count / 0.3843) + qrand() / static_cast<double>(RAND_MAX) * 1 * qCos(count / 0.6157));
+    //直线
+//    num1 = debugTimerSlotCnt * 10;
+//    num2 = debugTimerSlotCnt * 10;
+//    num3 = debugTimerSlotCnt * 10;
+//    num4 = debugTimerSlotCnt * 10;
+//    num5 = debugTimerSlotCnt * 10;
+//    num6 = debugTimerSlotCnt * 10;
     if(ui->actionAscii->isChecked()){
         QString tmp;
         tmp = "{plotter:" +
@@ -756,7 +760,7 @@ void MainWindow::debugTimerSlot()
         }
     }
 
-    debugTimerSlotCnt = debugTimerSlotCnt + 0.1;
+    debugTimerSlotCnt = debugTimerSlotCnt + 0.01;
 }
 
 MainWindow::~MainWindow()
@@ -819,7 +823,8 @@ MainWindow::~MainWindow()
         }
 
         Config::setPlotterGraphNames(ui->customPlot->plotControl->getNameSetsFromPlot());
-        Config::setXAxisName(ui->customPlot->xAxis->label());
+        if(g_xAxisSource == XAxis_Cnt)  //暂时不支持存储XY图模式的X轴名字
+            Config::setXAxisName(ui->customPlot->xAxis->label());
         Config::setYAxisName(ui->customPlot->yAxis->label());
         Config::setValueDisplayState(ui->actionValueDisplay->isChecked());
         Config::setOpengGLState(ui->actionOpenGL->isChecked());
@@ -935,7 +940,7 @@ void MainWindow::on_comSwitch_clicked(bool checked)
             ui->comSwitch->setChecked(true);
             g_lastSecsSinceEpoch = QDateTime::currentSecsSinceEpoch();
             qint64 consumedTime = QDateTime::currentSecsSinceEpoch() - g_lastSecsSinceEpoch;
-            statusTimer->setText(tr("计时器:")+formatTime(consumedTime*1000));
+            statusTimer->setText("Timer:" + formatTime(consumedTime * 1000));
         }
         else {
             ui->comSwitch->setText(tr("打开串口"));
@@ -1044,8 +1049,8 @@ void MainWindow::readSerialPort()
         }
     }
 
-    //数据交付给文本解析引擎
-    emit tee_appendAndParseData(tmpReadBuff);
+    //数据交付给文本解析引擎(追加数据和解析分开防止高频解析带来的CPU压力)
+    emit tee_appendData(tmpReadBuff);
 
     recordDataToFile(tmpReadBuff);
 
@@ -1112,6 +1117,9 @@ void MainWindow::printToTextBrowser()
         windowSize = ui->textBrowser->size();
         resizeEvent(nullptr);
     }
+
+    //触发文本提取引擎解析
+    emit tee_parseData();
 
     //多显示一点
     if(ui->hexDisplay->isChecked())
@@ -1424,7 +1432,7 @@ void MainWindow::on_clearWindows_clicked()
     //定时器
     g_lastSecsSinceEpoch = QDateTime::currentSecsSinceEpoch();
     qint64 consumedTime = QDateTime::currentSecsSinceEpoch() - g_lastSecsSinceEpoch;
-    statusTimer->setText(tr("计时器:")+formatTime(consumedTime*1000));
+    statusTimer->setText("Timer:" + formatTime(consumedTime * 1000));
 
     //串口
     serial.resetCnt();
@@ -1454,12 +1462,20 @@ void MainWindow::on_clearWindows_clicked()
 
     //绘图器相关
     ui->customPlot->protocol->clearBuff();
-    ui->customPlot->plotControl->clearPlotter(ui->customPlot, -1);
+    ui->customPlot->plotControl->clearPlotter(-1);
     while(ui->customPlot->graphCount()>1){
         ui->customPlot->removeGraph(ui->customPlot->graphCount()-1);
     }
-    ui->customPlot->yAxis->setRange(0,5);
-    ui->customPlot->xAxis->setRange(0, ui->customPlot->plotControl->getXAxisLength(), Qt::AlignRight);
+    if(g_xAxisSource == XAxis_Cnt)
+    {
+        ui->customPlot->yAxis->setRange(0, 5);
+        ui->customPlot->xAxis->setRange(0, ui->customPlot->plotControl->getXAxisLength(), Qt::AlignRight);
+    }
+    else
+    {
+        ui->customPlot->yAxis->rescale(true);
+        ui->customPlot->xAxis->rescale(true);
+    }
     ui->customPlot->replot();
     plotterParsePosInRxBuff = RxBuff.size();
 
@@ -2053,6 +2069,7 @@ void MainWindow::on_actionPlotterSwitch_triggered(bool checked)
 void MainWindow::plotterParseTimerSlot()
 {
     QElapsedTimer elapsedTimer;
+    int8_t needReplot = 0;
     int32_t maxParseLengthLimit = 2048;
     int32_t parsedLength;
     QVector<double> oneRowData;
@@ -2071,6 +2088,12 @@ void MainWindow::plotterParseTimerSlot()
 
     parsedLength = ui->customPlot->protocol->parse(RxBuff, plotterParsePosInRxBuff, maxParseLengthLimit, g_enableSumCheck);
     plotterParsePosInRxBuff += parsedLength;
+    //如果解析长度为0，待解析数据量超过单次解析限制，则前面扫描过的数据丢弃掉
+    if(parsedLength == 0 && RxBuff.size() - plotterParsePosInRxBuff > maxParseLengthLimit)
+    {
+        plotterParsePosInRxBuff += maxParseLengthLimit;
+        ui->statusBar->showMessage(tr("数据匹配绘图协议失败，已丢弃。"), 2000);
+    }
 
     //数据填充
     while(ui->customPlot->protocol->parsedBuffSize()>0){
@@ -2078,14 +2101,19 @@ void MainWindow::plotterParseTimerSlot()
         //绘图显示器
         if(ui->actionPlotterSwitch->isChecked()){
             //关闭刷新，数据全部填充完后统一刷新
-            if(false == ui->customPlot->plotControl->displayToPlotter(ui->customPlot, oneRowData, false, false))
+            if(false == ui->customPlot->plotControl->addDataToPlotter(oneRowData, g_xAxisSource))
                 ui->statusBar->showMessage(tr("出现一组异常绘图数据，已丢弃。"), 2000);
+            needReplot = 1;
         }
     }
     if(ui->actionAutoRefreshYAxis->isChecked())
+    {
         ui->customPlot->yAxis->rescale(true);
+    }
     //曲线刷新
-    ui->customPlot->replot();   //<10ms
+    if(needReplot){
+        ui->customPlot->replot();   //<10ms
+    }
 
     //数值显示器
     if(ui->actionValueDisplay->isChecked()){
@@ -2116,7 +2144,7 @@ void MainWindow::plotterParseTimerSlot()
     //单次解析接近长度限制提示(文件解析模式下要显示解析进度，所以不显示这个)
     if((parsedLength*100/maxParseLengthLimit>90) && parseFile == false){
         QString temp;
-        temp = temp + tr("绘图器繁忙，待解析数据长度：") + QString::number(RxBuff.size() - plotterParsePosInRxBuff) + "Byte";
+        temp = temp + tr("绘图器繁忙，待解析数据：") + QString::number(RxBuff.size() - plotterParsePosInRxBuff) + "Byte";
         ui->statusBar->showMessage(temp, 2000);
     }
     //解析周期动态调整
@@ -2257,7 +2285,7 @@ void MainWindow::on_actionLinePlot_triggered()
         ui->actionScatterLinePlot->setChecked(false);
         ui->actionScatterPlot->setChecked(false);
     }
-    ui->customPlot->plotControl->setupLineType(ui->customPlot, QCustomPlotControl::Line);
+    ui->customPlot->plotControl->setupLineType(QCustomPlotControl::Line);
 }
 
 void MainWindow::on_actionScatterLinePlot_triggered()
@@ -2274,7 +2302,7 @@ void MainWindow::on_actionScatterLinePlot_triggered()
         ui->actionScatterLinePlot->setChecked(false);
         ui->actionScatterPlot->setChecked(false);
     }
-    ui->customPlot->plotControl->setupLineType(ui->customPlot, QCustomPlotControl::ScatterLine);
+    ui->customPlot->plotControl->setupLineType(QCustomPlotControl::ScatterLine);
 }
 
 void MainWindow::on_actionScatterPlot_triggered()
@@ -2291,7 +2319,7 @@ void MainWindow::on_actionScatterPlot_triggered()
         ui->actionScatterLinePlot->setChecked(false);
         ui->actionScatterPlot->setChecked(false);
     }
-    ui->customPlot->plotControl->setupLineType(ui->customPlot, QCustomPlotControl::Scatter);
+    ui->customPlot->plotControl->setupLineType(QCustomPlotControl::Scatter);
 }
 
 void MainWindow::on_actionResetDefaultConfig_triggered(bool checked)
@@ -2849,7 +2877,7 @@ void MainWindow::on_actionFontSetting_triggered()
         ui->textBrowser->document()->setDefaultFont(g_font);
         ui->textEdit->document()->setDefaultFont(g_font);
         ui->multiString->setFont(g_font);
-        ui->customPlot->plotControl->setupFont(ui->customPlot, g_font);
+        ui->customPlot->plotControl->setupFont(g_font);
 
         QPlainTextEdit *textEdit = nullptr;
         for(qint32 i = 0; i < ui->tabWidget->count(); i++){
@@ -3035,7 +3063,9 @@ void MainWindow::on_actionSendComment_triggered(bool checked)
 
 void MainWindow::on_actionAutoRefreshYAxis_triggered(bool checked)
 {
+
     ui->actionAutoRefreshYAxis->setChecked(checked);
+    autoRefreshYAxisFlag = checked;
 }
 
 //拖拽进入时
@@ -3071,4 +3101,64 @@ void MainWindow::dropEvent(QDropEvent *e)
         return;
     }
     parseDatFile(path, false);
+}
+
+void MainWindow::on_actionSelectXAxis_triggered(bool checked)
+{
+    static QString defaultXAxisLabel = ui->customPlot->xAxis->label();
+    bool ok;
+    QString name;
+    QVector<QString> nameSets = ui->customPlot->plotControl->getNameSetsFromPlot();
+    QStringList list;
+    list.append(tr("递增计数值"));
+    for (qint32 i = 0;i < ui->customPlot->graphCount(); i++) {
+        list.append(nameSets.at(i));
+    }
+    name = QInputDialog::getItem(this, tr("选择X轴"), tr("名称"),
+                                    list, 0, false, &ok, Qt::WindowCloseButtonHint);
+    if(!ok)
+        return;
+
+    //选择了新的X轴,更新g_xAxisSource
+    for (qint32 i = 0; i < list.size(); i++) {
+        if(list.at(i) == name)
+        {
+            g_xAxisSource = i;
+            //更改X轴标签和隐藏被选为X轴的曲线
+            if(g_xAxisSource != XAxis_Cnt)
+            {
+                ui->customPlot->xAxis->setLabel(name);
+                qint32 j = 0;
+                for (j = 0; j < ui->customPlot->graphCount(); j++) {
+                    if(ui->customPlot->graph(j)->name() == name)
+                    {
+                        ui->customPlot->graph(j)->setVisible(false);
+                        ui->customPlot->legend->item(j)->setTextColor(Qt::gray);
+                        continue;
+                    }
+                    ui->customPlot->graph(j)->setVisible(true);
+                    ui->customPlot->legend->item(j)->setTextColor(Qt::black);
+                }
+            }else
+            {
+                //时域模式显示所有曲线
+                qint32 j = 0;
+                for (j = 0; j < ui->customPlot->graphCount(); j++) {
+                    ui->customPlot->graph(j)->setVisible(true);
+                    ui->customPlot->legend->item(j)->setTextColor(Qt::black);
+                }
+                ui->customPlot->xAxis->setLabel(defaultXAxisLabel);
+            }
+            //并清空图像(不删除句柄)
+            ui->customPlot->protocol->clearBuff();
+            ui->customPlot->plotControl->clearPlotter(-1);
+//            while(ui->customPlot->graphCount()>1){
+//                ui->customPlot->removeGraph(ui->customPlot->graphCount() - 1);
+//            }
+            ui->customPlot->yAxis->rescale(true);
+            ui->customPlot->xAxis->rescale(true);
+            ui->customPlot->replot();
+            break;
+        }
+    }
 }

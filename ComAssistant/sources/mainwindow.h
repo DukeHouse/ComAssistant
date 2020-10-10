@@ -154,6 +154,8 @@ private slots:
     void deleteSeedSlot();
     void clearSeedsSlot();
 
+    void on_actionSelectXAxis_triggered(bool checked);
+
 private:
     QString formatTime(int ms);
     bool needSaveConfig = true;
@@ -204,6 +206,7 @@ private:
 
     bool RefreshTextBrowser = true; //数据显示区刷新标记
     int plotterParsePosInRxBuff = 0;      //绘图器已解析的位置
+    bool autoRefreshYAxisFlag;
 
     //统计
     int currentRunTime = 0; //运行时间
@@ -226,10 +229,10 @@ private:
     QThread *p_textExtractThread;
     TextExtractEngine *p_textExtract;
 signals:
-    void tee_appendAndParseData(const QString &str);
+    void tee_appendData(const QString &str);
+    void tee_parseData(void);
     void tee_clearData(const QString &name);
     qint32 tee_saveData(const QString &path, const QString &name, const bool& savePackBuff);
-    void tee_parseData(void);
     void sendKeyToPlotter(QKeyEvent *e, bool isPressAct);
 
 public slots:

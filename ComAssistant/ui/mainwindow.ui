@@ -716,6 +716,7 @@ p, li { white-space: pre-wrap; }
      <addaction name="actionAutoRefreshYAxis"/>
      <addaction name="actionOpenGL"/>
      <addaction name="separator"/>
+     <addaction name="actionSelectXAxis"/>
     </widget>
     <addaction name="actionPlotterSwitch"/>
     <addaction name="plotterSetting"/>
@@ -1032,6 +1033,17 @@ p, li { white-space: pre-wrap; }
    </property>
    <property name="statusTip">
     <string>不发送//后面的内容</string>
+   </property>
+  </action>
+  <action name="actionSelectXAxis">
+   <property name="checkable">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>更改X轴数据源</string>
+   </property>
+   <property name="toolTip">
+    <string>更改X轴数据源</string>
    </property>
   </action>
  </widget>
