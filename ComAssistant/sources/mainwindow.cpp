@@ -269,7 +269,7 @@ MainWindow::MainWindow(QWidget *parent) :
     statusSpeedLabel = new QLabel(this);
     statusStatisticLabel = new QLabel(this);
     statusTimer = new QLabel(this);
-    statusTimer->setText(tr("计时器:") + formatTime(0));
+    statusTimer->setText("Timer:" + formatTime(0));
     statusRemoteMsgLabel->setOpenExternalLinks(true);//可打开外链
     ui->statusBar->addPermanentWidget(statusRemoteMsgLabel);
     ui->statusBar->addPermanentWidget(statusTimer);
@@ -654,14 +654,14 @@ void MainWindow::secTimerSlot()
     #define HIGH_LOAD_WARNING    90
     if(txSpeedKB==0)
     {
-        txSpeedStr = " Tx:" + QString::number(txSpeedKB) + "KB/s(" + QString::number(txLoad) + "%)";
+        txSpeedStr = " T:" + QString::number(txSpeedKB) + "KB/s(" + QString::number(txLoad) + "%)";
     }
     else if(txSpeedKB < 1000)
     {
-        txSpeedStr = " Tx:" + QString::number(txSpeedKB, 'f', 2) + "KB/s(" + QString::number(txLoad) + "%)";
+        txSpeedStr = " T:" + QString::number(txSpeedKB, 'f', 2) + "KB/s(" + QString::number(txLoad) + "%)";
     }else
     {
-        txSpeedStr = " Tx:" + QString::number(txSpeedKB, 'g', 2) + "KB/s(" + QString::number(txLoad) + "%)";
+        txSpeedStr = " T:" + QString::number(txSpeedKB, 'g', 2) + "KB/s(" + QString::number(txLoad) + "%)";
     }
     if(txLoad > HIGH_LOAD_WARNING)
     {
@@ -669,14 +669,14 @@ void MainWindow::secTimerSlot()
     }
     if(rxSpeedKB==0)
     {
-        rxSpeedStr = " Rx:" + QString::number(rxSpeedKB) + "KB/s(" + QString::number(rxLoad) + "%)";
+        rxSpeedStr = " R:" + QString::number(rxSpeedKB) + "KB/s(" + QString::number(rxLoad) + "%)";
     }
     else if(rxSpeedKB < 1000)
     {
-        rxSpeedStr = " Rx:" + QString::number(rxSpeedKB, 'f', 2) + "KB/s(" + QString::number(rxLoad) + "%)";
+        rxSpeedStr = " R:" + QString::number(rxSpeedKB, 'f', 2) + "KB/s(" + QString::number(rxLoad) + "%)";
     }else
     {
-        rxSpeedStr = " Rx:" + QString::number(rxSpeedKB, 'g', 2) + "KB/s(" + QString::number(rxLoad) + "%)";
+        rxSpeedStr = " R:" + QString::number(rxSpeedKB, 'g', 2) + "KB/s(" + QString::number(rxLoad) + "%)";
     }
     if(rxLoad > HIGH_LOAD_WARNING)
     {
@@ -685,7 +685,7 @@ void MainWindow::secTimerSlot()
     statusSpeedLabel->setText(txSpeedStr + rxSpeedStr);
 
     //显示远端下载的信息
-    if(http->getMsgList().size()>0 && secCnt%10==0){
+    if(http->getMsgList().size() > 0 && secCnt % 10 == 0){
         statusRemoteMsgLabel->setText(http->getMsgList().at(msgIndex++));
         if(msgIndex == http->getMsgList().size())
             msgIndex = 0;
@@ -693,7 +693,7 @@ void MainWindow::secTimerSlot()
 
     if(ui->comSwitch->isChecked()){
         qint64 consumedTime = QDateTime::currentSecsSinceEpoch() - g_lastSecsSinceEpoch;
-        statusTimer->setText(tr("计时器:")+formatTime(consumedTime*1000));
+        statusTimer->setText("Timer:" + formatTime(consumedTime * 1000));
     }else{
         g_lastSecsSinceEpoch = QDateTime::currentSecsSinceEpoch();
     }
@@ -760,7 +760,7 @@ void MainWindow::debugTimerSlot()
         }
     }
 
-    debugTimerSlotCnt = debugTimerSlotCnt + 0.1;
+    debugTimerSlotCnt = debugTimerSlotCnt + 0.01;
 }
 
 MainWindow::~MainWindow()
@@ -940,7 +940,7 @@ void MainWindow::on_comSwitch_clicked(bool checked)
             ui->comSwitch->setChecked(true);
             g_lastSecsSinceEpoch = QDateTime::currentSecsSinceEpoch();
             qint64 consumedTime = QDateTime::currentSecsSinceEpoch() - g_lastSecsSinceEpoch;
-            statusTimer->setText(tr("计时器:")+formatTime(consumedTime*1000));
+            statusTimer->setText("Timer:" + formatTime(consumedTime * 1000));
         }
         else {
             ui->comSwitch->setText(tr("打开串口"));
@@ -1432,7 +1432,7 @@ void MainWindow::on_clearWindows_clicked()
     //定时器
     g_lastSecsSinceEpoch = QDateTime::currentSecsSinceEpoch();
     qint64 consumedTime = QDateTime::currentSecsSinceEpoch() - g_lastSecsSinceEpoch;
-    statusTimer->setText(tr("计时器:")+formatTime(consumedTime*1000));
+    statusTimer->setText("Timer:" + formatTime(consumedTime * 1000));
 
     //串口
     serial.resetCnt();
