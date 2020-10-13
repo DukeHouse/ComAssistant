@@ -105,9 +105,15 @@ void TextExtractEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& res
     restBuffer = buffer.mid(lastScannedIndex);
 }
 
-void TextExtractEngine::appendData(const QString &newData)
+void TextExtractEngine::appendData(const QByteArray &newData)
 {
-    rawData.buff.append(newData);
+    QByteArray tmp = newData;
+    //正则匹配无法处理\0要删去
+    while(tmp.indexOf('\0') != -1)
+    {
+        tmp.remove(tmp.indexOf('\0'), 1);
+    }
+    rawData.buff.append(tmp);
 }
 
 void TextExtractEngine::parseData()
@@ -121,7 +127,7 @@ void TextExtractEngine::parseData()
     }
 }
 
-void TextExtractEngine::appendAndParseData(const QString &newData)
+void TextExtractEngine::appendAndParseData(const QByteArray &newData)
 {
     appendData(newData);
     parseData();

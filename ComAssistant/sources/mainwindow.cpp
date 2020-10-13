@@ -353,13 +353,13 @@ MainWindow::MainWindow(QWidget *parent) :
     p_textExtract       = new TextExtractEngine();
     p_textExtract->moveToThread(p_textExtractThread);
     connect(p_textExtractThread, SIGNAL(finished()), p_textExtract, SLOT(deleteLater()));
-    connect(this, SIGNAL(tee_appendData(const QString &)), p_textExtract, SLOT(appendData(const QString &)));
+    connect(this, SIGNAL(tee_appendData(const QByteArray &)), p_textExtract, SLOT(appendData(const QByteArray &)));
     connect(this, SIGNAL(tee_parseData()), p_textExtract, SLOT(parseData()));
     connect(this, SIGNAL(tee_clearData(const QString &)), p_textExtract, SLOT(clearData(const QString )));
     connect(this, SIGNAL(tee_saveData(const QString &, const QString &, const bool& )),
             p_textExtract, SLOT(saveData(const QString &, const QString &, const bool& )));
-    connect(p_textExtract, SIGNAL(textGroupsUpdate(const QByteArray &, const QByteArray &)),
-            this, SLOT(tee_textGroupsUpdate(const QByteArray &, const QByteArray &)));
+    connect(p_textExtract, SIGNAL(textGroupsUpdate(const QString &, const QByteArray &)),
+            this, SLOT(tee_textGroupsUpdate(const QString &, const QByteArray &)));
     connect(p_textExtract, SIGNAL(saveDataResult(const qint32&, const QString &, const qint32 )),
             this, SLOT(tee_saveDataResult(const qint32&, const QString &, const qint32 )));
 
@@ -548,7 +548,7 @@ void MainWindow::tee_saveDataResult(const qint32& result, const QString &path, c
     }
 }
 
-void MainWindow::tee_textGroupsUpdate(const QByteArray &name, const QByteArray &data)
+void MainWindow::tee_textGroupsUpdate(const QString &name, const QByteArray &data)
 {
 //    qDebug()<<"tee_textGroupsUpdate";
     QPlainTextEdit *textEdit = nullptr;
@@ -742,7 +742,7 @@ void MainWindow::debugTimerSlot()
                "{cnt:the cnt is $$$}\n";
         tmp.replace("###", QString::number(3.3 + qrand()/static_cast<double>(RAND_MAX)/10.0, 'f', 3));
         tmp.replace("@@@", QString::number(0.0 + qrand()/static_cast<double>(RAND_MAX)/20.0, 'f', 3));
-        tmp.replace("$$$", QString::number(static_cast<qint32>(debugTimerSlotCnt * 10)));
+        tmp.replace("$$$", QString::number(static_cast<qint32>(debugTimerSlotCnt * 100)));
         if(serial.isOpen()){
             serial.write(tmp.toLocal8Bit());
         }

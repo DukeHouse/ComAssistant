@@ -47,13 +47,13 @@ public:
     ~TextExtractEngine();
 
 public slots:
-    void appendData(const QString &newData);
+    void appendData(const QByteArray &newData);
     void parseData();
-    void appendAndParseData(const QString &newData);
+    void appendAndParseData(const QByteArray &newData);
     void clearData(const QString &name);
     qint32 saveData(const QString &path, const QString &name, const bool& savePackBuff);
 signals:
-    void textGroupsUpdate(const QByteArray &name, const QByteArray &data);
+    void textGroupsUpdate(const QString &name, const QByteArray &data);
     void saveDataResult(const qint32& result, const QString &path, const qint32 fileSize);
 
 private:

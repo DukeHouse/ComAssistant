@@ -1,0 +1,3 @@
+访问这个php文件并传入文件名即可
+如：
+http://www.inhowe.com/ComAssistant/static.php?filename=usage.txt
