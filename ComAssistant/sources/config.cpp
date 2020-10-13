@@ -595,7 +595,7 @@ void Config::setLineType(LineType_e type){
 }
 qint32 Config::getLineType(){
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    qint8 value = iniFile->value(SECTION_PLOTTER+KEY_LINETYPE, 0).toInt();
+    qint32 value = iniFile->value(SECTION_PLOTTER+KEY_LINETYPE, 0).toInt();
     delete iniFile;
     return value;
 }

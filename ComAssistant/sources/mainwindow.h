@@ -229,14 +229,14 @@ private:
     QThread *p_textExtractThread;
     TextExtractEngine *p_textExtract;
 signals:
-    void tee_appendData(const QString &str);
+    void tee_appendData(const QByteArray &str);
     void tee_parseData(void);
     void tee_clearData(const QString &name);
     qint32 tee_saveData(const QString &path, const QString &name, const bool& savePackBuff);
     void sendKeyToPlotter(QKeyEvent *e, bool isPressAct);
 
 public slots:
-    void tee_textGroupsUpdate(const QByteArray &name, const QByteArray &data);
+    void tee_textGroupsUpdate(const QString &name, const QByteArray &data);
     void tee_saveDataResult(const qint32& result, const QString &path, const qint32 fileSize);
 
 protected:
