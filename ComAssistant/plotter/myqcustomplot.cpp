@@ -162,11 +162,17 @@ void MyQCustomPlot::mouseWheel(QWheelEvent *w)
     // if an axis is selected, only allow the direction of that axis to be zoomed
     // if no axis is selected, both directions may be zoomed
 
-    if (this->xAxis->selectedParts().testFlag(QCPAxis::spAxis)){
+    if (this->xAxis->selectedParts().testFlag(QCPAxis::spAxis) ||
+        this->xAxis->selectTest(w->pos(), true)  != -1 ||
+        this->xAxis2->selectTest(w->pos(), true) != -1)
+    {
         this->axisRect()->setRangeZoom(this->xAxis->orientation());
         plotControl->setXAxisLength(this->xAxis->range().upper - this->xAxis->range().lower);
     }
-    else if (this->yAxis->selectedParts().testFlag(QCPAxis::spAxis)){
+    else if (this->yAxis->selectedParts().testFlag(QCPAxis::spAxis) ||
+             this->yAxis->selectTest(w->pos(), true) != -1 ||
+             this->yAxis2->selectTest(w->pos(), true) != -1 )
+    {
         this->axisRect()->setRangeZoom(this->yAxis->orientation());
     }
     else{
