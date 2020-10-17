@@ -2077,7 +2077,7 @@ void MainWindow::on_actionPlotterSwitch_triggered(bool checked)
 void MainWindow::plotterParseTimerSlot()
 {
     QElapsedTimer elapsedTimer;
-    int32_t maxParseLengthLimit = 2048;
+    int32_t maxParseLengthLimit = 512;
     int32_t parsedLength;
     QVector<double> oneRowData;
     elapsedTimer.start();
@@ -2092,9 +2092,12 @@ void MainWindow::plotterParseTimerSlot()
         return;
     }
 
-    //关定时器，防止数据量过大导致咬尾振荡
+    //关定时器
     plotterParseTimer.stop();
 
+    //坑：如果一串数据前面的字符都匹配上了，最后几个字符没匹配上会引起正则匹配函数会消耗大量的时间，
+    //导致卡顿，如果是偶尔误码这种问题影响不大，但是如果刻意制造这种数据并大量发送则会卡死，似乎无解，
+    //或放到子线程中，但依然会消耗很多时间，只是不会卡住GUI而已
     parsedLength = ui->customPlot->protocol->parse(RxBuff, plotterParsePosInRxBuff, maxParseLengthLimit, g_enableSumCheck);
     plotterParsePosInRxBuff += parsedLength;
     //如果解析长度为0，待解析数据量超过单次解析限制，则前面扫描过的数据丢弃掉
@@ -2118,13 +2121,13 @@ void MainWindow::plotterParseTimerSlot()
                 ui->statusBar->showMessage(tr("出现一组异常绘图数据，已丢弃。"), 2000);
         }
     }
-    if(ui->actionAutoRefreshYAxis->isChecked())
-    {
-        ui->customPlot->yAxis->rescale(true);
-    }
     //曲线刷新
 	if(ui->actionPlotterSwitch->isChecked())
 	{
+        if(ui->actionAutoRefreshYAxis->isChecked())
+        {
+            ui->customPlot->yAxis->rescale(true);
+        }
         ui->customPlot->replot();   //<10ms
     }
     if(fft_window->isVisible())
