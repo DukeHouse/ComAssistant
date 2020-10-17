@@ -292,7 +292,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->customPlot->init(ui->statusBar, ui->plotterSetting,
                          ui->actionSavePlotData, ui->actionSavePlotAsPicture,
                          &g_xAxisSource, &autoRefreshYAxisFlag,
-                         fft_window);//这个fft_window现在是空指针
+                         fft_window);
 
     //http
     http = new HTTP(this);
@@ -2040,7 +2040,7 @@ void MainWindow::on_actionPlotterSwitch_triggered(bool checked)
     if(checked){
         ui->customPlot->show();
 
-        //没激活就打开（数值显示器也可能激活）
+        //没激活就打开（数值显示器和FFT也可能激活）
         if(!plotterParseTimer.isActive()){
             plotterParseTimer.start(PLOTTER_PARSE_PERIOD);
             plotterParsePosInRxBuff = RxBuff.size();
@@ -2058,16 +2058,17 @@ void MainWindow::on_actionPlotterSwitch_triggered(bool checked)
             else
                 ui->plotter->setTitle(tr("数据可视化：FLOAT协议"));
         }
-        ui->actionFFTShow->setEnabled(true);
+//        ui->actionFFTShow->setEnabled(true);
     }else{
         ui->customPlot->hide();
 
-        //数值显示器也未勾选时才停止定时器
-        if(!ui->actionValueDisplay->isChecked())
+        //数值显示器和FFT都未勾选时才停止定时器
+        if(!ui->actionValueDisplay->isChecked() &&
+           (fft_window && !fft_window->isVisible()))
             plotterParseTimer.stop();
 
         ui->plotter->setTitle(tr("数据可视化"));
-        ui->actionFFTShow->setEnabled(false);
+//        ui->actionFFTShow->setEnabled(false);
     }
 
     adjustLayout();
@@ -2076,7 +2077,6 @@ void MainWindow::on_actionPlotterSwitch_triggered(bool checked)
 void MainWindow::plotterParseTimerSlot()
 {
     QElapsedTimer elapsedTimer;
-    int8_t needReplot = 0;
     int32_t maxParseLengthLimit = 2048;
     int32_t parsedLength;
     QVector<double> oneRowData;
@@ -2087,9 +2087,11 @@ void MainWindow::plotterParseTimerSlot()
     }
 
     if(!ui->actionPlotterSwitch->isChecked() &&
-       !ui->actionValueDisplay->isChecked()){
+       !ui->actionValueDisplay->isChecked() &&
+        (fft_window && !fft_window->isVisible())){
         return;
     }
+
     //关定时器，防止数据量过大导致咬尾振荡
     plotterParseTimer.stop();
 
@@ -2114,7 +2116,6 @@ void MainWindow::plotterParseTimerSlot()
             //关闭刷新，数据全部填充完后统一刷新
             if(false == ui->customPlot->plotControl->addDataToPlotter(oneRowData, g_xAxisSource))
                 ui->statusBar->showMessage(tr("出现一组异常绘图数据，已丢弃。"), 2000);
-            needReplot = 1;
         }
     }
     if(ui->actionAutoRefreshYAxis->isChecked())
@@ -2122,11 +2123,15 @@ void MainWindow::plotterParseTimerSlot()
         ui->customPlot->yAxis->rescale(true);
     }
     //曲线刷新
-    ui->customPlot->replot();   //<10ms
+	if(ui->actionPlotterSwitch->isChecked())
+	{
+        ui->customPlot->replot();   //<10ms
+    }
     if(fft_window->isVisible())
     {
         fft_window->startFFTCal();
     }
+
     //数值显示器
     if(ui->actionValueDisplay->isChecked()){
         //判断是否添加行
@@ -2703,7 +2708,7 @@ void MainWindow::on_actionValueDisplay_triggered(bool checked)
     if(checked){
         ui->valueDisplay->show();
 
-        //没激活就打开（绘图器也可能激活）
+        //没激活就打开（绘图器和FFT也可能激活）
         if(!plotterParseTimer.isActive()){
             plotterParseTimer.start(PLOTTER_PARSE_PERIOD);
             plotterParsePosInRxBuff = RxBuff.size();
@@ -2711,8 +2716,9 @@ void MainWindow::on_actionValueDisplay_triggered(bool checked)
     }else{
         ui->valueDisplay->hide();
 
-        //绘图器也未勾选时才停止定时器
-        if(!ui->actionPlotterSwitch->isChecked())
+        //绘图器和FFT都未勾选时才停止定时器
+        if(!ui->actionPlotterSwitch->isChecked() &&
+           (fft_window && !fft_window->isVisible()))
             plotterParseTimer.stop();
     }
 
@@ -2872,7 +2878,7 @@ void MainWindow::on_actionOpenGL_triggered(bool checked)
 {
     if(checked){
         ui->customPlot->setOpenGl(true);
-        fft_window->setupPlotterOpenGL(true);
+        fft_window->setupPlotterOpenGL(true); //实际未使能
     }
     else{
         ui->customPlot->setOpenGl(false);
@@ -3187,10 +3193,23 @@ void MainWindow::on_actionFFTShow_triggered(bool checked)
         return;
     if(checked)
     {
+        //没激活就打开（数值显示器和绘图器也可能激活）
+        if(!plotterParseTimer.isActive())
+        {
+            plotterParseTimer.start(PLOTTER_PARSE_PERIOD);
+            plotterParsePosInRxBuff = RxBuff.size();
+        }
+
         QPoint pos = QPoint(this->pos().x() + this->geometry().width(), this->pos().y());
         fft_window->move(pos);
         fft_window->setVisible(true);
         return;
+    }
+    //绘图器和数值显示器都未勾选时才停止定时器
+    if(!ui->actionPlotterSwitch->isChecked() &&
+       !ui->actionValueDisplay->isChecked())
+    {
+        plotterParseTimer.stop();
     }
     fft_window->setVisible(false);
     return;
