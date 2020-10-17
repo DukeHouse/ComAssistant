@@ -139,8 +139,8 @@ void fft_trans::fft_calculate(qint8 index, qint32 sample_frq, QVector<double> da
     }
     transform();//变换序列顺序
     fft();//蝶形运算
-    double max = 0;
-    max = cal_norm_and_find_max(x, size, l, size);
+
+    cal_norm_and_find_max(x, size, l, size);
 
     //幅值转换
     fft_data.clear();
