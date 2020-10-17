@@ -123,6 +123,7 @@ private slots:
     void on_actionScatterLinePlot_triggered();
     void on_actionScatterPlot_triggered();
     void on_actionValueDisplay_triggered(bool checked);
+    void on_actionFFTShow_triggered(bool checked);
     void on_actionAscii_triggered(bool checked);
     void on_actionFloat_triggered(bool checked);
     void on_actiondebug_triggered(bool checked);
@@ -158,8 +159,6 @@ private slots:
     void clearSeedsSlot();
 
     void on_actionSelectXAxis_triggered(bool checked);
-
-    void on_actionFFTShow_triggered(bool checked);
 
 private:
     QString formatTime(int ms);

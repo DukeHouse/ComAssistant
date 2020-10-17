@@ -719,10 +719,10 @@ p, li { white-space: pre-wrap; }
      <addaction name="actionSelectXAxis"/>
     </widget>
     <addaction name="actionPlotterSwitch"/>
-    <addaction name="actionFFTShow"/>
     <addaction name="plotterSetting"/>
     <addaction name="separator"/>
     <addaction name="actionValueDisplay"/>
+    <addaction name="actionFFTShow"/>
     <addaction name="separator"/>
     <addaction name="protocol"/>
     <addaction name="separator"/>
@@ -1052,10 +1052,10 @@ p, li { white-space: pre-wrap; }
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>FFT显示</string>
+    <string>频谱图</string>
    </property>
    <property name="statusTip">
-    <string>需要使能绘图器</string>
+    <string/>
    </property>
   </action>
  </widget>

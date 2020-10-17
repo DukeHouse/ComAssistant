@@ -41,8 +41,7 @@ else:unix {
         LIBS += -lX11
 }
 
-SOURCES += QHotkey/QHotkey/qhotkey.cpp \
-    sources/fft.cpp
+SOURCES += QHotkey/QHotkey/qhotkey.cpp
 
 mac: SOURCES += QHotkey/QHotkey/qhotkey_mac.cpp
 else:win32: SOURCES += QHotkey/QHotkey/qhotkey_win.cpp
@@ -100,8 +99,9 @@ SOURCES += \
     sources/main.cpp \
     sources/mainwindow.cpp \
     sources/myserialport.cpp\
-    sources/text_extract_engine.cpp
-
+    sources/text_extract_engine.cpp \
+    sources/fft.cpp
+    
 HEADERS += \
     QHotkey/QHotkey/qhotkey.h \
     QHotkey/QHotkey/QHotkey \

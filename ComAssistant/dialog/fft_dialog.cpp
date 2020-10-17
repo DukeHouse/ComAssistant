@@ -305,7 +305,7 @@ void FFT_Dialog::contextMenuRequest(QPoint pos)
     // general context menu on graphs requested
     menu->addSeparator();
     if (fft_layer.size() > 0){
-        QAction *act = new QAction(tr("自由缩放"), this);
+        QAction *act = new QAction(tr("自动缩放"), this);
         act->setCheckable(true);
         if(autoRescaleAxisFlag)
         {
