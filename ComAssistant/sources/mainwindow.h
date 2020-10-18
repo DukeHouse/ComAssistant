@@ -209,7 +209,6 @@ private:
     HTTP *http;
 
     bool RefreshTextBrowser = true; //数据显示区刷新标记
-    int plotterParsePosInRxBuff = 0;      //绘图器已解析的位置
     bool autoRefreshYAxisFlag;
 
     //统计

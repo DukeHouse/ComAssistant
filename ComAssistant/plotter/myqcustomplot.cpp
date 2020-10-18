@@ -32,9 +32,14 @@ MyQCustomPlot::MyQCustomPlot(QWidget* parent)
 
 MyQCustomPlot::~MyQCustomPlot()
 {
+    protocol_thread->quit();
+    protocol_thread->wait();
+//    delete protocol_thread; //deleteLater自动删除？
+    delete protocol_thread;
+
     delete m_Tracer;
     delete plotControl;
-    delete protocol;
+//    delete protocol;
 }
 
 void MyQCustomPlot::init(QStatusBar* pBar, QMenu* plotterSetting, QAction* saveGraphData, QAction* saveGraphPicture,
@@ -45,11 +50,33 @@ void MyQCustomPlot::init(QStatusBar* pBar, QMenu* plotterSetting, QAction* saveG
     saveData = saveGraphData;
     savePicture = saveGraphPicture;
     plotControl = new QCustomPlotControl;
-    protocol = new DataProtocol;
+
     xAxisSource = xSource;
     autoRescaleYAxis = autoRescaleYAxisFlag;
     fft_dialog = window;
     plotControl->setupPlotter(this, window);
+
+    protocol = new DataProtocol();
+    protocol_thread = new QThread(this);
+    protocol->moveToThread(protocol_thread);
+    qRegisterMetaType<qint32>("qint32&");
+    connect(protocol_thread, SIGNAL(finished()), protocol, SLOT(deleteLater()));
+    connect(this, SIGNAL(appendData(const QByteArray &)),
+            protocol, SLOT(appendData(const QByteArray &)));
+    connect(this, SIGNAL(parseData(bool)),
+            protocol, SLOT(parseData(bool)));
+
+    protocol_thread->start();
+}
+
+void MyQCustomPlot::appendDataWaitToParse(const QByteArray &data)
+{
+    emit appendData(data);
+}
+
+void MyQCustomPlot::startParse(bool enableSumCheck)
+{
+    emit parseData(enableSumCheck);
 }
 
 /*plotter交互*/
@@ -153,14 +180,15 @@ void MyQCustomPlot::selectionChanged()
 
 void MyQCustomPlot::mousePress(QMouseEvent *m)
 {
-  // if an axis is selected, only allow the direction of that axis to be dragged
-  // if no axis is selected, both directions may be dragged
+    // if an axis is selected, only allow the direction of that axis to be dragged
+    // if no axis is selected, both directions may be dragged
+    Q_UNUSED(m)
 
-  if (this->xAxis->selectedParts().testFlag(QCPAxis::spAxis))
+    if (this->xAxis->selectedParts().testFlag(QCPAxis::spAxis))
     this->axisRect()->setRangeDrag(this->xAxis->orientation());
-  else if (this->yAxis->selectedParts().testFlag(QCPAxis::spAxis))
+    else if (this->yAxis->selectedParts().testFlag(QCPAxis::spAxis))
     this->axisRect()->setRangeDrag(this->yAxis->orientation());
-  else
+    else
     this->axisRect()->setRangeDrag(Qt::Horizontal|Qt::Vertical);
 }
 
@@ -410,7 +438,8 @@ void MyQCustomPlot::graphClicked(QCPAbstractPlottable *plottable, int dataIndex)
 {
   // since we know we only have QCPGraphs in the plot, we can immediately access interface1D()
   // usually it's better to first check whether interface1D() returns non-zero, and only then use it.
-
+    Q_UNUSED(plottable)
+    Q_UNUSED(dataIndex)
 //  double dataValue = plottable->interface1D()->dataMainValue(dataIndex);
 //  QString message = QString("Clicked on graph '%1' at data point #%2 with value %3.").arg(plottable->name()).arg(dataIndex).arg(dataValue);
 //  qDebug()<<message;

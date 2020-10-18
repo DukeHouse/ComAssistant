@@ -475,9 +475,6 @@ int32_t MainWindow::parseDatFile(QString path, bool removeAfterRead)
         if(divideDataToPacks(buff, parseFileBuff, PACKSIZE, parseFile))
             return -1;
         RxBuff.clear();
-        //重置绘图器解析点，以触发解析
-        if(ui->actionPlotterSwitch->isChecked())
-            plotterParsePosInRxBuff = RxBuff.size();
 
         ui->textBrowser->clear();
         ui->textBrowser->appendPlainText("File size: " + QString::number(file.size()) + " Byte");
@@ -1054,6 +1051,13 @@ void MainWindow::readSerialPort()
     //数据交付给文本解析引擎(追加数据和解析分开防止高频解析带来的CPU压力)
     emit tee_appendData(tmpReadBuff);
 
+    if(ui->actionPlotterSwitch->isChecked() ||
+       ui->actionValueDisplay->isChecked() ||
+       ui->actionFFTShow->isChecked())
+    {
+        ui->customPlot->appendDataWaitToParse(tmpReadBuff);
+    }
+
     recordDataToFile(tmpReadBuff);
 
     //时间戳选项
@@ -1122,6 +1126,14 @@ void MainWindow::printToTextBrowser()
 
     //触发文本提取引擎解析
     emit tee_parseData();
+
+    //触发绘图器解析
+    if(ui->actionPlotterSwitch->isChecked() ||
+       ui->actionValueDisplay->isChecked() ||
+       ui->actionFFTShow->isChecked())
+    {
+        ui->customPlot->startParse(g_enableSumCheck);
+    }
 
     //多显示一点
     if(ui->hexDisplay->isChecked())
@@ -1479,7 +1491,6 @@ void MainWindow::on_clearWindows_clicked()
         ui->customPlot->xAxis->rescale(true);
     }
     ui->customPlot->replot();
-    plotterParsePosInRxBuff = RxBuff.size();
 
     //fft
     fft_window->clearGraph(-1);
@@ -2043,7 +2054,6 @@ void MainWindow::on_actionPlotterSwitch_triggered(bool checked)
         //没激活就打开（数值显示器和FFT也可能激活）
         if(!plotterParseTimer.isActive()){
             plotterParseTimer.start(PLOTTER_PARSE_PERIOD);
-            plotterParsePosInRxBuff = RxBuff.size();
         }
 
         if(ui->actionAscii->isChecked()){
@@ -2076,15 +2086,7 @@ void MainWindow::on_actionPlotterSwitch_triggered(bool checked)
 
 void MainWindow::plotterParseTimerSlot()
 {
-    QElapsedTimer elapsedTimer;
-    int32_t maxParseLengthLimit = 512;
-    int32_t parsedLength;
     QVector<double> oneRowData;
-    elapsedTimer.start();
-
-    if(plotterParsePosInRxBuff >= RxBuff.size()){
-        return;
-    }
 
     if(!ui->actionPlotterSwitch->isChecked() &&
        !ui->actionValueDisplay->isChecked() &&
@@ -2094,18 +2096,6 @@ void MainWindow::plotterParseTimerSlot()
 
     //关定时器
     plotterParseTimer.stop();
-
-    //坑：如果一串数据前面的字符都匹配上了，最后几个字符没匹配上会引起正则匹配函数会消耗大量的时间，
-    //导致卡顿，如果是偶尔误码这种问题影响不大，但是如果刻意制造这种数据并大量发送则会卡死，似乎无解，
-    //或放到子线程中，但依然会消耗很多时间，只是不会卡住GUI而已
-    parsedLength = ui->customPlot->protocol->parse(RxBuff, plotterParsePosInRxBuff, maxParseLengthLimit, g_enableSumCheck);
-    plotterParsePosInRxBuff += parsedLength;
-    //如果解析长度为0，待解析数据量超过单次解析限制，则前面扫描过的数据丢弃掉
-    if(parsedLength == 0 && RxBuff.size() - plotterParsePosInRxBuff > maxParseLengthLimit)
-    {
-        plotterParsePosInRxBuff += maxParseLengthLimit;
-        ui->statusBar->showMessage(tr("数据匹配绘图协议失败，已丢弃。"), 2000);
-    }
 
     //数据填充
     while(ui->customPlot->protocol->parsedBuffSize()>0){
@@ -2161,34 +2151,13 @@ void MainWindow::plotterParseTimerSlot()
         }
     }
 
-    //单次解析接近长度限制提示(文件解析模式下要显示解析进度，所以不显示这个)
-    if((parsedLength*100/maxParseLengthLimit>90) && parseFile == false){
-        QString temp;
-        temp = temp + tr("绘图器繁忙，待解析数据：") + QString::number(RxBuff.size() - plotterParsePosInRxBuff) + "Byte";
-        ui->statusBar->showMessage(temp, 2000);
-    }
-    //解析周期动态调整
-    int32_t elapsed_time = elapsedTimer.elapsed();
-    double parseSpeed = parsedLength/(elapsed_time/1000.0)/1024.0;
-    parseSpeed = (double)((qint32)(parseSpeed*100))/100.0;   //保留两位小数
-    static int32_t dynamic_period = PLOTTER_PARSE_PERIOD;
-    if(parseSpeed < rxSpeedKB){
-        dynamic_period = dynamic_period - 5;
-        if(dynamic_period <= 5)
-            dynamic_period = 5;
-    }else{
-        dynamic_period = dynamic_period + 5;
-        if(dynamic_period >= PLOTTER_PARSE_PERIOD)
-            dynamic_period = PLOTTER_PARSE_PERIOD;
-    }
-    plotterParseTimer.start(dynamic_period);
-//    qDebug()<<"parsedLength"<<parsedLength<<"dynamic_period"<<dynamic_period;
-//    qDebug()<<"plotterParseTimerSlot elapsed_time:"<<elapsed_time;
+    plotterParseTimer.start(PLOTTER_PARSE_PERIOD);
 }
 
 void MainWindow::on_actionAscii_triggered(bool checked)
 {
-    checked = !!checked;
+    Q_UNUSED(checked)
+
     ui->customPlot->protocol->clearBuff();
     ui->customPlot->protocol->setProtocolType(DataProtocol::Ascii);
     ui->actionAscii->setChecked(true);
@@ -2714,7 +2683,6 @@ void MainWindow::on_actionValueDisplay_triggered(bool checked)
         //没激活就打开（绘图器和FFT也可能激活）
         if(!plotterParseTimer.isActive()){
             plotterParseTimer.start(PLOTTER_PARSE_PERIOD);
-            plotterParsePosInRxBuff = RxBuff.size();
         }
     }else{
         ui->valueDisplay->hide();
@@ -3200,7 +3168,6 @@ void MainWindow::on_actionFFTShow_triggered(bool checked)
         if(!plotterParseTimer.isActive())
         {
             plotterParseTimer.start(PLOTTER_PARSE_PERIOD);
-            plotterParsePosInRxBuff = RxBuff.size();
         }
 
         QPoint pos = QPoint(this->pos().x() + this->geometry().width(), this->pos().y());
