@@ -12,35 +12,38 @@ void outputMessage(QtMsgType type, const QMessageLogContext &context, const QStr
     switch(type)
     {
     case QtDebugMsg:
-        text = QString("Debug:");
+        text = QString("Debug:   ");
         break;
     case QtWarningMsg:
-        text = QString("Warning:");
+        text = QString("Warning: ");
         break;
     case QtCriticalMsg:
         text = QString("Critical:");
         break;
     case QtFatalMsg:
-        text = QString("Fatal:");
+        text = QString("Fatal:   ");
         break;
     default:
-        text = QString("Debug:");
+        text = QString("Debug:   ");
         break;
     }
 
-    QString context_info;
+//    QString context_info;
     QString current_date_time;
     QString current_date;
-    context_info = QString("File:(%1) Line:(%2)").arg(QString(context.file)).arg(context.line);
-    current_date_time = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss ddd");
-    current_date = QString("(%1)").arg(current_date_time);
-    QString message = QString("[%1] [%2] %3 %4").arg(text).arg(context_info).arg(msg).arg(current_date);
+//    context_info = QString("File:(%1) Line:(%2)").arg(QString(context.file)).arg(context.line);
+    current_date_time = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
+    current_date = QString("%1").arg(current_date_time);
+    QString message = QString("[%1][%2] %3").arg(text).arg(current_date).arg(msg);
 
     QFile file("ComAssistantDebug.txt");
     file.open(QIODevice::WriteOnly | QIODevice::Append);
     QTextStream text_stream(&file);
     if(!first_run){
-        text_stream << endl << "----------New Debug File @" << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss ddd") << endl;
+        text_stream << endl
+                    << "-----------New Debug Log @"
+                    << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss ddd")
+                    << endl;
         first_run = 1;
     }
     text_stream << message << endl;
