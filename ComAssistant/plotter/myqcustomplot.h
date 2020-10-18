@@ -9,6 +9,7 @@
 #include <QString>
 #include <QFile>
 #include <QSharedPointer>
+#include <QThread>
 
 #include "qcustomplot.h"
 
@@ -54,6 +55,12 @@ public:
     bool saveGraphAsTxt(const QString& filePath, char separate=' ');
     QCustomPlotControl *plotControl = nullptr;
     DataProtocol *protocol = nullptr;
+    QThread *protocol_thread = nullptr;
+    void appendDataWaitToParse(const QByteArray &data);
+    void startParse(bool enableSumCheck=false);
+signals:
+    void appendData(const QByteArray &data);
+    void parseData(bool enableSumCheck=false);
 public slots:
     void recvKey(QKeyEvent *e, bool isPressAct);
 private slots:

@@ -31,10 +31,10 @@ void outputMessage(QtMsgType type, const QMessageLogContext &context, const QStr
     QString context_info;
     QString current_date_time;
     QString current_date;
-//    context_info = QString("File:(%1) Line:(%2)").arg(QString(context.file)).arg(context.line);
-//    current_date_time = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss ddd");
-//    current_date = QString("(%1)").arg(current_date_time);
-    QString message = QString("%1 %2 %3 %4").arg(text).arg(context_info).arg(msg).arg(current_date);
+    context_info = QString("File:(%1) Line:(%2)").arg(QString(context.file)).arg(context.line);
+    current_date_time = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss ddd");
+    current_date = QString("(%1)").arg(current_date_time);
+    QString message = QString("[%1] [%2] %3 %4").arg(text).arg(context_info).arg(msg).arg(current_date);
 
     QFile file("ComAssistantDebug.txt");
     file.open(QIODevice::WriteOnly | QIODevice::Append);
