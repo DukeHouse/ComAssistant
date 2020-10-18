@@ -256,7 +256,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(&cycleSendTimer, SIGNAL(timeout()), this, SLOT(cycleSendTimerSlot()));
     connect(&secTimer, SIGNAL(timeout()), this, SLOT(secTimerSlot()));
     connect(&printToTextBrowserTimer, SIGNAL(timeout()), this, SLOT(printToTextBrowserTimerSlot()));
-    connect(&plotterParseTimer, SIGNAL(timeout()), this, SLOT(plotterParseTimerSlot()));
+    connect(&plotterShowTimer, SIGNAL(timeout()), this, SLOT(plotterShowTimerSlot()));
     connect(&multiStrSeqSendTimer, SIGNAL(timeout()), this, SLOT(multiStrSeqSendTimerSlot()));
     connect(&serial, SIGNAL(readyRead()), this, SLOT(readSerialPort()));
     connect(&serial, SIGNAL(bytesWritten(qint64)), this, SLOT(serialBytesWritten(qint64)));
@@ -345,8 +345,9 @@ MainWindow::MainWindow(QWidget *parent) :
     secTimer.setTimerType(Qt::PreciseTimer);
     secTimer.start(1000);
     printToTextBrowserTimer.setTimerType(Qt::PreciseTimer);
-    printToTextBrowserTimer.start(20);
-    plotterParseTimer.setTimerType(Qt::PreciseTimer);
+    printToTextBrowserTimer.start(TEXT_SHOW_PERIOD);
+    plotterShowTimer.setTimerType(Qt::PreciseTimer);
+    plotterShowTimer.start(PLOTTER_SHOW_PERIOD);
     multiStrSeqSendTimer.setTimerType(Qt::PreciseTimer);
     multiStrSeqSendTimer.setSingleShot(true);
 
@@ -2051,11 +2052,6 @@ void MainWindow::on_actionPlotterSwitch_triggered(bool checked)
     if(checked){
         ui->customPlot->show();
 
-        //没激活就打开（数值显示器和FFT也可能激活）
-        if(!plotterParseTimer.isActive()){
-            plotterParseTimer.start(PLOTTER_PARSE_PERIOD);
-        }
-
         if(ui->actionAscii->isChecked()){
             if(ui->actionSumCheck->isChecked())
                 ui->plotter->setTitle(tr("数据可视化：ASCII协议(和校验)"));
@@ -2072,11 +2068,6 @@ void MainWindow::on_actionPlotterSwitch_triggered(bool checked)
     }else{
         ui->customPlot->hide();
 
-        //数值显示器和FFT都未勾选时才停止定时器
-        if(!ui->actionValueDisplay->isChecked() &&
-           (fft_window && !fft_window->isVisible()))
-            plotterParseTimer.stop();
-
         ui->plotter->setTitle(tr("数据可视化"));
 //        ui->actionFFTShow->setEnabled(false);
     }
@@ -2084,7 +2075,7 @@ void MainWindow::on_actionPlotterSwitch_triggered(bool checked)
     adjustLayout();
 }
 
-void MainWindow::plotterParseTimerSlot()
+void MainWindow::plotterShowTimerSlot()
 {
     QVector<double> oneRowData;
 
@@ -2094,8 +2085,10 @@ void MainWindow::plotterParseTimerSlot()
         return;
     }
 
-    //关定时器
-    plotterParseTimer.stop();
+    if(ui->customPlot->protocol->parsedBuffSize() == 0)
+    {
+        return;
+    }
 
     //数据填充
     while(ui->customPlot->protocol->parsedBuffSize()>0){
@@ -2150,8 +2143,6 @@ void MainWindow::plotterParseTimerSlot()
             ui->valueDisplay->item(i,1)->setFlags(ui->valueDisplay->item(i,1)->flags() & (~Qt::ItemIsEditable));
         }
     }
-
-    plotterParseTimer.start(PLOTTER_PARSE_PERIOD);
 }
 
 void MainWindow::on_actionAscii_triggered(bool checked)
@@ -2679,18 +2670,8 @@ void MainWindow::on_actionValueDisplay_triggered(bool checked)
 {
     if(checked){
         ui->valueDisplay->show();
-
-        //没激活就打开（绘图器和FFT也可能激活）
-        if(!plotterParseTimer.isActive()){
-            plotterParseTimer.start(PLOTTER_PARSE_PERIOD);
-        }
     }else{
         ui->valueDisplay->hide();
-
-        //绘图器和FFT都未勾选时才停止定时器
-        if(!ui->actionPlotterSwitch->isChecked() &&
-           (fft_window && !fft_window->isVisible()))
-            plotterParseTimer.stop();
     }
 
     adjustLayout();
@@ -3164,22 +3145,10 @@ void MainWindow::on_actionFFTShow_triggered(bool checked)
         return;
     if(checked)
     {
-        //没激活就打开（数值显示器和绘图器也可能激活）
-        if(!plotterParseTimer.isActive())
-        {
-            plotterParseTimer.start(PLOTTER_PARSE_PERIOD);
-        }
-
         QPoint pos = QPoint(this->pos().x() + this->geometry().width(), this->pos().y());
         fft_window->move(pos);
         fft_window->setVisible(true);
         return;
-    }
-    //绘图器和数值显示器都未勾选时才停止定时器
-    if(!ui->actionPlotterSwitch->isChecked() &&
-       !ui->actionValueDisplay->isChecked())
-    {
-        plotterParseTimer.stop();
     }
     fft_window->setVisible(false);
     return;

@@ -142,7 +142,7 @@ private slots:
     void debugTimerSlot();
     void cycleSendTimerSlot();
     void printToTextBrowserTimerSlot();
-    void plotterParseTimerSlot();
+    void plotterShowTimerSlot();
     void multiStrSeqSendTimerSlot();
 
     //contextMenuRequested
@@ -192,14 +192,15 @@ private:
     int BrowserBuffIndex = 0; //显示指示
     QByteArray unshowedRxBuff;    //未上屏的接收缓冲
 
-    const int32_t PLOTTER_PARSE_PERIOD = 20;  //绘图器默认解析周期
+    const int32_t PLOTTER_SHOW_PERIOD = 15;  //绘图器默认显示周期66FPS
+    const int32_t TEXT_SHOW_PERIOD    = 30;  //文本默认显示周期33FPS
 
     QTimer cycleSendTimer;  //循环发送定时器
     QTimer debugTimer;      //调试定时器
     QTimer secTimer;        //秒定时器
     QTimer timeStampTimer;  //时间戳定时器
     QTimer printToTextBrowserTimer; //刷新文本显示区的定时器
-    QTimer plotterParseTimer;       //协议解析定时器
+    QTimer plotterShowTimer;       //协议解析定时器
     QTimer multiStrSeqSendTimer;    //多字符串序列发送定时器
 
     QString lastFileDialogPath; //上次文件对话框路径
