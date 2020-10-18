@@ -30,34 +30,25 @@ public:
     typedef QVector<RowData_t> DataPool_t;
     //定义数据包和数据包流
     typedef QByteArray          Pack_t;
-    typedef QVector<QByteArray> PackStream_t;
 
 public:
     explicit DataProtocol(QObject *parent = nullptr);
     ~DataProtocol();
-    void printBuff();
     void clearBuff();
     int parsedBuffSize();//判断数据池剩余大小
     QVector<double> popOneRowData();//弹出一行数据，没有数据则为空
-    int32_t parse(const QByteArray& inputArray, int32_t &startPos, int32_t maxParseLengthLimit, bool enableSumCheck);
     void setProtocolType(ProtocolType_e type, bool clearbuff=true);
     ProtocolType_e getProtocolType();
 public slots:
     void appendData(const QByteArray &data);
     void parseData(bool enableSumCheck=false);
 private:
-    //从输入参数1中提取所有pack包流进packsBuff缓存中
-    void extractPacks(QByteArray &inputArray, QByteArray &restArray, bool toDataPool, bool enableSumCheck);
-    //从pack缓存中弹出一个pack
-    Pack_t popOnePack();
     //从pack中提取合法数据行
     RowData_t extractRowData(const Pack_t& pack);
     //将合法数据行添加进数据池
     void addToDataPool(RowData_t &rowData, bool enableSumCheck);
-    //pack缓存、数据池
-    PackStream_t packsBuff;
+    //数据池
     DataPool_t dataPool;
-    QByteArray unparsedBuff;
     QByteArray tempDataPool;
     //协议类型
     ProtocolType_e protocolType = Ascii;
