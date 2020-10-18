@@ -51,7 +51,7 @@ public:
     QStringList getMsgList();
 
 private:
-    void parseReleaseInfo(QString &inputStr, QString &remoteVersion, QString &remoteNote, QString &publishedTime);
+    int32_t parseReleaseInfo(QString &inputStr, QString &remoteVersion, QString &remoteNote, QString &publishedTime);
 
     QWidget *parent;
     QTimer secTimer;

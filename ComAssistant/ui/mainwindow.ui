@@ -722,6 +722,7 @@ p, li { white-space: pre-wrap; }
     <addaction name="plotterSetting"/>
     <addaction name="separator"/>
     <addaction name="actionValueDisplay"/>
+    <addaction name="actionFFTShow"/>
     <addaction name="separator"/>
     <addaction name="protocol"/>
     <addaction name="separator"/>
@@ -1044,6 +1045,17 @@ p, li { white-space: pre-wrap; }
    </property>
    <property name="toolTip">
     <string>更改X轴数据源</string>
+   </property>
+  </action>
+  <action name="actionFFTShow">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>频谱图</string>
+   </property>
+   <property name="statusTip">
+    <string/>
    </property>
   </action>
  </widget>

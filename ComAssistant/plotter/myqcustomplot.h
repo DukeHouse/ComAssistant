@@ -9,6 +9,7 @@
 #include <QString>
 #include <QFile>
 #include <QSharedPointer>
+#include <QThread>
 
 #include "qcustomplot.h"
 
@@ -18,6 +19,7 @@
 #include "mytracer.h"
 
 #include <QStatusBar>
+#include "fft_dialog.h"
 
 #define    XAxis_Cnt        0
 #define    XAxis_Graph0     1
@@ -49,10 +51,16 @@ public:
 
     MyTracer *m_Tracer; //坐标跟随鼠标
     void init(QStatusBar* pBar, QMenu* plotterSetting, QAction* saveGraphData, QAction* saveGraphPicture,
-              qint32 *xSource, bool *autoRescaleYAxisFlag);
+              qint32 *xSource, bool *autoRescaleYAxisFlag, FFT_Dialog* window);
     bool saveGraphAsTxt(const QString& filePath, char separate=' ');
-    QCustomPlotControl *plotControl;
-    DataProtocol *protocol;
+    QCustomPlotControl *plotControl = nullptr;
+    DataProtocol *protocol = nullptr;
+    QThread *protocol_thread = nullptr;
+    void appendDataWaitToParse(const QByteArray &data);
+    void startParse(bool enableSumCheck=false);
+signals:
+    void appendData(const QByteArray &data);
+    void parseData(bool enableSumCheck=false);
 public slots:
     void recvKey(QKeyEvent *e, bool isPressAct);
 private slots:
@@ -83,6 +91,7 @@ private:
     qint32 key = 0;
     qint32 *xAxisSource = nullptr;
     bool *autoRescaleYAxis = nullptr;
+    FFT_Dialog* fft_dialog = nullptr;
 };
 
 #endif // MYQCUSTOMPLOT_H

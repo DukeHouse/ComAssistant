@@ -1,9 +1,7 @@
 #include "dataprotocol.h"
 
-DataProtocol::DataProtocol()
+DataProtocol::DataProtocol(QObject *parent) : QObject(parent)
 {
-//    packsBuff = new PackStream_t;
-//    dataPool = new DataPool_t;
     MAXDATA_AS_END.append(static_cast<char>(0x00));
     MAXDATA_AS_END.append(static_cast<char>(0x00));
     MAXDATA_AS_END.append(static_cast<char>(0x80));
@@ -13,8 +11,6 @@ DataProtocol::DataProtocol()
 
 DataProtocol::~DataProtocol()
 {
-//    delete packsBuff;
-//    delete dataPool;
 }
 
 void DataProtocol::setProtocolType(ProtocolType_e type, bool clearbuff)
@@ -29,77 +25,35 @@ DataProtocol::ProtocolType_e DataProtocol::getProtocolType()
     return protocolType;
 }
 
-void DataProtocol::clearBuff()
+void DataProtocol::appendData(const QByteArray &data)
 {
-    packsBuff.clear();
-    dataPool.clear();
-    unparsedBuff.clear();
+    tempDataPool.append(data);
 }
 
-void DataProtocol::printBuff()
+void DataProtocol::parseData(bool enableSumCheck)
 {
-    int i = 0;
-    QString tmp2;
-    foreach(RowData_t rowData, dataPool){
-        tmp2.clear();
-        foreach(OneData_t onedata, rowData){
-            tmp2 += QString::number(onedata) + " ";
-        }
-        qDebug()<<"line"+QString::number(i++)+":" + tmp2;
+    //坑：如果一串数据前面的字符都匹配上了，最后几个字符没匹配上会引起正则匹配函数会消耗大量的时间，
+    //导致卡顿，如果是偶尔误码这种问题影响不大，但是如果刻意制造这种数据并大量发送则会卡死，似乎无解，
+    //或放到子线程中，但依然会消耗很多时间，只是不会卡住GUI而已
+    #define MAX_EXTRACT_LENGTH 512
+    parsePacksFromBuffer(tempDataPool, tempDataPool, enableSumCheck);
+    //在解析完成后剔除前面已扫描过的数据
+    if(tempDataPool.size() > MAX_EXTRACT_LENGTH)
+    {
+        tempDataPool = tempDataPool.mid(tempDataPool.size() - MAX_EXTRACT_LENGTH);
     }
 }
 
-int DataProtocol::parsedBuffSize()
+//从缓存中提取所有包，每提取出一个包就解析一个
+void DataProtocol::parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBuffer, bool enableSumCheck)
 {
-    return dataPool.size();
-}
-
-QVector<double> DataProtocol::popOneRowData()
-{
-    QVector<double> tmp;
-    if(dataPool.size()>0){
-        tmp = dataPool.at(0);
-//        qDebug()<<"popOneRowData:"<<tmp;
-        dataPool.pop_front();
-    }
-    return tmp;
-}
-
-/*
- * Function: 解析协议
- * para1: 被解析的数据
- * return: 已经解析完成的数据长度（若解析失败则长度为0）
-*/
-int32_t DataProtocol::parse(const QByteArray& inputArray, int32_t &startPos, int32_t maxParseLengthLimit=-1, bool enableSumCheck=false)
-{
-    RowData_t rowData;
-    Pack_t pack;
-    QByteArray restArray;
-    int32_t scannedLength = 0;
-
-    //未解析数据，防止数据量过大，限制了最大解析长度
-    unparsedBuff = inputArray.mid(startPos, maxParseLengthLimit);
-    int32_t size = unparsedBuff.size();
-    //数据流分包
-    extractPacks(unparsedBuff, restArray, true, enableSumCheck);
-    scannedLength = size - restArray.size();
-
-    return scannedLength;
-}
-
-/*
- *
- * param0[in] 待提取的数据
- * param1[in] 剩余未转换数据
- * param2[in] 直接转换到数据池中，减少数据拷贝过程
-*/
-inline void DataProtocol::extractPacks(QByteArray &inputArray, QByteArray &restArray, bool toDataPool=false, bool enableSumCheck=false)
-{
+    if(buffer.isEmpty())
+        return;
     if(protocolType == Ascii){
         //先剔除\0,\r,\n等特殊数据
-        inputArray = inputArray.trimmed();
-        while (inputArray.indexOf('\0')!=-1) {
-            inputArray.remove(inputArray.indexOf('\0'), 1);
+        buffer = buffer.trimmed();
+        while (buffer.indexOf('\0')!=-1) {
+            buffer.remove(buffer.indexOf('\0'), 1);
         }
         QRegularExpression reg;
         QRegularExpressionMatch match;
@@ -113,32 +67,27 @@ inline void DataProtocol::extractPacks(QByteArray &inputArray, QByteArray &restA
         reg.setPattern("\\{[^{:]*:(\\s*([+-]?\\d+(\\.\\d+)?)?,?)+\\}");
         reg.setPatternOptions(QRegularExpression::InvertedGreedinessOption);//设置为非贪婪模式匹配
         do {
-                QByteArray tmp;
-                match = reg.match(inputArray, scanIndex);
+                QByteArray onePack;
+                match = reg.match(buffer, scanIndex);
                 if(match.hasMatch()) {
                     scanIndex = match.capturedEnd();
                     lastScannedIndex = scanIndex;
                     //连续的逗号和分号逗号之间补0
-                    tmp.clear();
-                    tmp.append(match.captured(0).toLocal8Bit());
-                    while(tmp.indexOf(",,")!=-1){
-                        tmp.insert(tmp.indexOf(",,")+1,'0');
+                    onePack.clear();
+                    onePack.append(match.captured(0).toLocal8Bit());
+                    while(onePack.indexOf(",,")!=-1){
+                        onePack.insert(onePack.indexOf(",,")+1,'0');
                     }
-                    while(tmp.indexOf(":,")!=-1){
-                        tmp.insert(tmp.indexOf(":,")+1,'0');
+                    while(onePack.indexOf(":,")!=-1){
+                        onePack.insert(onePack.indexOf(":,")+1,'0');
                     }
-                    if(!tmp.isEmpty()){
-                        while(tmp.indexOf('\r')!=-1)
-                            tmp = tmp.replace("\r","");
-                        while(tmp.indexOf('\n')!=-1)
-                            tmp = tmp.replace("\n","");
-                        if(toDataPool){
-                            RowData_t data = extractRowData(tmp);
-                            addToDataPool(data, enableSumCheck);
-                        }
-                        else{
-                            packsBuff << tmp;
-                        }
+                    if(!onePack.isEmpty()){
+                        while(onePack.indexOf('\r')!=-1)
+                            onePack = onePack.replace("\r","");
+                        while(onePack.indexOf('\n')!=-1)
+                            onePack = onePack.replace("\n","");
+                        RowData_t data = extractRowData(onePack);
+                        addToDataPool(data, enableSumCheck);
                     }
 //                    qDebug()<<"match"<<match.captured(0);
                 }
@@ -146,39 +95,44 @@ inline void DataProtocol::extractPacks(QByteArray &inputArray, QByteArray &restA
 //                    qDebug()<<"no match";
                     scanIndex++;
                 }
-        } while(scanIndex < inputArray.size());
+        } while(scanIndex < buffer.size());
 
-        restArray = inputArray.mid(lastScannedIndex);
+        restBuffer = buffer.mid(lastScannedIndex);
 
     }else if(protocolType == Float){
-        QByteArray tmpArray = inputArray;
+        QByteArray tmpArray = buffer;
         while (tmpArray.indexOf(MAXDATA_AS_END)!=-1) {
             QByteArray before = tmpArray.mid(0,tmpArray.indexOf(MAXDATA_AS_END));
             tmpArray = tmpArray.mid(tmpArray.indexOf(MAXDATA_AS_END)+MAXDATA_AS_END.size());
             if(before.size()%4==0){
-                if(toDataPool){
-                    RowData_t data = extractRowData(before);
-                    addToDataPool(data, enableSumCheck);
-                }
-                else{
-                    packsBuff << before;
-                }
+                RowData_t data = extractRowData(before);
+                addToDataPool(data, enableSumCheck);
             }
             else
                 qDebug()<<"丢弃数据（长度不是4的倍数）："<<before.toHex().toUpper();
         }
-        restArray = tmpArray;
+        restBuffer = tmpArray;
     }
 }
 
-inline DataProtocol::Pack_t DataProtocol::popOnePack()
+void DataProtocol::clearBuff()
 {
-    Pack_t tmp;
-    if(packsBuff.isEmpty()){
-        return tmp;
+    tempDataPool.clear();
+    dataPool.clear();
+}
+
+int DataProtocol::parsedBuffSize()
+{
+    return dataPool.size();
+}
+
+QVector<double> DataProtocol::popOneRowData()
+{
+    QVector<double> tmp;
+    if(dataPool.size()>0){
+        tmp = dataPool.at(0);
+        dataPool.pop_front();
     }
-    tmp = packsBuff.at(0);
-    packsBuff.pop_front();
     return tmp;
 }
 

@@ -189,14 +189,14 @@ void HTTP::httpTimeoutHandle()
 }
 
 //解析发布信息
-void HTTP::parseReleaseInfo(QString &inputStr, QString &remoteVersion, QString &remoteNote, QString &publishedTime)
+int32_t HTTP::parseReleaseInfo(QString &inputStr, QString &remoteVersion, QString &remoteNote, QString &publishedTime)
 {
     QJsonParseError jsonError;
     QJsonDocument document = QJsonDocument::fromJson(inputStr.toUtf8(), &jsonError); //转化为JSON文档
     if(document.isNull() || jsonError.error != QJsonParseError::NoError || !document.isObject()){
         QMessageBox::information(nullptr, "提示", "版本数据解析异常");
         qDebug()<<"解析异常";
-        return;
+        return -1;
     }
     QJsonObject object = document.object();
     if(object.contains("tag_name"))
@@ -223,6 +223,7 @@ void HTTP::parseReleaseInfo(QString &inputStr, QString &remoteVersion, QString &
             publishedTime = value.toString();
         }
     }
+    return 0;
 }
 
 void HTTP::httpFinishedSlot(QNetworkReply *)
@@ -254,7 +255,10 @@ void HTTP::httpFinishedSlot(QNetworkReply *)
             QString remoteNote;
             QString publishedTime;
             //提取版本号
-            parseReleaseInfo(string, remoteVersion, remoteNote, publishedTime);
+            if(parseReleaseInfo(string, remoteVersion, remoteNote, publishedTime))
+            {
+                return;
+            }
 
             QString localVersion;
             localVersion = Config::getVersion();

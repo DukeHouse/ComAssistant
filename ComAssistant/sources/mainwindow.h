@@ -41,6 +41,9 @@
 #include "settings_dialog.h"
 //文本提取引擎
 #include "text_extract_engine.h"
+//FFT显示
+#include "fft_dialog.h"
+#include "fft.h"
 
 namespace Ui {
 class MainWindow;
@@ -120,6 +123,7 @@ private slots:
     void on_actionScatterLinePlot_triggered();
     void on_actionScatterPlot_triggered();
     void on_actionValueDisplay_triggered(bool checked);
+    void on_actionFFTShow_triggered(bool checked);
     void on_actionAscii_triggered(bool checked);
     void on_actionFloat_triggered(bool checked);
     void on_actiondebug_triggered(bool checked);
@@ -138,7 +142,7 @@ private slots:
     void debugTimerSlot();
     void cycleSendTimerSlot();
     void printToTextBrowserTimerSlot();
-    void plotterParseTimerSlot();
+    void plotterShowTimerSlot();
     void multiStrSeqSendTimerSlot();
 
     //contextMenuRequested
@@ -188,14 +192,15 @@ private:
     int BrowserBuffIndex = 0; //显示指示
     QByteArray unshowedRxBuff;    //未上屏的接收缓冲
 
-    const int32_t PLOTTER_PARSE_PERIOD = 20;  //绘图器默认解析周期
+    const int32_t PLOTTER_SHOW_PERIOD = 15;  //绘图器默认显示周期66FPS
+    const int32_t TEXT_SHOW_PERIOD    = 30;  //文本默认显示周期33FPS
 
     QTimer cycleSendTimer;  //循环发送定时器
     QTimer debugTimer;      //调试定时器
     QTimer secTimer;        //秒定时器
     QTimer timeStampTimer;  //时间戳定时器
     QTimer printToTextBrowserTimer; //刷新文本显示区的定时器
-    QTimer plotterParseTimer;       //协议解析定时器
+    QTimer plotterShowTimer;       //协议解析定时器
     QTimer multiStrSeqSendTimer;    //多字符串序列发送定时器
 
     QString lastFileDialogPath; //上次文件对话框路径
@@ -205,7 +210,6 @@ private:
     HTTP *http;
 
     bool RefreshTextBrowser = true; //数据显示区刷新标记
-    int plotterParsePosInRxBuff = 0;      //绘图器已解析的位置
     bool autoRefreshYAxisFlag;
 
     //统计
@@ -228,15 +232,19 @@ private:
     const QString MAIN_TAB_NAME = "main";
     QThread *p_textExtractThread;
     TextExtractEngine *p_textExtract;
+
+    //fft window
+    FFT_Dialog *fft_window = nullptr;
+
 signals:
-    void tee_appendData(const QString &str);
+    void tee_appendData(const QByteArray &str);
     void tee_parseData(void);
     void tee_clearData(const QString &name);
     qint32 tee_saveData(const QString &path, const QString &name, const bool& savePackBuff);
     void sendKeyToPlotter(QKeyEvent *e, bool isPressAct);
 
 public slots:
-    void tee_textGroupsUpdate(const QByteArray &name, const QByteArray &data);
+    void tee_textGroupsUpdate(const QString &name, const QByteArray &data);
     void tee_saveDataResult(const qint32& result, const QString &path, const qint32 fileSize);
 
 protected:
@@ -246,6 +254,7 @@ protected:
     void closeEvent(QCloseEvent*event);
     void dragEnterEvent(QDragEnterEvent *e);
     void dropEvent(QDropEvent *e);
+    void moveEvent(QMoveEvent *event);
 };
 
 #endif // MAINWINDOW_H

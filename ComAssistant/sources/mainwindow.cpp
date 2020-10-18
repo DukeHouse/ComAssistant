@@ -168,6 +168,7 @@ void MainWindow::readConfig()
     //OpenGL
     ui->actionOpenGL->setChecked(Config::getOpengGLState());
     on_actionOpenGL_triggered(Config::getOpengGLState());
+
     //refreshYAxis
     on_actionAutoRefreshYAxis_triggered(Config::getRefreshYAxisState());
     //line type
@@ -255,7 +256,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(&cycleSendTimer, SIGNAL(timeout()), this, SLOT(cycleSendTimerSlot()));
     connect(&secTimer, SIGNAL(timeout()), this, SLOT(secTimerSlot()));
     connect(&printToTextBrowserTimer, SIGNAL(timeout()), this, SLOT(printToTextBrowserTimerSlot()));
-    connect(&plotterParseTimer, SIGNAL(timeout()), this, SLOT(plotterParseTimerSlot()));
+    connect(&plotterShowTimer, SIGNAL(timeout()), this, SLOT(plotterShowTimerSlot()));
     connect(&multiStrSeqSendTimer, SIGNAL(timeout()), this, SLOT(multiStrSeqSendTimerSlot()));
     connect(&serial, SIGNAL(readyRead()), this, SLOT(readSerialPort()));
     connect(&serial, SIGNAL(bytesWritten(qint64)), this, SLOT(serialBytesWritten(qint64)));
@@ -284,10 +285,14 @@ MainWindow::MainWindow(QWidget *parent) :
     //加载高亮规则
     on_actionKeyWordHighlight_triggered(ui->actionKeyWordHighlight->isChecked());
 
+    //fft
+    fft_window = new FFT_Dialog(ui->actionFFTShow, this);
+
     //初始化绘图控制器
     ui->customPlot->init(ui->statusBar, ui->plotterSetting,
                          ui->actionSavePlotData, ui->actionSavePlotAsPicture,
-                         &g_xAxisSource, &autoRefreshYAxisFlag);
+                         &g_xAxisSource, &autoRefreshYAxisFlag,
+                         fft_window);
 
     //http
     http = new HTTP(this);
@@ -330,6 +335,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->textEdit->document()->setDefaultFont(g_font);
     ui->multiString->setFont(g_font);
     ui->customPlot->plotControl->setupFont(g_font);
+    fft_window->setupPlotterFont(g_font);
 
     this->setWindowTitle(tr("纸飞机串口助手") + " - V"+Config::getVersion());
 
@@ -339,8 +345,9 @@ MainWindow::MainWindow(QWidget *parent) :
     secTimer.setTimerType(Qt::PreciseTimer);
     secTimer.start(1000);
     printToTextBrowserTimer.setTimerType(Qt::PreciseTimer);
-    printToTextBrowserTimer.start(20);
-    plotterParseTimer.setTimerType(Qt::PreciseTimer);
+    printToTextBrowserTimer.start(TEXT_SHOW_PERIOD);
+    plotterShowTimer.setTimerType(Qt::PreciseTimer);
+    plotterShowTimer.start(PLOTTER_SHOW_PERIOD);
     multiStrSeqSendTimer.setTimerType(Qt::PreciseTimer);
     multiStrSeqSendTimer.setSingleShot(true);
 
@@ -353,13 +360,13 @@ MainWindow::MainWindow(QWidget *parent) :
     p_textExtract       = new TextExtractEngine();
     p_textExtract->moveToThread(p_textExtractThread);
     connect(p_textExtractThread, SIGNAL(finished()), p_textExtract, SLOT(deleteLater()));
-    connect(this, SIGNAL(tee_appendData(const QString &)), p_textExtract, SLOT(appendData(const QString &)));
+    connect(this, SIGNAL(tee_appendData(const QByteArray &)), p_textExtract, SLOT(appendData(const QByteArray &)));
     connect(this, SIGNAL(tee_parseData()), p_textExtract, SLOT(parseData()));
     connect(this, SIGNAL(tee_clearData(const QString &)), p_textExtract, SLOT(clearData(const QString )));
     connect(this, SIGNAL(tee_saveData(const QString &, const QString &, const bool& )),
             p_textExtract, SLOT(saveData(const QString &, const QString &, const bool& )));
-    connect(p_textExtract, SIGNAL(textGroupsUpdate(const QByteArray &, const QByteArray &)),
-            this, SLOT(tee_textGroupsUpdate(const QByteArray &, const QByteArray &)));
+    connect(p_textExtract, SIGNAL(textGroupsUpdate(const QString &, const QByteArray &)),
+            this, SLOT(tee_textGroupsUpdate(const QString &, const QByteArray &)));
     connect(p_textExtract, SIGNAL(saveDataResult(const qint32&, const QString &, const qint32 )),
             this, SLOT(tee_saveDataResult(const qint32&, const QString &, const qint32 )));
 
@@ -367,6 +374,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //显示界面
     this->show();
+
     //调整窗体布局
     adjustLayout();
     //是否首次运行
@@ -379,10 +387,13 @@ MainWindow::MainWindow(QWidget *parent) :
     }
 
     readRecorderFile();
+
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
+    Q_UNUSED(event);
+
     //点击关闭时删除记录文件
     QFile recorderFile(RECORDER_FILE_PATH);
     if(recorderFile.exists())
@@ -465,9 +476,6 @@ int32_t MainWindow::parseDatFile(QString path, bool removeAfterRead)
         if(divideDataToPacks(buff, parseFileBuff, PACKSIZE, parseFile))
             return -1;
         RxBuff.clear();
-        //重置绘图器解析点，以触发解析
-        if(ui->actionPlotterSwitch->isChecked())
-            plotterParsePosInRxBuff = RxBuff.size();
 
         ui->textBrowser->clear();
         ui->textBrowser->appendPlainText("File size: " + QString::number(file.size()) + " Byte");
@@ -548,7 +556,7 @@ void MainWindow::tee_saveDataResult(const qint32& result, const QString &path, c
     }
 }
 
-void MainWindow::tee_textGroupsUpdate(const QByteArray &name, const QByteArray &data)
+void MainWindow::tee_textGroupsUpdate(const QString &name, const QByteArray &data)
 {
 //    qDebug()<<"tee_textGroupsUpdate";
     QPlainTextEdit *textEdit = nullptr;
@@ -702,6 +710,7 @@ void MainWindow::secTimerSlot()
     currentRunTime++;
 }
 
+#define DEBUG_TIMER_FRQ (128)
 static double debugTimerSlotCnt = 0;
 void MainWindow::debugTimerSlot()
 {
@@ -710,39 +719,28 @@ void MainWindow::debugTimerSlot()
     #define BYTE2(dwTemp)   static_cast<char>((*(reinterpret_cast<char *>(&dwTemp) + 2)))
     #define BYTE3(dwTemp)   static_cast<char>((*(reinterpret_cast<char *>(&dwTemp) + 3)))
 
-    float num1, num2, num3, num4, num5, num6;
+    float num1, num2, num3, num4;
     //正弦
-    num1 = static_cast<float>(qSin(debugTimerSlotCnt / 0.3843));
-    num2 = static_cast<float>(qCos(debugTimerSlotCnt / 0.3843));
-    num3 = static_cast<float>(qCos(debugTimerSlotCnt / 0.6157) + qSin(debugTimerSlotCnt / 0.3843));
-    num4 = static_cast<float>(qCos(debugTimerSlotCnt / 0.6157) - qSin(debugTimerSlotCnt / 0.3843));
-    num5 = static_cast<float>(qSin(debugTimerSlotCnt / 0.3843) + qSin(debugTimerSlotCnt / 0.3843) * qSin(debugTimerSlotCnt / 0.3843));
-    num6 = static_cast<float>(qCos(debugTimerSlotCnt / 0.3843) + qSin(debugTimerSlotCnt / 0.3843) * qCos(debugTimerSlotCnt / 0.3843));
-//    num5 = static_cast<float>(qSin(count / 0.3843) + qrand() / static_cast<double>(RAND_MAX) * 1 * qSin(count / 0.6157));
-//    num6 = static_cast<float>(qCos(count / 0.3843) + qrand() / static_cast<double>(RAND_MAX) * 1 * qCos(count / 0.6157));
-    //直线
-//    num1 = debugTimerSlotCnt * 10;
-//    num2 = debugTimerSlotCnt * 10;
-//    num3 = debugTimerSlotCnt * 10;
-//    num4 = debugTimerSlotCnt * 10;
-//    num5 = debugTimerSlotCnt * 10;
-//    num6 = debugTimerSlotCnt * 10;
+    #define PI  (3.141592653)
+    #define FRQ (6)
+    num1 = static_cast<float>(1 + qSin(2 * PI * (FRQ-FRQ) * (debugTimerSlotCnt / DEBUG_TIMER_FRQ)));
+    num2 = static_cast<float>(qSin(2 * PI * (FRQ+0) * (debugTimerSlotCnt / DEBUG_TIMER_FRQ)));
+    num3 = static_cast<float>(0.8 * qSin(2 * PI * (FRQ-2) * (debugTimerSlotCnt / DEBUG_TIMER_FRQ))) +
+           static_cast<float>(0.8 * qSin(2 * PI * (FRQ+2) * (debugTimerSlotCnt / DEBUG_TIMER_FRQ)));
+    num4 = static_cast<float>(1.2 * qSin(2 * PI * (FRQ-4) * (debugTimerSlotCnt / DEBUG_TIMER_FRQ))) +
+           static_cast<float>(1.2 * qSin(2 * PI * (FRQ+4) * (debugTimerSlotCnt / DEBUG_TIMER_FRQ)));
     if(ui->actionAscii->isChecked()){
         QString tmp;
         tmp = "{plotter:" +
                   QString::number(static_cast<double>(num1),'f') + "," +
                   QString::number(static_cast<double>(num2),'f') + "," +
                   QString::number(static_cast<double>(num3),'f') + "," +
-                  QString::number(static_cast<double>(num4),'f') + "," +
-                  QString::number(static_cast<double>(num5),'f') + "," +
-                  QString::number(static_cast<double>(num6),'f') + "}\n";
+                  QString::number(static_cast<double>(num4),'f') + "}\n";
 
         tmp += "{voltage:the vol is ### V}\n"
-               "{current:the cur is @@@ A}\n"
                "{cnt:the cnt is $$$}\n";
         tmp.replace("###", QString::number(3.3 + qrand()/static_cast<double>(RAND_MAX)/10.0, 'f', 3));
-        tmp.replace("@@@", QString::number(0.0 + qrand()/static_cast<double>(RAND_MAX)/20.0, 'f', 3));
-        tmp.replace("$$$", QString::number(static_cast<qint32>(debugTimerSlotCnt * 10)));
+        tmp.replace("$$$", QString::number(static_cast<qint32>(debugTimerSlotCnt)));
         if(serial.isOpen()){
             serial.write(tmp.toLocal8Bit());
         }
@@ -752,15 +750,13 @@ void MainWindow::debugTimerSlot()
         tmp.append(BYTE0(num2));tmp.append(BYTE1(num2));tmp.append(BYTE2(num2));tmp.append(BYTE3(num2));
         tmp.append(BYTE0(num3));tmp.append(BYTE1(num3));tmp.append(BYTE2(num3));tmp.append(BYTE3(num3));
         tmp.append(BYTE0(num4));tmp.append(BYTE1(num4));tmp.append(BYTE2(num4));tmp.append(BYTE3(num4));
-        tmp.append(BYTE0(num5));tmp.append(BYTE1(num5));tmp.append(BYTE2(num5));tmp.append(BYTE3(num5));
-        tmp.append(BYTE0(num6));tmp.append(BYTE1(num6));tmp.append(BYTE2(num6));tmp.append(BYTE3(num6));
         tmp.append(static_cast<char>(0x00));tmp.append(static_cast<char>(0x00));tmp.append(static_cast<char>(0x80));tmp.append(static_cast<char>(0x7F));
         if(serial.isOpen()){
             serial.write(tmp);
         }
     }
 
-    debugTimerSlotCnt = debugTimerSlotCnt + 0.01;
+    debugTimerSlotCnt = debugTimerSlotCnt + 1;
 }
 
 MainWindow::~MainWindow()
@@ -860,10 +856,14 @@ MainWindow::~MainWindow()
 //    delete p_textExtract; //deleteLater自动删除？
     delete p_textExtractThread;
 
+    delete fft_window;
+    fft_window = nullptr;
+
     delete highlighter;
     delete ui;
     delete http;
     delete g_popupHotkey;
+    qDebug()<<"~MainWindow";
 }
 
 /*
@@ -1052,6 +1052,13 @@ void MainWindow::readSerialPort()
     //数据交付给文本解析引擎(追加数据和解析分开防止高频解析带来的CPU压力)
     emit tee_appendData(tmpReadBuff);
 
+    if(ui->actionPlotterSwitch->isChecked() ||
+       ui->actionValueDisplay->isChecked() ||
+       ui->actionFFTShow->isChecked())
+    {
+        ui->customPlot->appendDataWaitToParse(tmpReadBuff);
+    }
+
     recordDataToFile(tmpReadBuff);
 
     //时间戳选项
@@ -1120,6 +1127,14 @@ void MainWindow::printToTextBrowser()
 
     //触发文本提取引擎解析
     emit tee_parseData();
+
+    //触发绘图器解析
+    if(ui->actionPlotterSwitch->isChecked() ||
+       ui->actionValueDisplay->isChecked() ||
+       ui->actionFFTShow->isChecked())
+    {
+        ui->customPlot->startParse(g_enableSumCheck);
+    }
 
     //多显示一点
     if(ui->hexDisplay->isChecked())
@@ -1477,7 +1492,9 @@ void MainWindow::on_clearWindows_clicked()
         ui->customPlot->xAxis->rescale(true);
     }
     ui->customPlot->replot();
-    plotterParsePosInRxBuff = RxBuff.size();
+
+    //fft
+    fft_window->clearGraph(-1);
 
     //数值显示器
     deleteValueDisplaySlot();
@@ -2035,12 +2052,6 @@ void MainWindow::on_actionPlotterSwitch_triggered(bool checked)
     if(checked){
         ui->customPlot->show();
 
-        //没激活就打开（数值显示器也可能激活）
-        if(!plotterParseTimer.isActive()){
-            plotterParseTimer.start(PLOTTER_PARSE_PERIOD);
-            plotterParsePosInRxBuff = RxBuff.size();
-        }
-
         if(ui->actionAscii->isChecked()){
             if(ui->actionSumCheck->isChecked())
                 ui->plotter->setTitle(tr("数据可视化：ASCII协议(和校验)"));
@@ -2053,66 +2064,58 @@ void MainWindow::on_actionPlotterSwitch_triggered(bool checked)
             else
                 ui->plotter->setTitle(tr("数据可视化：FLOAT协议"));
         }
+//        ui->actionFFTShow->setEnabled(true);
     }else{
         ui->customPlot->hide();
 
-        //数值显示器也未勾选时才停止定时器
-        if(!ui->actionValueDisplay->isChecked())
-            plotterParseTimer.stop();
-
         ui->plotter->setTitle(tr("数据可视化"));
+//        ui->actionFFTShow->setEnabled(false);
     }
 
     adjustLayout();
 }
 
-void MainWindow::plotterParseTimerSlot()
+void MainWindow::plotterShowTimerSlot()
 {
-    QElapsedTimer elapsedTimer;
-    int8_t needReplot = 0;
-    int32_t maxParseLengthLimit = 2048;
-    int32_t parsedLength;
     QVector<double> oneRowData;
-    elapsedTimer.start();
-
-    if(plotterParsePosInRxBuff >= RxBuff.size()){
-        return;
-    }
 
     if(!ui->actionPlotterSwitch->isChecked() &&
-       !ui->actionValueDisplay->isChecked()){
+       !ui->actionValueDisplay->isChecked() &&
+        (fft_window && !fft_window->isVisible())){
         return;
     }
-    //关定时器，防止数据量过大导致咬尾振荡
-    plotterParseTimer.stop();
 
-    parsedLength = ui->customPlot->protocol->parse(RxBuff, plotterParsePosInRxBuff, maxParseLengthLimit, g_enableSumCheck);
-    plotterParsePosInRxBuff += parsedLength;
-    //如果解析长度为0，待解析数据量超过单次解析限制，则前面扫描过的数据丢弃掉
-    if(parsedLength == 0 && RxBuff.size() - plotterParsePosInRxBuff > maxParseLengthLimit)
+    if(ui->customPlot->protocol->parsedBuffSize() == 0)
     {
-        plotterParsePosInRxBuff += maxParseLengthLimit;
-        ui->statusBar->showMessage(tr("数据匹配绘图协议失败，已丢弃。"), 2000);
+        return;
     }
 
     //数据填充
     while(ui->customPlot->protocol->parsedBuffSize()>0){
         oneRowData = ui->customPlot->protocol->popOneRowData();
+        if(fft_window->isVisible())
+        {
+            fft_window->appendData(oneRowData);
+        }
         //绘图显示器
         if(ui->actionPlotterSwitch->isChecked()){
             //关闭刷新，数据全部填充完后统一刷新
             if(false == ui->customPlot->plotControl->addDataToPlotter(oneRowData, g_xAxisSource))
                 ui->statusBar->showMessage(tr("出现一组异常绘图数据，已丢弃。"), 2000);
-            needReplot = 1;
         }
     }
-    if(ui->actionAutoRefreshYAxis->isChecked())
-    {
-        ui->customPlot->yAxis->rescale(true);
-    }
     //曲线刷新
-    if(needReplot){
+	if(ui->actionPlotterSwitch->isChecked())
+	{
+        if(ui->actionAutoRefreshYAxis->isChecked())
+        {
+            ui->customPlot->yAxis->rescale(true);
+        }
         ui->customPlot->replot();   //<10ms
+    }
+    if(fft_window->isVisible())
+    {
+        fft_window->startFFTCal();
     }
 
     //数值显示器
@@ -2140,35 +2143,12 @@ void MainWindow::plotterParseTimerSlot()
             ui->valueDisplay->item(i,1)->setFlags(ui->valueDisplay->item(i,1)->flags() & (~Qt::ItemIsEditable));
         }
     }
-
-    //单次解析接近长度限制提示(文件解析模式下要显示解析进度，所以不显示这个)
-    if((parsedLength*100/maxParseLengthLimit>90) && parseFile == false){
-        QString temp;
-        temp = temp + tr("绘图器繁忙，待解析数据：") + QString::number(RxBuff.size() - plotterParsePosInRxBuff) + "Byte";
-        ui->statusBar->showMessage(temp, 2000);
-    }
-    //解析周期动态调整
-    int32_t elapsed_time = elapsedTimer.elapsed();
-    double parseSpeed = parsedLength/(elapsed_time/1000.0)/1024.0;
-    parseSpeed = (double)((qint32)(parseSpeed*100))/100.0;   //保留两位小数
-    static int32_t dynamic_period = PLOTTER_PARSE_PERIOD;
-    if(parseSpeed < rxSpeedKB){
-        dynamic_period = dynamic_period - 5;
-        if(dynamic_period <= 5)
-            dynamic_period = 5;
-    }else{
-        dynamic_period = dynamic_period + 5;
-        if(dynamic_period >= PLOTTER_PARSE_PERIOD)
-            dynamic_period = PLOTTER_PARSE_PERIOD;
-    }
-    plotterParseTimer.start(dynamic_period);
-//    qDebug()<<"parsedLength"<<parsedLength<<"dynamic_period"<<dynamic_period;
-//    qDebug()<<"plotterParseTimerSlot elapsed_time:"<<elapsed_time;
 }
 
 void MainWindow::on_actionAscii_triggered(bool checked)
 {
-    checked = !!checked;
+    Q_UNUSED(checked)
+
     ui->customPlot->protocol->clearBuff();
     ui->customPlot->protocol->setProtocolType(DataProtocol::Ascii);
     ui->actionAscii->setChecked(true);
@@ -2203,7 +2183,7 @@ void MainWindow::on_actiondebug_triggered(bool checked)
     if(checked){
         debugTimerSlotCnt = 0;
         debugTimer.setTimerType(Qt::PreciseTimer);
-        debugTimer.start(20);
+        debugTimer.start(1000/DEBUG_TIMER_FRQ);
         connect(&debugTimer, SIGNAL(timeout()), this, SLOT(debugTimerSlot()));
     }else{
         debugTimer.stop();
@@ -2690,18 +2670,8 @@ void MainWindow::on_actionValueDisplay_triggered(bool checked)
 {
     if(checked){
         ui->valueDisplay->show();
-
-        //没激活就打开（绘图器也可能激活）
-        if(!plotterParseTimer.isActive()){
-            plotterParseTimer.start(PLOTTER_PARSE_PERIOD);
-            plotterParsePosInRxBuff = RxBuff.size();
-        }
     }else{
         ui->valueDisplay->hide();
-
-        //绘图器也未勾选时才停止定时器
-        if(!ui->actionPlotterSwitch->isChecked())
-            plotterParseTimer.stop();
     }
 
     adjustLayout();
@@ -2860,9 +2830,11 @@ void MainWindow::on_actionOpenGL_triggered(bool checked)
 {
     if(checked){
         ui->customPlot->setOpenGl(true);
+        fft_window->setupPlotterOpenGL(true); //实际未使能
     }
     else{
         ui->customPlot->setOpenGl(false);
+        fft_window->setupPlotterOpenGL(false);
     }
     ui->customPlot->replot();
 }
@@ -2878,6 +2850,7 @@ void MainWindow::on_actionFontSetting_triggered()
         ui->textEdit->document()->setDefaultFont(g_font);
         ui->multiString->setFont(g_font);
         ui->customPlot->plotControl->setupFont(g_font);
+        fft_window->setupPlotterFont(g_font);
 
         QPlainTextEdit *textEdit = nullptr;
         for(qint32 i = 0; i < ui->tabWidget->count(); i++){
@@ -3105,6 +3078,8 @@ void MainWindow::dropEvent(QDropEvent *e)
 
 void MainWindow::on_actionSelectXAxis_triggered(bool checked)
 {
+    Q_UNUSED(checked)
+
     static QString defaultXAxisLabel = ui->customPlot->xAxis->label();
     bool ok;
     QString name;
@@ -3161,4 +3136,31 @@ void MainWindow::on_actionSelectXAxis_triggered(bool checked)
             break;
         }
     }
+}
+
+void MainWindow::on_actionFFTShow_triggered(bool checked)
+{
+    ui->actionFFTShow->setChecked(checked);
+    if(!fft_window)
+        return;
+    if(checked)
+    {
+        QPoint pos = QPoint(this->pos().x() + this->geometry().width(), this->pos().y());
+        fft_window->move(pos);
+        fft_window->setVisible(true);
+        return;
+    }
+    fft_window->setVisible(false);
+    return;
+}
+
+void MainWindow::moveEvent(QMoveEvent *event)
+{
+    static QPoint lastPos;
+    if(fft_window && fft_window->isVisible())
+    {
+        QPoint pos = QPoint(event->pos() - lastPos);
+        fft_window->move(fft_window->pos() + pos);
+    }
+    lastPos = event->pos();
 }

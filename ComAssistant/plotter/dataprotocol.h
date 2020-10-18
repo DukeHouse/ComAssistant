@@ -1,6 +1,7 @@
 #ifndef DATAPROTOCOL_H
 #define DATAPROTOCOL_H
 
+#include <QObject>
 #include <QByteArray>
 #include <QtDebug>
 #include <QString>
@@ -8,14 +9,16 @@
 #include <QVector>
 #include <float.h>
 #include <QElapsedTimer>
+#include <QThread>
 
 //可视协议：{保留:数据1,数据2,...}
 //透传协议: float数据转为小端模式传输，以00 00 80 7F结尾
 
 //pack包定义：满足可视协议的数据包为pack包，典型特征为符号{和：和}和数据
 
-class DataProtocol
+class DataProtocol : public QObject
 {
+    Q_OBJECT
 public:
     typedef enum{
         Ascii,
@@ -27,36 +30,26 @@ public:
     typedef QVector<RowData_t> DataPool_t;
     //定义数据包和数据包流
     typedef QByteArray          Pack_t;
-    typedef QVector<QByteArray> PackStream_t;
 
 public:
-    DataProtocol();
-    DataProtocol(ProtocolType_e type):protocolType(type){
-        DataProtocol();
-    }
+    explicit DataProtocol(QObject *parent = nullptr);
     ~DataProtocol();
-    void printBuff();
     void clearBuff();
     int parsedBuffSize();//判断数据池剩余大小
     QVector<double> popOneRowData();//弹出一行数据，没有数据则为空
-    int32_t parse(const QByteArray& inputArray, int32_t &startPos, int32_t maxParseLengthLimit, bool enableSumCheck);
     void setProtocolType(ProtocolType_e type, bool clearbuff=true);
     ProtocolType_e getProtocolType();
-    QVector<QByteArray> getExtrackedPacks(QByteArray &inputArray);
-
+public slots:
+    void appendData(const QByteArray &data);
+    void parseData(bool enableSumCheck=false);
 private:
-    //从输入参数1中提取所有pack包流进packsBuff缓存中
-    void extractPacks(QByteArray &inputArray, QByteArray &restArray, bool toDataPool, bool enableSumCheck);
-    //从pack缓存中弹出一个pack
-    Pack_t popOnePack();
     //从pack中提取合法数据行
     RowData_t extractRowData(const Pack_t& pack);
     //将合法数据行添加进数据池
     void addToDataPool(RowData_t &rowData, bool enableSumCheck);
-    //pack缓存、数据池
-    PackStream_t packsBuff;
+    //数据池
     DataPool_t dataPool;
-    QByteArray unparsedBuff;
+    QByteArray tempDataPool;
     //协议类型
     ProtocolType_e protocolType = Ascii;
     //最大常数
@@ -65,6 +58,7 @@ private:
     bool byteArrayToFloat(const QByteArray& array, float& result);
     //调用byteArrayToFloat
     bool packToFloat(const Pack_t& pack , float& result);
+    void parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBuffer, bool enableSumCheck);
 };
 
 #endif // DATAPROTOCOL_H
