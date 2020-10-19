@@ -66,6 +66,7 @@ void MainWindow::readConfig()
 
     //发送注释
     on_actionSendComment_triggered(Config::getSendComment());
+    on_actionTeeLevel2NameSupport_triggered(Config::getTeeLevel2Name());
 
     //回车风格
     if(Config::getEnterStyle() == EnterStyle_e::WinStyle){
@@ -294,6 +295,24 @@ MainWindow::MainWindow(QWidget *parent) :
                          &g_xAxisSource, &autoRefreshYAxisFlag,
                          fft_window);
 
+    //文本提取引擎初始化
+    qDebug() << "Main threadID :" << QThread::currentThreadId();
+    p_textExtractThread = new QThread(this);
+    p_textExtract       = new TextExtractEngine();
+    p_textExtract->moveToThread(p_textExtractThread);
+    connect(p_textExtractThread, SIGNAL(finished()), p_textExtract, SLOT(deleteLater()));
+    connect(this, SIGNAL(tee_appendData(const QByteArray &)), p_textExtract, SLOT(appendData(const QByteArray &)));
+    connect(this, SIGNAL(tee_parseData()), p_textExtract, SLOT(parseData()));
+    connect(this, SIGNAL(tee_clearData(const QString &)), p_textExtract, SLOT(clearData(const QString )));
+    connect(this, SIGNAL(tee_saveData(const QString &, const QString &, const bool& )),
+            p_textExtract, SLOT(saveData(const QString &, const QString &, const bool& )));
+    connect(p_textExtract, SIGNAL(textGroupsUpdate(const QString &, const QByteArray &)),
+            this, SLOT(tee_textGroupsUpdate(const QString &, const QByteArray &)));
+    connect(p_textExtract, SIGNAL(saveDataResult(const qint32&, const QString &, const qint32 )),
+            this, SLOT(tee_saveDataResult(const qint32&, const QString &, const qint32 )));
+
+    p_textExtractThread->start();
+
     //http
     http = new HTTP(this);
 
@@ -353,24 +372,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //计时器
     g_lastSecsSinceEpoch = QDateTime::currentSecsSinceEpoch();
-
-    //文本提取引擎初始化
-    qDebug() << "Main threadID :" << QThread::currentThreadId();
-    p_textExtractThread = new QThread(this);
-    p_textExtract       = new TextExtractEngine();
-    p_textExtract->moveToThread(p_textExtractThread);
-    connect(p_textExtractThread, SIGNAL(finished()), p_textExtract, SLOT(deleteLater()));
-    connect(this, SIGNAL(tee_appendData(const QByteArray &)), p_textExtract, SLOT(appendData(const QByteArray &)));
-    connect(this, SIGNAL(tee_parseData()), p_textExtract, SLOT(parseData()));
-    connect(this, SIGNAL(tee_clearData(const QString &)), p_textExtract, SLOT(clearData(const QString )));
-    connect(this, SIGNAL(tee_saveData(const QString &, const QString &, const bool& )),
-            p_textExtract, SLOT(saveData(const QString &, const QString &, const bool& )));
-    connect(p_textExtract, SIGNAL(textGroupsUpdate(const QString &, const QByteArray &)),
-            this, SLOT(tee_textGroupsUpdate(const QString &, const QByteArray &)));
-    connect(p_textExtract, SIGNAL(saveDataResult(const qint32&, const QString &, const qint32 )),
-            this, SLOT(tee_saveDataResult(const qint32&, const QString &, const qint32 )));
-
-    p_textExtractThread->start();
 
     //显示界面
     this->show();
@@ -794,6 +795,7 @@ MainWindow::~MainWindow()
         Config::setBackGroundColor(g_background_color);
         Config::setPopupHotKey(g_popupHotKeySequence);
         Config::setSendComment(ui->actionSendComment->isChecked());
+        Config::setTeeLevel2Name(p_textExtract->getLevel2NameSupport());
 
         //serial 只保存成功打开过的
         Config::setPortName(serial.portName());
@@ -3163,4 +3165,10 @@ void MainWindow::moveEvent(QMoveEvent *event)
         fft_window->move(fft_window->pos() + pos);
     }
     lastPos = event->pos();
+}
+
+void MainWindow::on_actionTeeLevel2NameSupport_triggered(bool checked)
+{
+    p_textExtract->setLevel2NameSupport(checked);
+    ui->actionTeeLevel2NameSupport->setChecked(checked);
 }

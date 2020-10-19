@@ -105,6 +105,7 @@ private slots:
     void on_actionSTM32_ISP_triggered();
     void on_actionPopupHotkey_triggered();
     void on_actionSendComment_triggered(bool checked);
+    void on_actionTeeLevel2NameSupport_triggered(bool checked);
 
     //setting
     void on_actionCOM_Config_triggered();
@@ -130,6 +131,7 @@ private slots:
     void on_actionSumCheck_triggered(bool checked);
     void on_actionOpenGL_triggered(bool checked);
     void on_actionAutoRefreshYAxis_triggered(bool checked);
+    void on_actionSelectXAxis_triggered(bool checked);
 
     //help
     void on_actionManual_triggered();
@@ -157,8 +159,6 @@ private slots:
     void editSeedSlot();
     void deleteSeedSlot();
     void clearSeedsSlot();
-
-    void on_actionSelectXAxis_triggered(bool checked);
 
 private:
     QString formatTime(int ms);

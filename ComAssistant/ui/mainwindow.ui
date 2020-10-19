@@ -686,6 +686,8 @@ p, li { white-space: pre-wrap; }
     <addaction name="actionMultiString"/>
     <addaction name="actionSendComment"/>
     <addaction name="separator"/>
+    <addaction name="actionTeeLevel2NameSupport"/>
+    <addaction name="separator"/>
     <addaction name="actionSTM32_ISP"/>
    </widget>
    <widget class="QMenu" name="plotter">
@@ -1056,6 +1058,20 @@ p, li { white-space: pre-wrap; }
    </property>
    <property name="statusTip">
     <string/>
+   </property>
+  </action>
+  <action name="actionTeeLevel2NameSupport">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>提取二级名称</string>
+   </property>
+   <property name="toolTip">
+    <string>提取二级名称</string>
+   </property>
+   <property name="statusTip">
+    <string>二级分类支持，例{name1:{name2}hello world}\n</string>
    </property>
   </action>
  </widget>
