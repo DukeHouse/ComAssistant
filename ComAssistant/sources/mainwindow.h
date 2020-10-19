@@ -192,8 +192,8 @@ private:
     int BrowserBuffIndex = 0; //显示指示
     QByteArray unshowedRxBuff;    //未上屏的接收缓冲
 
-    const int32_t PLOTTER_SHOW_PERIOD = 15;  //绘图器默认显示周期66FPS
-    const int32_t TEXT_SHOW_PERIOD    = 30;  //文本默认显示周期33FPS
+    const int32_t PLOTTER_SHOW_PERIOD = 20;  //绘图器默认显示周期50FPS
+    const int32_t TEXT_SHOW_PERIOD    = 20;  //文本默认显示周期50FPS
 
     QTimer cycleSendTimer;  //循环发送定时器
     QTimer debugTimer;      //调试定时器
