@@ -121,7 +121,7 @@
           <bool>true</bool>
          </property>
          <property name="currentIndex">
-          <number>5</number>
+          <number>11</number>
          </property>
          <item>
           <property name="text">
@@ -130,12 +130,17 @@
          </item>
          <item>
           <property name="text">
-           <string>8</string>
+           <string>10</string>
           </property>
          </item>
          <item>
           <property name="text">
-           <string>16</string>
+           <string>20</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>30</string>
           </property>
          </item>
          <item>
@@ -145,7 +150,32 @@
          </item>
          <item>
           <property name="text">
+           <string>40</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>50</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>60</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
            <string>64</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>80</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>100</string>
           </property>
          </item>
          <item>
@@ -155,7 +185,27 @@
          </item>
          <item>
           <property name="text">
+           <string>200</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
            <string>256</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>300</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>400</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>500</string>
           </property>
          </item>
          <item>
@@ -165,22 +215,22 @@
          </item>
          <item>
           <property name="text">
+           <string>600</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>800</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>1000</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
            <string>1024</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>2048</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>4096</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>8192</string>
           </property>
          </item>
         </widget>
