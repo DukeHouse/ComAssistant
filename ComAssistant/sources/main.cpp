@@ -40,10 +40,10 @@ void outputMessage(QtMsgType type, const QMessageLogContext &context, const QStr
     file.open(QIODevice::WriteOnly | QIODevice::Append);
     QTextStream text_stream(&file);
     if(!first_run){
-        text_stream << endl
+        text_stream << "\r\n"
                     << "-----------New Debug Log @"
                     << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss ddd")
-                    << endl;
+                    << "\r\n";
         first_run = 1;
     }
     text_stream << message << endl;
