@@ -690,7 +690,7 @@ p, li { white-space: pre-wrap; }
     <addaction name="separator"/>
     <addaction name="actionSTM32_ISP"/>
    </widget>
-   <widget class="QMenu" name="plotter">
+   <widget class="QMenu" name="visualizer">
     <property name="title">
      <string>数据可视化</string>
     </property>
@@ -733,7 +733,7 @@ p, li { white-space: pre-wrap; }
    <addaction name="file"/>
    <addaction name="function"/>
    <addaction name="settings"/>
-   <addaction name="plotter"/>
+   <addaction name="visualizer"/>
    <addaction name="help"/>
   </widget>
   <action name="actionAbout">

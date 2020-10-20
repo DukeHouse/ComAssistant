@@ -150,11 +150,9 @@ private slots:
     //contextMenuRequested
     void on_textBrowser_customContextMenuRequested(const QPoint &pos);
     void clearTextBrowserSlot();
-
     void on_valueDisplay_customContextMenuRequested(const QPoint &pos);
     void deleteValueDisplayRowSlot();
     void deleteValueDisplaySlot();
-
     void on_multiString_customContextMenuRequested(const QPoint &pos);
     void editSeedSlot();
     void deleteSeedSlot();
@@ -173,6 +171,8 @@ private:
     int32_t parseDatFile(QString path, bool removeAfterRead);
     void recordDataToFile(QByteArray &buff);
     void readRecorderFile();
+    void setVisualizerTitle(void);
+    void resetVisualizerTitle(void);
     Ui::MainWindow *ui;
     mySerialPort serial;
 
