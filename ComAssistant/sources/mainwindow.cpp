@@ -324,9 +324,6 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(splitter_io, SIGNAL(splitterMoved(int, int)), this, SLOT(splitterMovedSlot(int, int)));
     connect(splitter_output, SIGNAL(splitterMoved(int, int)), this, SLOT(splitterMovedSlot(int, int)));
 
-    //读取配置（所有资源加->完成后、动作执行前读取）
-    readConfig();
-
     //显示收发统计
     serial.resetCnt();
     statusStatisticLabel->setText(serial.getTxRxString());
@@ -358,6 +355,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     this->setWindowTitle(tr("纸飞机串口助手") + " - V"+Config::getVersion());
 
+    //接受拖入文件的动作
     this->setAcceptDrops(true);
 
     //启动定时器
@@ -375,6 +373,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //显示界面
     this->show();
+
+    //读取配置（所有资源加载完成后读取，有些配置需要根据可见性改变所以显示后读取）
+    readConfig();
 
     //调整窗体布局
     adjustLayout();
@@ -2046,6 +2047,35 @@ void MainWindow::clearSeedsSlot()
     ui->multiString->clear();
 }
 
+//更新数据可视化按钮的标题
+void MainWindow::setVisualizerTitle(void)
+{
+    if(ui->actionAscii->isChecked()){
+        if(ui->actionSumCheck->isChecked())
+            ui->visualizer->setTitle(tr("数据可视化：ASCII协议(和校验)"));
+        else
+            ui->visualizer->setTitle(tr("数据可视化：ASCII协议"));
+    }
+    else if(ui->actionFloat->isChecked()){
+        if(ui->actionSumCheck->isChecked())
+            ui->visualizer->setTitle(tr("数据可视化：FLOAT协议(和校验)"));
+        else
+            ui->visualizer->setTitle(tr("数据可视化：FLOAT协议"));
+    }
+}
+
+void MainWindow::resetVisualizerTitle(void)
+{
+    if(ui->customPlot->isVisible() ||
+       ui->valueDisplay->isVisible() ||
+       (fft_window && fft_window->isVisible()))
+    {
+        return;
+    }
+
+    ui->visualizer->setTitle(tr("数据可视化"));
+}
+
 /*
  * Function:绘图器开关
 */
@@ -2053,25 +2083,10 @@ void MainWindow::on_actionPlotterSwitch_triggered(bool checked)
 {   
     if(checked){
         ui->customPlot->show();
-
-        if(ui->actionAscii->isChecked()){
-            if(ui->actionSumCheck->isChecked())
-                ui->plotter->setTitle(tr("数据可视化：ASCII协议(和校验)"));
-            else
-                ui->plotter->setTitle(tr("数据可视化：ASCII协议"));
-        }
-        else if(ui->actionFloat->isChecked()){
-            if(ui->actionSumCheck->isChecked())
-                ui->plotter->setTitle(tr("数据可视化：FLOAT协议(和校验)"));
-            else
-                ui->plotter->setTitle(tr("数据可视化：FLOAT协议"));
-        }
-//        ui->actionFFTShow->setEnabled(true);
+        setVisualizerTitle();
     }else{
         ui->customPlot->hide();
-
-        ui->plotter->setTitle(tr("数据可视化"));
-//        ui->actionFFTShow->setEnabled(false);
+        resetVisualizerTitle();
     }
 
     adjustLayout();
@@ -2156,28 +2171,19 @@ void MainWindow::on_actionAscii_triggered(bool checked)
     ui->actionAscii->setChecked(true);
     ui->actionFloat->setChecked(false);
 
-    if(ui->actionPlotterSwitch->isChecked()){
-        if(ui->actionSumCheck->isChecked())
-            ui->plotter->setTitle(tr("数据可视化：ASCII协议(和校验)"));
-        else
-            ui->plotter->setTitle(tr("数据可视化：ASCII协议"));
-    }
+    setVisualizerTitle();
 }
 
 void MainWindow::on_actionFloat_triggered(bool checked)
 {
-    checked = !!checked;
+    Q_UNUSED(checked)
+
     ui->customPlot->protocol->clearBuff();
     ui->customPlot->protocol->setProtocolType(DataProtocol::Float);
     ui->actionAscii->setChecked(false);
     ui->actionFloat->setChecked(true);
 
-    if(ui->actionPlotterSwitch->isChecked()){
-        if(ui->actionSumCheck->isChecked())
-            ui->plotter->setTitle(tr("数据可视化：FLOAT协议(和校验)"));
-        else
-            ui->plotter->setTitle(tr("数据可视化：FLOAT协议"));
-    }
+    setVisualizerTitle();
 }
 
 void MainWindow::on_actiondebug_triggered(bool checked)
@@ -2672,8 +2678,10 @@ void MainWindow::on_actionValueDisplay_triggered(bool checked)
 {
     if(checked){
         ui->valueDisplay->show();
+        setVisualizerTitle();
     }else{
         ui->valueDisplay->hide();
+        resetVisualizerTitle();
     }
 
     adjustLayout();
@@ -2895,21 +2903,7 @@ void MainWindow::on_actionSumCheck_triggered(bool checked)
 {
     ui->actionSumCheck->setChecked(checked);
     g_enableSumCheck = checked;
-    if(checked){
-        if(ui->actionPlotterSwitch->isChecked()){
-            if(ui->actionAscii->isChecked())
-                ui->plotter->setTitle(tr("数据可视化：ASCII协议(和校验)"));
-            else if(ui->actionFloat->isChecked())
-                ui->plotter->setTitle(tr("数据可视化：FLOAT协议(和校验)"));
-        }
-    }else{
-        if(ui->actionPlotterSwitch->isChecked()){
-            if(ui->actionAscii->isChecked())
-                ui->plotter->setTitle(tr("数据可视化：ASCII协议"));
-            else if(ui->actionFloat->isChecked())
-                ui->plotter->setTitle(tr("数据可视化：FLOAT协议"));
-        }
-    }
+    setVisualizerTitle();
 }
 
 void MainWindow::on_actionPopupHotkey_triggered()
@@ -3150,9 +3144,11 @@ void MainWindow::on_actionFFTShow_triggered(bool checked)
         QPoint pos = QPoint(this->pos().x() + this->geometry().width(), this->pos().y());
         fft_window->move(pos);
         fft_window->setVisible(true);
+        setVisualizerTitle();
         return;
     }
     fft_window->setVisible(false);
+    resetVisualizerTitle();//要放在setVisible后面
     return;
 }
 
