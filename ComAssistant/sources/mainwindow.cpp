@@ -66,7 +66,9 @@ void MainWindow::readConfig()
 
     //发送注释
     on_actionSendComment_triggered(Config::getSendComment());
-    on_actionTeeLevel2NameSupport_triggered(Config::getTeeLevel2Name());
+    //文本解析引擎
+    on_actionTeeSupport_triggered(Config::getTeeSupport());
+    on_actionTeeLevel2NameSupport_triggered(Config::getTeeLevel2NameSupport());
 
     //回车风格
     if(Config::getEnterStyle() == EnterStyle_e::WinStyle){
@@ -796,7 +798,8 @@ MainWindow::~MainWindow()
         Config::setBackGroundColor(g_background_color);
         Config::setPopupHotKey(g_popupHotKeySequence);
         Config::setSendComment(ui->actionSendComment->isChecked());
-        Config::setTeeLevel2Name(p_textExtract->getLevel2NameSupport());
+        Config::setTeeSupport(textExtractEnable);
+        Config::setTeeLevel2NameSupport(p_textExtract->getLevel2NameSupport());
 
         //serial 只保存成功打开过的
         Config::setPortName(serial.portName());
@@ -1053,7 +1056,8 @@ void MainWindow::readSerialPort()
     }
 
     //数据交付给文本解析引擎(追加数据和解析分开防止高频解析带来的CPU压力)
-    emit tee_appendData(tmpReadBuff);
+    if(textExtractEnable)
+        emit tee_appendData(tmpReadBuff);
 
     if(ui->actionPlotterSwitch->isChecked() ||
        ui->actionValueDisplay->isChecked() ||
@@ -1129,7 +1133,8 @@ void MainWindow::printToTextBrowser()
     }
 
     //触发文本提取引擎解析
-    emit tee_parseData();
+    if(textExtractEnable)
+        emit tee_parseData();
 
     //触发绘图器解析
     if(ui->actionPlotterSwitch->isChecked() ||
@@ -1693,7 +1698,7 @@ void MainWindow::on_actionSaveOriginData_triggered()
     }
 
     //子窗口数据由其线程负责存储
-    if(tabName != MAIN_TAB_NAME){
+    if(textExtractEnable && tabName != MAIN_TAB_NAME){
         emit tee_saveData(savePath, tabName, true);
         return;
     }
@@ -1860,7 +1865,7 @@ void MainWindow::on_actionSaveShowedData_triggered()
     }
 
     //标签页的数据保存由其线程自己负责
-    if(tabName != MAIN_TAB_NAME){
+    if(textExtractEnable && tabName != MAIN_TAB_NAME){
         emit tee_saveData(savePath, tabName, false);
         return;
     }
@@ -3167,4 +3172,11 @@ void MainWindow::on_actionTeeLevel2NameSupport_triggered(bool checked)
 {
     p_textExtract->setLevel2NameSupport(checked);
     ui->actionTeeLevel2NameSupport->setChecked(checked);
+}
+
+void MainWindow::on_actionTeeSupport_triggered(bool checked)
+{
+    ui->actionTeeSupport->setChecked(checked);
+    ui->actionTeeLevel2NameSupport->setEnabled(checked);
+    textExtractEnable = checked;
 }
