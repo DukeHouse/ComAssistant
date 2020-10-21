@@ -61,9 +61,6 @@ void MainWindow::readConfig()
     Config::setVersion();
     Config::setStartTime(QDateTime::currentDateTime().toString("yyyyMMddhhmmss"));
 
-    //注册全局呼出快捷键
-    registPopupHotKey(Config::getPopupHotKey());
-
     //发送注释
     on_actionSendComment_triggered(Config::getSendComment());
     //文本解析引擎
@@ -189,6 +186,9 @@ void MainWindow::readConfig()
         on_actionLinePlot_triggered();
         break;
     }
+
+    //注册全局呼出快捷键
+    registPopupHotKey(Config::getPopupHotKey());
 }
 
 void MainWindow::adjustLayout()
