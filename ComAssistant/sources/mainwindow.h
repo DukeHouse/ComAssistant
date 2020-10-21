@@ -105,6 +105,7 @@ private slots:
     void on_actionSTM32_ISP_triggered();
     void on_actionPopupHotkey_triggered();
     void on_actionSendComment_triggered(bool checked);
+    void on_actionTeeSupport_triggered(bool checked);
     void on_actionTeeLevel2NameSupport_triggered(bool checked);
 
     //setting
@@ -229,6 +230,7 @@ private:
     int characterCount = 0; //可显示字符数
 
     //文本提取引擎
+    bool textExtractEnable = true;
     const QString MAIN_TAB_NAME = "main";
     QThread *p_textExtractThread;
     TextExtractEngine *p_textExtract;

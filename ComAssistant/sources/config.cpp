@@ -38,6 +38,7 @@ void Config::writeDefault(){
     iniFile->setValue(SECTION_GLOBAL+KEY_BACKGROUNDCOLOR, defaultColor);
     iniFile->setValue(SECTION_GLOBAL+KEY_POPUPHOTKEY, "Shift+Alt+C");
     iniFile->setValue(SECTION_GLOBAL+KEY_SENDCOMMENT, false);
+    iniFile->setValue(SECTION_GLOBAL+KEY_TEE_Support, true);
     iniFile->setValue(SECTION_GLOBAL+KEY_TEE_LEVEL2_NAME, false);
 
     iniFile->setValue(SECTION_SERIAL+KEY_PORTNAME, "");
@@ -459,14 +460,28 @@ bool Config::getSendComment()
     delete iniFile;
     return value;
 }
-void Config::setTeeLevel2Name(bool enable)
+void Config::setTeeSupport(bool enable)
+{
+    createDefaultIfNotExist();
+    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
+    iniFile->setValue(SECTION_GLOBAL+KEY_TEE_Support, enable);
+    delete iniFile;
+}
+bool Config::getTeeSupport()
+{
+    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
+    bool value = iniFile->value(SECTION_GLOBAL+KEY_TEE_Support, true).toBool();
+    delete iniFile;
+    return value;
+}
+void Config::setTeeLevel2NameSupport(bool enable)
 {
     createDefaultIfNotExist();
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
     iniFile->setValue(SECTION_GLOBAL+KEY_TEE_LEVEL2_NAME, enable);
     delete iniFile;
 }
-bool Config::getTeeLevel2Name()
+bool Config::getTeeLevel2NameSupport()
 {
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
     bool value = iniFile->value(SECTION_GLOBAL+KEY_TEE_LEVEL2_NAME, false).toBool();

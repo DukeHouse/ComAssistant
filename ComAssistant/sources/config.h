@@ -40,6 +40,7 @@
 #define KEY_BACKGROUNDCOLOR     QString("BackGroudColor")
 #define KEY_POPUPHOTKEY         QString("PopUpHotKey")
 #define KEY_SENDCOMMENT         QString("SendCommentEnable")
+#define KEY_TEE_Support         QString("TeeEnable")
 #define KEY_TEE_LEVEL2_NAME     QString("TeeLevel2NameEnable")
 
 //serial键
@@ -174,8 +175,10 @@ public:
     static QString getPopupHotKey();
     static void setSendComment(bool enable);
     static bool getSendComment();
-    static void setTeeLevel2Name(bool enable);
-    static bool getTeeLevel2Name();
+    static void setTeeSupport(bool enable);
+    static bool getTeeSupport();
+    static void setTeeLevel2NameSupport(bool enable);
+    static bool getTeeLevel2NameSupport();
 
     //plotter
     static void setPlotterState(bool checked);

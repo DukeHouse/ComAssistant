@@ -686,6 +686,7 @@ p, li { white-space: pre-wrap; }
     <addaction name="actionMultiString"/>
     <addaction name="actionSendComment"/>
     <addaction name="separator"/>
+    <addaction name="actionTeeSupport"/>
     <addaction name="actionTeeLevel2NameSupport"/>
     <addaction name="separator"/>
     <addaction name="actionSTM32_ISP"/>
@@ -838,7 +839,7 @@ p, li { white-space: pre-wrap; }
     <bool>true</bool>
    </property>
    <property name="checked">
-    <bool>true</bool>
+    <bool>false</bool>
    </property>
    <property name="text">
     <string>多字符串</string>
@@ -1072,6 +1073,20 @@ p, li { white-space: pre-wrap; }
    </property>
    <property name="statusTip">
     <string>二级分类支持，例{name1:{name2}hello world}\n</string>
+   </property>
+  </action>
+  <action name="actionTeeSupport">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>分类解析引擎</string>
+   </property>
+   <property name="statusTip">
+    <string>勾选以使能文本分类显示功能。例{name:text contain}\n</string>
    </property>
   </action>
  </widget>
