@@ -32,6 +32,8 @@ private slots:
 
     void on_email_linkActivated(const QString &link);
 
+    void on_QtUrl_linkActivated(const QString &link);
+
 private:
     Ui::About_Me_Dialog *ui;
 };
