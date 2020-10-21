@@ -68,3 +68,8 @@ void About_Me_Dialog::on_email_linkActivated(const QString &link)
 {
     QDesktopServices::openUrl(QUrl(link));
 }
+
+void About_Me_Dialog::on_QtUrl_linkActivated(const QString &link)
+{
+    QDesktopServices::openUrl(QUrl(link));
+}
