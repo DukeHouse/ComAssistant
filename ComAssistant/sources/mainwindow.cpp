@@ -1698,7 +1698,7 @@ void MainWindow::on_actionSaveOriginData_triggered()
     }
 
     //子窗口数据由其线程负责存储
-    if(textExtractEnable && tabName != MAIN_TAB_NAME){
+    if(tabName != MAIN_TAB_NAME){
         emit tee_saveData(savePath, tabName, true);
         return;
     }
@@ -1865,7 +1865,7 @@ void MainWindow::on_actionSaveShowedData_triggered()
     }
 
     //标签页的数据保存由其线程自己负责
-    if(textExtractEnable && tabName != MAIN_TAB_NAME){
+    if(tabName != MAIN_TAB_NAME){
         emit tee_saveData(savePath, tabName, false);
         return;
     }
