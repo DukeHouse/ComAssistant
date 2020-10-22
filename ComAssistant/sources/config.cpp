@@ -117,10 +117,7 @@ void Config::setVersion(void){
     delete iniFile;
 }
 QString Config::getVersion(){
-    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    QString value = iniFile->value(SECTION_ABOUT+KEY_VERSION, VERSION_STRING).toString();
-    delete iniFile;
-    return value;
+    return VERSION_STRING;
 }
 int32_t Config::getVersionNumber()
 {
