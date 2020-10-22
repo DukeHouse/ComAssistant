@@ -424,6 +424,7 @@ void FFT_Dialog::clearGraphs()
         fft_layer.last()->removeFromLegend(ui->plotter->legend);
         fft_layer.pop_back();
     }
+    fft_cal_point_changed_tips = ui->cal_point->currentText().toInt();
     ui->plotter->replot();
 }
 
