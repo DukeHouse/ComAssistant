@@ -277,7 +277,7 @@ void HTTP::httpFinishedSlot(QNetworkReply *)
 //                        QDesktopServices::openUrl(QUrl("https://github.com/inhowe/ComAssistant/releases"));
                     }
                 }
-                parent->setWindowTitle("串口调试助手 发现新版本：V"+remoteVersion);
+                parent->setWindowTitle("纸飞机串口助手 当前版本：V" + localVersion + " 发现新版本：V" + remoteVersion);
             }else{
                 if(state == GetVersion || GetVersion_failed>0){
                     GetVersion_failed = 0;
