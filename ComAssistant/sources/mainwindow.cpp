@@ -397,13 +397,6 @@ MainWindow::MainWindow(QWidget *parent) :
 void MainWindow::closeEvent(QCloseEvent *event)
 {
     Q_UNUSED(event);
-
-    //点击关闭时删除记录文件
-    QFile recorderFile(RECORDER_FILE_PATH);
-    if(recorderFile.exists())
-    {
-        recorderFile.remove();
-    }
 }
 
 //打开可交互控件
@@ -869,6 +862,12 @@ MainWindow::~MainWindow()
     delete ui;
     delete http;
     delete g_popupHotkey;
+
+    QFile recorderFile(RECORDER_FILE_PATH);
+    if(recorderFile.exists())
+    {
+        recorderFile.remove();
+    }
     qDebug()<<"~MainWindow";
 }
 
