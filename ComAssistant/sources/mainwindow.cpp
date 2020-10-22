@@ -1502,7 +1502,7 @@ void MainWindow::on_clearWindows_clicked()
     ui->customPlot->replot();
 
     //fft
-    fft_window->clearGraph(-1);
+    fft_window->clearGraphs();
 
     //数值显示器
     deleteValueDisplaySlot();
