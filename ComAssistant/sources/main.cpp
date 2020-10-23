@@ -36,19 +36,45 @@ void outputMessage(QtMsgType type, const QMessageLogContext &context, const QStr
     current_date = QString("%1").arg(current_date_time);
     QString message = QString("[%1][%2] %3").arg(text).arg(current_date).arg(msg);
 
+    QString log_header = "-----------New Debug Log @";
     QFile file("ComAssistantDebug.txt");
     file.open(QIODevice::WriteOnly | QIODevice::Append);
     QTextStream text_stream(&file);
+    //首次运行添加log头
     if(!first_run){
         text_stream << "\r\n"
-                    << "-----------New Debug Log @"
+                    << log_header
                     << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss ddd")
                     << "\r\n";
-        first_run = 1;
     }
     text_stream << message << endl;
     file.flush();
     file.close();
+
+    //文件大小限制(超出大小的将按log_header进行删除)
+    if(!first_run && file.size() > 1024*1024)
+    {
+        QByteArray temp;
+        file.open(QIODevice::ReadWrite);
+        temp = file.readAll();
+        //至少2个log记录
+        if(temp.indexOf(log_header) != -1 && temp.indexOf(log_header, log_header.size()) != -1)
+        {
+            file.close();
+            temp = temp.mid(log_header.size());
+            temp = temp.mid(temp.indexOf(log_header));
+            file.open(QIODevice::ReadWrite|QIODevice::Truncate);
+        }
+        else
+        {
+            temp.clear();
+        }
+        file.write(temp);
+        file.flush();
+        file.close();
+    }
+    first_run = 1;
+
     mutex.unlock();
 }
 

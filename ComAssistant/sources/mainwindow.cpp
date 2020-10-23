@@ -498,7 +498,10 @@ void MainWindow::readRecorderFile()
     {
         qint32 button;
         button = QMessageBox::information(this, tr("提示"),
-                                          tr("检测到记录数据文件，可能是上次未正确关闭程序导致的，恢复数据还是丢弃？"),
+                                          tr("检测到数据记录文件，可能是上次未正确关闭程序导致的。") + "\n\n" +
+                                          tr("点击Ok恢复上次数据") + "\n" +
+                                          tr("点击Discard丢弃上次数据") + "\n" +
+                                          tr("点击Cancel自行处理上次数据") + "\n",
                                           QMessageBox::Ok, QMessageBox::Discard, QMessageBox::Cancel);
         if(button == QMessageBox::Discard)
         {
