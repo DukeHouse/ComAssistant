@@ -17,12 +17,12 @@
 //默认发送间隔
 #define DEFAULT_SEND_INTERVAL   100
 //节
-#define SECTION_GLOBAL    QString("Global/")
-#define SECTION_SERIAL    QString("Serial/")
-#define SECTION_MULTISTR  QString("MultiStr/")
-#define SECTION_PLOTTER   QString("Plotter/")
-#define SECTION_STATIC    QString("Static/")
-#define SECTION_ABOUT     QString("About/")
+#define SECTION_GLOBAL      QString("Global/")
+#define SECTION_SERIAL      QString("Serial/")
+#define SECTION_MULTISTR    QString("MultiStr/")
+#define SECTION_PLOTTER     QString("Plotter/")
+#define SECTION_STATISTIC   QString("Statistic/")
+#define SECTION_ABOUT       QString("About/")
 
 //global键
 #define KEY_FIRSTRUN            QString("FirstRun")
@@ -67,7 +67,7 @@
 #define KEY_LINETYPE            QString("LineType")
 //#define KEY_XRANGELENGH         QString("xRangeLength")
 
-//static键
+//statistic键
 #define KEY_STARTTIME       QString("StartTime")
 #define KEY_LASTRUNTIME     QString("LastRunTime")
 #define KEY_TOTALRUNTIME    QString("TotalRunTime")
