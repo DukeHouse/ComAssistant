@@ -730,6 +730,8 @@ void MainWindow::debugTimerSlot()
     num4 = static_cast<float>(1.2 * qSin(2 * PI * (FRQ-4) * (debugTimerSlotCnt / DEBUG_TIMER_FRQ))) +
            static_cast<float>(1.2 * qSin(2 * PI * (FRQ+4) * (debugTimerSlotCnt / DEBUG_TIMER_FRQ)));
     if(ui->actionAscii->isChecked()){
+        if(ui->actionTimeStampMode->isChecked())
+            num1 = debugTimerSlotCnt;
         QString tmp;
         tmp = "{plotter:" +
                   QString::number(static_cast<double>(num1),'f') + "," +
@@ -3181,4 +3183,10 @@ void MainWindow::on_actionTeeSupport_triggered(bool checked)
     ui->actionTeeSupport->setChecked(checked);
     ui->actionTeeLevel2NameSupport->setEnabled(checked);
     textExtractEnable = checked;
+}
+
+void MainWindow::on_actionTimeStampMode_triggered(bool checked)
+{
+    ui->actionTimeStampMode->setChecked(checked);
+    ui->customPlot->plotControl->setEnableTimeStampMode(checked);
 }

@@ -27,14 +27,14 @@ public:
     QCustomPlotControl();
     ~QCustomPlotControl();
     QCustomPlotControl(MyQCustomPlot* plot, FFT_Dialog *window);//不知道为啥用了会崩溃
-
+    void setEnableTimeStampMode(bool enable);
     bool addGraph(int num=1);
     //清除指定曲线，-1清除所有曲线
     void clearPlotter(int index);
     //调整x轴范围
 //    void adjustXRange(const QCPRange& qcpRange);
 //    void adjustXRange(bool enlarge);
-    //把数据显示到绘图器上
+    //把数据添加到绘图器里（不刷新图像）
     bool addDataToPlotter(const QVector<double>& rowData, qint32 xSource);
 //    设置字体
     void setupFont(QFont font);
@@ -84,6 +84,7 @@ private:
 //    AxisTag *mTag1;   //动态标签
     long int xAxisCnt = 0;
     LineType_e lineType = Line; //线型种类
+    bool enableTimeStampMode = false;
 
     //设置点风格
     void setupScatterStyle(bool enable=false);

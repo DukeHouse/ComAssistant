@@ -720,6 +720,7 @@ p, li { white-space: pre-wrap; }
      <addaction name="actionOpenGL"/>
      <addaction name="separator"/>
      <addaction name="actionSelectXAxis"/>
+     <addaction name="actionTimeStampMode"/>
     </widget>
     <addaction name="actionPlotterSwitch"/>
     <addaction name="plotterSetting"/>
@@ -1087,6 +1088,17 @@ p, li { white-space: pre-wrap; }
    </property>
    <property name="statusTip">
     <string>勾选以使能文本分类显示功能。例{name:text contain}\n</string>
+   </property>
+  </action>
+  <action name="actionTimeStampMode">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>时间戳模式</string>
+   </property>
+   <property name="statusTip">
+    <string>需要选择一条曲线作为时间戳数据</string>
    </property>
   </action>
  </widget>
