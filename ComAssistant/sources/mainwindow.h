@@ -133,6 +133,7 @@ private slots:
     void on_actionOpenGL_triggered(bool checked);
     void on_actionAutoRefreshYAxis_triggered(bool checked);
     void on_actionSelectXAxis_triggered(bool checked);
+    void on_actionTimeStampMode_triggered(bool checked);
 
     //help
     void on_actionManual_triggered();

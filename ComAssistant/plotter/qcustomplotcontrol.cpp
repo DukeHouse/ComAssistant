@@ -70,6 +70,11 @@ QCustomPlotControl::~QCustomPlotControl()
 
 }
 
+void QCustomPlotControl::setEnableTimeStampMode(bool enable)
+{
+    enableTimeStampMode = enable;
+}
+
 int QCustomPlotControl::getMaxValidGraphNumber()
 {
     return colorSet.size();
@@ -193,6 +198,10 @@ bool QCustomPlotControl::addDataToPlotter(const QVector<double>& rowData, qint32
     default:
         for(int i = 0; i < minCnt; i++){
             customPlot->graph(i)->addData(rowData.at(xSource - 1), rowData.at(i)); //注意 xSource - 1是因为xSource=1时表示选择第0条曲线，xSource = 0 时表示时间
+        }
+        if(enableTimeStampMode)
+        {
+            customPlot->xAxis->setRange(rowData.at(xSource - 1), xRange.upper - xRange.lower, Qt::AlignRight);
         }
         break;
     }
