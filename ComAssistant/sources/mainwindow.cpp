@@ -3099,6 +3099,13 @@ void MainWindow::on_actionSelectXAxis_triggered(bool checked)
     if(!ok)
         return;
 
+    if(name == tr("递增计数值") && ui->actionTimeStampMode->isChecked())
+    {
+        QMessageBox::information(this, tr("提示"), tr("递增计数值模式下将关闭时间戳模式"));
+        ui->actionTimeStampMode->setChecked(false);
+        ui->customPlot->plotControl->setEnableTimeStampMode(false);
+    }
+
     //选择了新的X轴,更新g_xAxisSource
     for (qint32 i = 0; i < list.size(); i++) {
         if(list.at(i) == name)
@@ -3187,6 +3194,25 @@ void MainWindow::on_actionTeeSupport_triggered(bool checked)
 
 void MainWindow::on_actionTimeStampMode_triggered(bool checked)
 {
+    if(checked && g_xAxisSource == XAxis_Cnt)
+    {
+        QMessageBox::StandardButton button;
+        button = QMessageBox::information(this, tr("提示"), tr("需要选择一条曲线作为时间戳数据"), QMessageBox::Ok, QMessageBox::Cancel);
+        if(!button)
+        {
+            ui->actionTimeStampMode->setChecked(!checked);
+            ui->customPlot->plotControl->setEnableTimeStampMode(!checked);
+            return;
+        }
+        on_actionSelectXAxis_triggered(checked);
+        if(g_xAxisSource == XAxis_Cnt)//弹出窗口但是没有选择
+        {
+            ui->actionTimeStampMode->setChecked(!checked);
+            ui->customPlot->plotControl->setEnableTimeStampMode(!checked);
+            return;
+        }
+    }
     ui->actionTimeStampMode->setChecked(checked);
     ui->customPlot->plotControl->setEnableTimeStampMode(checked);
+    return;
 }
