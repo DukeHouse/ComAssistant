@@ -690,6 +690,7 @@ p, li { white-space: pre-wrap; }
     <addaction name="actionTeeLevel2NameSupport"/>
     <addaction name="separator"/>
     <addaction name="actionSTM32_ISP"/>
+    <addaction name="actionASCIITable"/>
    </widget>
    <widget class="QMenu" name="visualizer">
     <property name="title">
@@ -1099,6 +1100,11 @@ p, li { white-space: pre-wrap; }
    </property>
    <property name="statusTip">
     <string>需要选择一条曲线作为时间戳数据</string>
+   </property>
+  </action>
+  <action name="actionASCIITable">
+   <property name="text">
+    <string>ASCII码表</string>
    </property>
   </action>
  </widget>

@@ -39,6 +39,7 @@
 #include "stm32isp_dialog.h"
 #include "about_me_dialog.h"
 #include "settings_dialog.h"
+#include "ascii_table_dialog.h"
 //文本提取引擎
 #include "text_extract_engine.h"
 //FFT显示
@@ -107,6 +108,7 @@ private slots:
     void on_actionSendComment_triggered(bool checked);
     void on_actionTeeSupport_triggered(bool checked);
     void on_actionTeeLevel2NameSupport_triggered(bool checked);
+    void on_actionASCIITable_triggered();
 
     //setting
     void on_actionCOM_Config_triggered();
