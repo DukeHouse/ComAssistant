@@ -3216,3 +3216,15 @@ void MainWindow::on_actionTimeStampMode_triggered(bool checked)
     ui->customPlot->plotControl->setEnableTimeStampMode(checked);
     return;
 }
+
+void MainWindow::on_actionASCIITable_triggered()
+{
+    static Ascii_Table_Dialog *p = nullptr;
+    if(p)
+    {
+        p->show();
+        return;
+    }
+    p = new Ascii_Table_Dialog(this);
+    p->show();
+}
