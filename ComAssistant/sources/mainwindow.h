@@ -109,6 +109,7 @@ private slots:
     void on_actionTeeSupport_triggered(bool checked);
     void on_actionTeeLevel2NameSupport_triggered(bool checked);
     void on_actionASCIITable_triggered();
+    void on_actionRecorder_triggered(bool checked);
 
     //setting
     void on_actionCOM_Config_triggered();
@@ -173,8 +174,8 @@ private:
     void closeInteractiveUI();
     int32_t divideDataToPacks(QByteArray &input, QByteArrayList &output, int32_t pack_size, bool &divideFlag);
     int32_t parseDatFile(QString path, bool removeAfterRead);
-    void recordDataToFile(QByteArray &buff);
-    void readRecorderFile();
+    int32_t appendDataToFile(QString path, QByteArray &buff);
+    void readRecoveryFile();
     void setVisualizerTitle(void);
     void resetVisualizerTitle(void);
     Ui::MainWindow *ui;
@@ -215,6 +216,9 @@ private:
 
     bool RefreshTextBrowser = true; //数据显示区刷新标记
     bool autoRefreshYAxisFlag;
+
+    QString recorderFilePath = "";
+    QString lastRecorderFilePath = "";
 
     //统计
     int currentRunTime = 0; //运行时间
