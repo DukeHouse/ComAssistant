@@ -38,6 +38,8 @@ void Config::writeDefault(){
     iniFile->setValue(SECTION_GLOBAL+KEY_BACKGROUNDCOLOR, defaultColor);
     iniFile->setValue(SECTION_GLOBAL+KEY_POPUPHOTKEY, "Shift+Alt+C");
     iniFile->setValue(SECTION_GLOBAL+KEY_SENDCOMMENT, false);
+    iniFile->setValue(SECTION_GLOBAL+KEY_TEE_Support, true);
+    iniFile->setValue(SECTION_GLOBAL+KEY_TEE_LEVEL2_NAME, false);
 
     iniFile->setValue(SECTION_SERIAL+KEY_PORTNAME, "");
     iniFile->setValue(SECTION_SERIAL+KEY_BAUDRATE, QSerialPort::Baud115200);
@@ -115,10 +117,7 @@ void Config::setVersion(void){
     delete iniFile;
 }
 QString Config::getVersion(){
-    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    QString value = iniFile->value(SECTION_ABOUT+KEY_VERSION, VERSION_STRING).toString();
-    delete iniFile;
-    return value;
+    return VERSION_STRING;
 }
 int32_t Config::getVersionNumber()
 {
@@ -458,6 +457,34 @@ bool Config::getSendComment()
     delete iniFile;
     return value;
 }
+void Config::setTeeSupport(bool enable)
+{
+    createDefaultIfNotExist();
+    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
+    iniFile->setValue(SECTION_GLOBAL+KEY_TEE_Support, enable);
+    delete iniFile;
+}
+bool Config::getTeeSupport()
+{
+    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
+    bool value = iniFile->value(SECTION_GLOBAL+KEY_TEE_Support, true).toBool();
+    delete iniFile;
+    return value;
+}
+void Config::setTeeLevel2NameSupport(bool enable)
+{
+    createDefaultIfNotExist();
+    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
+    iniFile->setValue(SECTION_GLOBAL+KEY_TEE_LEVEL2_NAME, enable);
+    delete iniFile;
+}
+bool Config::getTeeLevel2NameSupport()
+{
+    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
+    bool value = iniFile->value(SECTION_GLOBAL+KEY_TEE_LEVEL2_NAME, false).toBool();
+    delete iniFile;
+    return value;
+}
 
 //plotter
 void Config::setPlotterState(bool checked){
@@ -604,12 +631,12 @@ qint32 Config::getLineType(){
 void Config::setStartTime(QString time){
     createDefaultIfNotExist();
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    iniFile->setValue(SECTION_STATIC+KEY_STARTTIME, time);
+    iniFile->setValue(SECTION_STATISTIC+KEY_STARTTIME, time);
     delete iniFile;
 }
 QString Config::getStartTime(void){
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    QString value = iniFile->value(SECTION_STATIC+KEY_STARTTIME, QDateTime::currentDateTime().toString("yyyyMMddhhmmss")).toString();
+    QString value = iniFile->value(SECTION_STATISTIC+KEY_STARTTIME, QDateTime::currentDateTime().toString("yyyyMMddhhmmss")).toString();
     delete iniFile;
     return value;
 }
@@ -617,12 +644,12 @@ QString Config::getStartTime(void){
 void Config::setLastRunTime(int sec){
     createDefaultIfNotExist();
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    iniFile->setValue(SECTION_STATIC+KEY_LASTRUNTIME, sec);
+    iniFile->setValue(SECTION_STATISTIC+KEY_LASTRUNTIME, sec);
     delete iniFile;
 }
 QString Config::getLastRunTime(void){
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    QString value = iniFile->value(SECTION_STATIC+KEY_LASTRUNTIME, 0).toString();
+    QString value = iniFile->value(SECTION_STATISTIC+KEY_LASTRUNTIME, 0).toString();
     delete iniFile;
     return value;
 }
@@ -632,12 +659,12 @@ void Config::setTotalRunTime(int currentRunTime){
     int total = getTotalRunTime().toInt();
     total += currentRunTime;
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    iniFile->setValue(SECTION_STATIC+KEY_TOTALRUNTIME, total);
+    iniFile->setValue(SECTION_STATISTIC+KEY_TOTALRUNTIME, total);
     delete iniFile;
 }
 QString Config::getTotalRunTime(void){
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    QString value = iniFile->value(SECTION_STATIC+KEY_TOTALRUNTIME, 0).toString();
+    QString value = iniFile->value(SECTION_STATISTIC+KEY_TOTALRUNTIME, 0).toString();
     delete iniFile;
     return value;
 }
@@ -645,12 +672,12 @@ QString Config::getTotalRunTime(void){
 void Config::setLastTxCnt(int64_t cnt){
     createDefaultIfNotExist();
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    iniFile->setValue(SECTION_STATIC+KEY_LASTTXCNT, cnt);
+    iniFile->setValue(SECTION_STATISTIC+KEY_LASTTXCNT, cnt);
     delete iniFile;
 }
 QString Config::getLastTxCnt(void){
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    QString value = iniFile->value(SECTION_STATIC+KEY_LASTTXCNT, 0).toString();
+    QString value = iniFile->value(SECTION_STATISTIC+KEY_LASTTXCNT, 0).toString();
     delete iniFile;
     return value;
 }
@@ -658,12 +685,12 @@ QString Config::getLastTxCnt(void){
 void Config::setLastRxCnt(int64_t cnt){
     createDefaultIfNotExist();
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    iniFile->setValue(SECTION_STATIC+KEY_LASTRXCNT, cnt);
+    iniFile->setValue(SECTION_STATISTIC+KEY_LASTRXCNT, cnt);
     delete iniFile;
 }
 QString Config::getLastRxCnt(void){
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    QString value = iniFile->value(SECTION_STATIC+KEY_LASTRXCNT, 0).toString();
+    QString value = iniFile->value(SECTION_STATISTIC+KEY_LASTRXCNT, 0).toString();
     delete iniFile;
     return value;
 }
@@ -673,12 +700,12 @@ void Config::setTotalTxCnt(int64_t currentTxCnt){
     int64_t total = getTotalTxCnt().toInt();
     total += currentTxCnt;
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    iniFile->setValue(SECTION_STATIC+KEY_TOTALTXCNT, total);
+    iniFile->setValue(SECTION_STATISTIC+KEY_TOTALTXCNT, total);
     delete iniFile;
 }
 QString Config::getTotalTxCnt(void){
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    QString value = iniFile->value(SECTION_STATIC+KEY_TOTALTXCNT, 0).toString();
+    QString value = iniFile->value(SECTION_STATISTIC+KEY_TOTALTXCNT, 0).toString();
     delete iniFile;
     return value;
 }
@@ -688,12 +715,12 @@ void Config::setTotalRxCnt(int64_t currentRxCnt){
     int64_t total = getTotalRxCnt().toInt();
     total += currentRxCnt;
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    iniFile->setValue(SECTION_STATIC+KEY_TOTALRXCNT, total);
+    iniFile->setValue(SECTION_STATISTIC+KEY_TOTALRXCNT, total);
     delete iniFile;
 }
 QString Config::getTotalRxCnt(void){
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    QString value = iniFile->value(SECTION_STATIC+KEY_TOTALRXCNT, 0).toString();
+    QString value = iniFile->value(SECTION_STATISTIC+KEY_TOTALRXCNT, 0).toString();
     delete iniFile;
     return value;
 }
@@ -703,12 +730,12 @@ void Config::setTotalRunCnt(int64_t runCnt){
     int64_t total = getTotalRunCnt().toInt();
     total += runCnt;
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    iniFile->setValue(SECTION_STATIC+KEY_TOTALRUNCNT, total);
+    iniFile->setValue(SECTION_STATISTIC+KEY_TOTALRUNCNT, total);
     delete iniFile;
 }
 QString Config::getTotalRunCnt(void){
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    QString value = iniFile->value(SECTION_STATIC+KEY_TOTALRUNCNT, 0).toString();
+    QString value = iniFile->value(SECTION_STATISTIC+KEY_TOTALRUNCNT, 0).toString();
     delete iniFile;
     return value;
 }

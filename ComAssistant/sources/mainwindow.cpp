@@ -2,8 +2,8 @@
 #include "ui_mainwindow.h"
 #include <QHotkey>
 
-#define RECORDER_FILE_PATH           "ComAssistantRecorder.dat"
-#define BACKUP_RECORDER_FILE_PATH    "ComAssistantRecorder_back.dat"
+#define RECOVERY_FILE_PATH           "ComAssistantRecovery.dat"
+#define BACKUP_RECOVERY_FILE_PATH    "ComAssistantRecovery_back.dat"
 
 static qint32   g_xAxisSource = XAxis_Cnt;
 static qint32   g_multiStr_cur_index;
@@ -61,11 +61,11 @@ void MainWindow::readConfig()
     Config::setVersion();
     Config::setStartTime(QDateTime::currentDateTime().toString("yyyyMMddhhmmss"));
 
-    //注册全局呼出快捷键
-    registPopupHotKey(Config::getPopupHotKey());
-
     //发送注释
     on_actionSendComment_triggered(Config::getSendComment());
+    //文本解析引擎
+    on_actionTeeSupport_triggered(Config::getTeeSupport());
+    on_actionTeeLevel2NameSupport_triggered(Config::getTeeLevel2NameSupport());
 
     //回车风格
     if(Config::getEnterStyle() == EnterStyle_e::WinStyle){
@@ -186,6 +186,9 @@ void MainWindow::readConfig()
         on_actionLinePlot_triggered();
         break;
     }
+
+    //注册全局呼出快捷键
+    registPopupHotKey(Config::getPopupHotKey());
 }
 
 void MainWindow::adjustLayout()
@@ -294,6 +297,24 @@ MainWindow::MainWindow(QWidget *parent) :
                          &g_xAxisSource, &autoRefreshYAxisFlag,
                          fft_window);
 
+    //文本提取引擎初始化
+    qDebug() << "Main threadID :" << QThread::currentThreadId();
+    p_textExtractThread = new QThread(this);
+    p_textExtract       = new TextExtractEngine();
+    p_textExtract->moveToThread(p_textExtractThread);
+    connect(p_textExtractThread, SIGNAL(finished()), p_textExtract, SLOT(deleteLater()));
+    connect(this, SIGNAL(tee_appendData(const QByteArray &)), p_textExtract, SLOT(appendData(const QByteArray &)));
+    connect(this, SIGNAL(tee_parseData()), p_textExtract, SLOT(parseData()));
+    connect(this, SIGNAL(tee_clearData(const QString &)), p_textExtract, SLOT(clearData(const QString )));
+    connect(this, SIGNAL(tee_saveData(const QString &, const QString &, const bool& )),
+            p_textExtract, SLOT(saveData(const QString &, const QString &, const bool& )));
+    connect(p_textExtract, SIGNAL(textGroupsUpdate(const QString &, const QByteArray &)),
+            this, SLOT(tee_textGroupsUpdate(const QString &, const QByteArray &)));
+    connect(p_textExtract, SIGNAL(saveDataResult(const qint32&, const QString &, const qint32 )),
+            this, SLOT(tee_saveDataResult(const qint32&, const QString &, const qint32 )));
+
+    p_textExtractThread->start();
+
     //http
     http = new HTTP(this);
 
@@ -304,9 +325,6 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->splitter_display, SIGNAL(splitterMoved(int, int)), this, SLOT(splitterMovedSlot(int, int)));
     connect(splitter_io, SIGNAL(splitterMoved(int, int)), this, SLOT(splitterMovedSlot(int, int)));
     connect(splitter_output, SIGNAL(splitterMoved(int, int)), this, SLOT(splitterMovedSlot(int, int)));
-
-    //读取配置（所有资源加->完成后、动作执行前读取）
-    readConfig();
 
     //显示收发统计
     serial.resetCnt();
@@ -339,6 +357,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     this->setWindowTitle(tr("纸飞机串口助手") + " - V"+Config::getVersion());
 
+    //接受拖入文件的动作
     this->setAcceptDrops(true);
 
     //启动定时器
@@ -354,26 +373,11 @@ MainWindow::MainWindow(QWidget *parent) :
     //计时器
     g_lastSecsSinceEpoch = QDateTime::currentSecsSinceEpoch();
 
-    //文本提取引擎初始化
-    qDebug() << "Main threadID :" << QThread::currentThreadId();
-    p_textExtractThread = new QThread(this);
-    p_textExtract       = new TextExtractEngine();
-    p_textExtract->moveToThread(p_textExtractThread);
-    connect(p_textExtractThread, SIGNAL(finished()), p_textExtract, SLOT(deleteLater()));
-    connect(this, SIGNAL(tee_appendData(const QByteArray &)), p_textExtract, SLOT(appendData(const QByteArray &)));
-    connect(this, SIGNAL(tee_parseData()), p_textExtract, SLOT(parseData()));
-    connect(this, SIGNAL(tee_clearData(const QString &)), p_textExtract, SLOT(clearData(const QString )));
-    connect(this, SIGNAL(tee_saveData(const QString &, const QString &, const bool& )),
-            p_textExtract, SLOT(saveData(const QString &, const QString &, const bool& )));
-    connect(p_textExtract, SIGNAL(textGroupsUpdate(const QString &, const QByteArray &)),
-            this, SLOT(tee_textGroupsUpdate(const QString &, const QByteArray &)));
-    connect(p_textExtract, SIGNAL(saveDataResult(const qint32&, const QString &, const qint32 )),
-            this, SLOT(tee_saveDataResult(const qint32&, const QString &, const qint32 )));
-
-    p_textExtractThread->start();
-
     //显示界面
     this->show();
+
+    //读取配置（所有资源加载完成后读取，有些配置需要根据可见性改变所以显示后读取）
+    readConfig();
 
     //调整窗体布局
     adjustLayout();
@@ -386,20 +390,13 @@ MainWindow::MainWindow(QWidget *parent) :
         on_actionAbout_triggered();        
     }
 
-    readRecorderFile();
+    readRecoveryFile();
 
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
     Q_UNUSED(event);
-
-    //点击关闭时删除记录文件
-    QFile recorderFile(RECORDER_FILE_PATH);
-    if(recorderFile.exists())
-    {
-        recorderFile.remove();
-    }
 }
 
 //打开可交互控件
@@ -493,44 +490,47 @@ int32_t MainWindow::parseDatFile(QString path, bool removeAfterRead)
     return 0;
 }
 
-//启动时检测有无记录数据文件
-void MainWindow::readRecorderFile()
+//启动时检测有无数据恢复文件
+void MainWindow::readRecoveryFile()
 {
-    QFile recorderFile(RECORDER_FILE_PATH);
-    if(recorderFile.exists() && recorderFile.size())
+    QFile recoveryFile(RECOVERY_FILE_PATH);
+    if(recoveryFile.exists() && recoveryFile.size())
     {
         qint32 button;
         button = QMessageBox::information(this, tr("提示"),
-                                          tr("检测到记录数据文件，可能是上次未正确关闭程序导致的，恢复数据还是丢弃？"),
+                                          tr("检测到数据恢复文件，可能是上次未正确关闭程序导致的。") + "\n\n" +
+                                          tr("点击Ok重新加载上次数据") + "\n" +
+                                          tr("点击Discard丢弃上次数据") + "\n" +
+                                          tr("点击Cancel自行处理上次数据") + "\n",
                                           QMessageBox::Ok, QMessageBox::Discard, QMessageBox::Cancel);
         if(button == QMessageBox::Discard)
         {
-            recorderFile.remove();
+            recoveryFile.remove();
         }
         else if(button == QMessageBox::Cancel)
         {
             //重命名前确保没有含新名字的文件
-            QFile backFile(BACKUP_RECORDER_FILE_PATH);
+            QFile backFile(BACKUP_RECOVERY_FILE_PATH);
             if(backFile.exists())
                 backFile.remove();
             if(backFile.exists())
             {
                 QMessageBox::information(this, tr("提示"),
-                                        tr("旧备份记录数据文件删除失败，请自行处理：") + BACKUP_RECORDER_FILE_PATH);
+                                        tr("旧备份恢复数据文件删除失败，请自行处理：") + BACKUP_RECOVERY_FILE_PATH);
                 return;
             }
             //重命名
-            recorderFile.rename(BACKUP_RECORDER_FILE_PATH);
+            recoveryFile.rename(BACKUP_RECOVERY_FILE_PATH);
             QDir appDir(QCoreApplication::applicationDirPath());
             QMessageBox::information(this, tr("提示"),
-                                     tr("记录数据文件已另存到程序所在目录：") + "\n" +
-                                     appDir.absoluteFilePath(BACKUP_RECORDER_FILE_PATH) + "\n" +
+                                     tr("数据恢复文件已另存到程序所在目录：") + "\n" +
+                                     appDir.absoluteFilePath(BACKUP_RECOVERY_FILE_PATH) + "\n" +
                                      tr("请自行处理。"));
         }
         else if(button == QMessageBox::Ok)
         {
             //读文件
-            parseDatFile(RECORDER_FILE_PATH, true);
+            parseDatFile(RECOVERY_FILE_PATH, true);
         }
     }
 }
@@ -730,6 +730,8 @@ void MainWindow::debugTimerSlot()
     num4 = static_cast<float>(1.2 * qSin(2 * PI * (FRQ-4) * (debugTimerSlotCnt / DEBUG_TIMER_FRQ))) +
            static_cast<float>(1.2 * qSin(2 * PI * (FRQ+4) * (debugTimerSlotCnt / DEBUG_TIMER_FRQ)));
     if(ui->actionAscii->isChecked()){
+        if(ui->actionTimeStampMode->isChecked())
+            num1 = debugTimerSlotCnt;
         QString tmp;
         tmp = "{plotter:" +
                   QString::number(static_cast<double>(num1),'f') + "," +
@@ -794,6 +796,8 @@ MainWindow::~MainWindow()
         Config::setBackGroundColor(g_background_color);
         Config::setPopupHotKey(g_popupHotKeySequence);
         Config::setSendComment(ui->actionSendComment->isChecked());
+        Config::setTeeSupport(textExtractEnable);
+        Config::setTeeLevel2NameSupport(p_textExtract->getLevel2NameSupport());
 
         //serial 只保存成功打开过的
         Config::setPortName(serial.portName());
@@ -863,6 +867,12 @@ MainWindow::~MainWindow()
     delete ui;
     delete http;
     delete g_popupHotkey;
+
+    QFile recoveryFile(RECOVERY_FILE_PATH);
+    if(recoveryFile.exists())
+    {
+        recoveryFile.remove();
+    }
     qDebug()<<"~MainWindow";
 }
 
@@ -972,14 +982,18 @@ void MainWindow::on_comSwitch_clicked(bool checked)
     on_refreshCom_clicked();
 }
 
-void MainWindow::recordDataToFile(QByteArray &buff)
+int32_t MainWindow::appendDataToFile(QString path, QByteArray &buff)
 {
-    QFile file(RECORDER_FILE_PATH);
+    if(path.isEmpty())
+        return -1;
+    QFile file(path);
     QTextStream stream(&file);
     if(file.open(QFile::WriteOnly|QFile::Append)){
         stream<<buff;
         file.close();
+        return 0;
     }
+    return -1;
 }
 
 /*
@@ -1050,7 +1064,8 @@ void MainWindow::readSerialPort()
     }
 
     //数据交付给文本解析引擎(追加数据和解析分开防止高频解析带来的CPU压力)
-    emit tee_appendData(tmpReadBuff);
+    if(textExtractEnable)
+        emit tee_appendData(tmpReadBuff);
 
     if(ui->actionPlotterSwitch->isChecked() ||
        ui->actionValueDisplay->isChecked() ||
@@ -1059,7 +1074,11 @@ void MainWindow::readSerialPort()
         ui->customPlot->appendDataWaitToParse(tmpReadBuff);
     }
 
-    recordDataToFile(tmpReadBuff);
+    appendDataToFile(RECOVERY_FILE_PATH, tmpReadBuff);
+    if(!recorderFilePath.isEmpty())
+    {
+        appendDataToFile(recorderFilePath, tmpReadBuff);
+    }
 
     //时间戳选项
     if(ui->timeStampCheckBox->isChecked() && timeStampTimer.isActive()==false){
@@ -1126,7 +1145,8 @@ void MainWindow::printToTextBrowser()
     }
 
     //触发文本提取引擎解析
-    emit tee_parseData();
+    if(textExtractEnable)
+        emit tee_parseData();
 
     //触发绘图器解析
     if(ui->actionPlotterSwitch->isChecked() ||
@@ -1494,14 +1514,14 @@ void MainWindow::on_clearWindows_clicked()
     ui->customPlot->replot();
 
     //fft
-    fft_window->clearGraph(-1);
+    fft_window->clearGraphs();
 
     //数值显示器
     deleteValueDisplaySlot();
 
-    //实时数据记录仪
-    QFile recorderFile(RECORDER_FILE_PATH);
-    recorderFile.remove();
+    //数据恢复仪
+    QFile recoveryFile(RECOVERY_FILE_PATH);
+    recoveryFile.remove();
 
     //更新收发统计
     statusStatisticLabel->setText(serial.getTxRxString());
@@ -2044,6 +2064,35 @@ void MainWindow::clearSeedsSlot()
     ui->multiString->clear();
 }
 
+//更新数据可视化按钮的标题
+void MainWindow::setVisualizerTitle(void)
+{
+    if(ui->actionAscii->isChecked()){
+        if(ui->actionSumCheck->isChecked())
+            ui->visualizer->setTitle(tr("数据可视化：ASCII协议(和校验)"));
+        else
+            ui->visualizer->setTitle(tr("数据可视化：ASCII协议"));
+    }
+    else if(ui->actionFloat->isChecked()){
+        if(ui->actionSumCheck->isChecked())
+            ui->visualizer->setTitle(tr("数据可视化：FLOAT协议(和校验)"));
+        else
+            ui->visualizer->setTitle(tr("数据可视化：FLOAT协议"));
+    }
+}
+
+void MainWindow::resetVisualizerTitle(void)
+{
+    if(ui->customPlot->isVisible() ||
+       ui->valueDisplay->isVisible() ||
+       (fft_window && fft_window->isVisible()))
+    {
+        return;
+    }
+
+    ui->visualizer->setTitle(tr("数据可视化"));
+}
+
 /*
  * Function:绘图器开关
 */
@@ -2051,25 +2100,10 @@ void MainWindow::on_actionPlotterSwitch_triggered(bool checked)
 {   
     if(checked){
         ui->customPlot->show();
-
-        if(ui->actionAscii->isChecked()){
-            if(ui->actionSumCheck->isChecked())
-                ui->plotter->setTitle(tr("数据可视化：ASCII协议(和校验)"));
-            else
-                ui->plotter->setTitle(tr("数据可视化：ASCII协议"));
-        }
-        else if(ui->actionFloat->isChecked()){
-            if(ui->actionSumCheck->isChecked())
-                ui->plotter->setTitle(tr("数据可视化：FLOAT协议(和校验)"));
-            else
-                ui->plotter->setTitle(tr("数据可视化：FLOAT协议"));
-        }
-//        ui->actionFFTShow->setEnabled(true);
+        setVisualizerTitle();
     }else{
         ui->customPlot->hide();
-
-        ui->plotter->setTitle(tr("数据可视化"));
-//        ui->actionFFTShow->setEnabled(false);
+        resetVisualizerTitle();
     }
 
     adjustLayout();
@@ -2154,28 +2188,19 @@ void MainWindow::on_actionAscii_triggered(bool checked)
     ui->actionAscii->setChecked(true);
     ui->actionFloat->setChecked(false);
 
-    if(ui->actionPlotterSwitch->isChecked()){
-        if(ui->actionSumCheck->isChecked())
-            ui->plotter->setTitle(tr("数据可视化：ASCII协议(和校验)"));
-        else
-            ui->plotter->setTitle(tr("数据可视化：ASCII协议"));
-    }
+    setVisualizerTitle();
 }
 
 void MainWindow::on_actionFloat_triggered(bool checked)
 {
-    checked = !!checked;
+    Q_UNUSED(checked)
+
     ui->customPlot->protocol->clearBuff();
     ui->customPlot->protocol->setProtocolType(DataProtocol::Float);
     ui->actionAscii->setChecked(false);
     ui->actionFloat->setChecked(true);
 
-    if(ui->actionPlotterSwitch->isChecked()){
-        if(ui->actionSumCheck->isChecked())
-            ui->plotter->setTitle(tr("数据可视化：FLOAT协议(和校验)"));
-        else
-            ui->plotter->setTitle(tr("数据可视化：FLOAT协议"));
-    }
+    setVisualizerTitle();
 }
 
 void MainWindow::on_actiondebug_triggered(bool checked)
@@ -2670,8 +2695,10 @@ void MainWindow::on_actionValueDisplay_triggered(bool checked)
 {
     if(checked){
         ui->valueDisplay->show();
+        setVisualizerTitle();
     }else{
         ui->valueDisplay->hide();
+        resetVisualizerTitle();
     }
 
     adjustLayout();
@@ -2893,21 +2920,7 @@ void MainWindow::on_actionSumCheck_triggered(bool checked)
 {
     ui->actionSumCheck->setChecked(checked);
     g_enableSumCheck = checked;
-    if(checked){
-        if(ui->actionPlotterSwitch->isChecked()){
-            if(ui->actionAscii->isChecked())
-                ui->plotter->setTitle(tr("数据可视化：ASCII协议(和校验)"));
-            else if(ui->actionFloat->isChecked())
-                ui->plotter->setTitle(tr("数据可视化：FLOAT协议(和校验)"));
-        }
-    }else{
-        if(ui->actionPlotterSwitch->isChecked()){
-            if(ui->actionAscii->isChecked())
-                ui->plotter->setTitle(tr("数据可视化：ASCII协议"));
-            else if(ui->actionFloat->isChecked())
-                ui->plotter->setTitle(tr("数据可视化：FLOAT协议"));
-        }
-    }
+    setVisualizerTitle();
 }
 
 void MainWindow::on_actionPopupHotkey_triggered()
@@ -3094,6 +3107,13 @@ void MainWindow::on_actionSelectXAxis_triggered(bool checked)
     if(!ok)
         return;
 
+    if(name == tr("递增计数值") && ui->actionTimeStampMode->isChecked())
+    {
+        QMessageBox::information(this, tr("提示"), tr("递增计数值模式下将关闭时间戳模式"));
+        ui->actionTimeStampMode->setChecked(false);
+        ui->customPlot->plotControl->setEnableTimeStampMode(false);
+    }
+
     //选择了新的X轴,更新g_xAxisSource
     for (qint32 i = 0; i < list.size(); i++) {
         if(list.at(i) == name)
@@ -3148,9 +3168,11 @@ void MainWindow::on_actionFFTShow_triggered(bool checked)
         QPoint pos = QPoint(this->pos().x() + this->geometry().width(), this->pos().y());
         fft_window->move(pos);
         fft_window->setVisible(true);
+        setVisualizerTitle();
         return;
     }
     fft_window->setVisible(false);
+    resetVisualizerTitle();//要放在setVisible后面
     return;
 }
 
@@ -3163,4 +3185,84 @@ void MainWindow::moveEvent(QMoveEvent *event)
         fft_window->move(fft_window->pos() + pos);
     }
     lastPos = event->pos();
+}
+
+void MainWindow::on_actionTeeLevel2NameSupport_triggered(bool checked)
+{
+    p_textExtract->setLevel2NameSupport(checked);
+    ui->actionTeeLevel2NameSupport->setChecked(checked);
+}
+
+void MainWindow::on_actionTeeSupport_triggered(bool checked)
+{
+    ui->actionTeeSupport->setChecked(checked);
+    ui->actionTeeLevel2NameSupport->setEnabled(checked);
+    textExtractEnable = checked;
+}
+
+void MainWindow::on_actionTimeStampMode_triggered(bool checked)
+{
+    if(checked && g_xAxisSource == XAxis_Cnt)
+    {
+        QMessageBox::StandardButton button;
+        button = QMessageBox::information(this, tr("提示"), tr("需要选择一条曲线作为时间戳数据"), QMessageBox::Ok, QMessageBox::Cancel);
+        if(!button)
+        {
+            ui->actionTimeStampMode->setChecked(!checked);
+            ui->customPlot->plotControl->setEnableTimeStampMode(!checked);
+            return;
+        }
+        on_actionSelectXAxis_triggered(checked);
+        if(g_xAxisSource == XAxis_Cnt)//弹出窗口但是没有选择
+        {
+            ui->actionTimeStampMode->setChecked(!checked);
+            ui->customPlot->plotControl->setEnableTimeStampMode(!checked);
+            return;
+        }
+    }
+    ui->actionTimeStampMode->setChecked(checked);
+    ui->customPlot->plotControl->setEnableTimeStampMode(checked);
+    return;
+}
+
+void MainWindow::on_actionASCIITable_triggered()
+{
+    static Ascii_Table_Dialog *p = nullptr;
+    if(p)
+    {
+        p->show();
+        return;
+    }
+    p = new Ascii_Table_Dialog(this);
+    p->show();
+}
+
+void MainWindow::on_actionRecorder_triggered(bool checked)
+{
+    ui->actionRecorder->setChecked(checked);
+    if(checked)
+    {
+        //如果上次文件记录路径是空则用保存数据的上次路径
+        if(lastRecorderFilePath.isEmpty())
+        {
+            lastRecorderFilePath = lastFileDialogPath;
+        }
+        //打开保存文件对话框
+        QString savePath = QFileDialog::getSaveFileName(this,
+                                                        tr("记录数据到文件-选择文件路径"),
+                                                        lastRecorderFilePath + "Recorder-" + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".dat",
+                                                        "Dat File(*.dat);;All File(*.*)");
+        //检查路径格式
+        if(!savePath.endsWith(".dat")){
+            if(!savePath.isEmpty())
+                QMessageBox::information(this,tr("提示"),"尚未支持的文件格式，请选择dat文件。");
+            ui->actionRecorder->setChecked(false);
+            return;
+        }
+        recorderFilePath = savePath;
+        return;
+    }
+    lastRecorderFilePath = recorderFilePath;
+    lastRecorderFilePath = lastRecorderFilePath.mid(0, lastRecorderFilePath.lastIndexOf('/')+1);
+    recorderFilePath.clear();
 }

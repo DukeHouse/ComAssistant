@@ -27,7 +27,7 @@ public:
     void setupPlotterFont(QFont font);
     void setupPlotterOpenGL(bool enable);
     void appendData(DataProtocol::RowData_t &oneRowData);
-    void clearGraph(int8_t index);
+    void clearGraphs(void);
     uint8_t startFFTCal();
 
 private:
@@ -74,6 +74,7 @@ private slots:
     void hideAllGraph(void);
     void showAllGraph(void);
     void mouseWheel(QWheelEvent *w);
+    void removeAllGraph(void);
 };
 
 #endif // FFT_DIALOG_H

@@ -12,6 +12,16 @@ TextExtractEngine::~TextExtractEngine()
 //    qDebug()<<"goodbye thread";
 }
 
+void TextExtractEngine::setLevel2NameSupport(bool enable)
+{
+    enableLevel2NameSupport = enable;
+}
+
+bool TextExtractEngine::getLevel2NameSupport(void)
+{
+    return enableLevel2NameSupport;
+}
+
 //把包数据根据名字加到文本组集合中，如果集合中没有对应名字，则在集合中新增一个文本组
 void inline TextExtractEngine::appendPackDataToTextGroups(QByteArray& name, QByteArray& data, QByteArray& pack)
 {
@@ -39,13 +49,15 @@ void inline TextExtractEngine::appendPackDataToTextGroups(QByteArray& name, QByt
     return;
 }
 
-//从包数据中提取名字和数据，若名字提取失败则不再提取数据
-bool inline TextExtractEngine::parseNameAndDataFromPack(QByteArray& pack)
+//从包数据中提取名字（支持二级名字（数据段中的第一组{name}））、数据、时间戳，若名字提取失败则不再提取数据
+bool inline TextExtractEngine::parseNameAndDataFromPack(QByteArray& pack, bool enable_name2)
 {
+
     if(pack.isEmpty())
         return false;
 
     QByteArray name;
+    QByteArray name2;
     QByteArray data;
 
     //匹配{name:data}风格的数据中的name。
@@ -58,6 +70,16 @@ bool inline TextExtractEngine::parseNameAndDataFromPack(QByteArray& pack)
     //匹配{name:data}风格的数据中的data。
     data = pack;
     data.remove(0, PACK_PREFIX.size()+name.size()+PACK_SEPARATE.size());
+    //如果使能并发现二级名字
+    if(enable_name2 && data.indexOf('{') != -1 && data.indexOf('}') != -1)
+    {
+        QByteArray pre; //INFO,ERR等前缀
+        pre = data.mid(0, data.indexOf('{'));
+        name2 = data.mid(data.indexOf('{'), data.indexOf('}') + 1 - pre.size());
+        name += name2;
+        data.remove(0, data.indexOf('}') + 1);
+        data = pre + data;
+    }
     data = data.mid(0, data.lastIndexOf(PACK_SUFFIX));
 
     appendPackDataToTextGroups(name, data, pack);
@@ -95,7 +117,7 @@ void TextExtractEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& res
                 lastScannedIndex = scanIndex;
                 onePack.clear();
                 onePack.append(match.captured(0).toLocal8Bit());
-                parseNameAndDataFromPack(onePack);
+                parseNameAndDataFromPack(onePack, enableLevel2NameSupport);
             }else{
 //                qDebug()<<"no match";
                 scanIndex++;

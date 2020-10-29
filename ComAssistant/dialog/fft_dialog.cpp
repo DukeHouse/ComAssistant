@@ -124,6 +124,7 @@ void FFT_Dialog::setupPlotterFont(QFont font)
 
 void FFT_Dialog::setupPlotterOpenGL(bool enable)
 {
+    Q_UNUSED(enable)
     //似乎不支持2个图像同时使用GPU的情况，会有数据错位的情况
 //    ui->plotter->setOpenGl(enable);
 //    ui->plotter->replot();
@@ -289,6 +290,11 @@ void FFT_Dialog::showAllGraph(void)
     ui->plotter->replot();
 }
 
+void FFT_Dialog::removeAllGraph(void)
+{
+    clearGraphs();
+}
+
 void FFT_Dialog::contextMenuRequest(QPoint pos)
 {
 
@@ -341,6 +347,8 @@ void FFT_Dialog::contextMenuRequest(QPoint pos)
     {
         menu->addAction(tr("隐藏所有曲线"), this, SLOT(hideAllGraph()));
     }
+    menu->addSeparator();
+    menu->addAction(tr("删除所有曲线"), this, SLOT(removeAllGraph()));
     menu->popup(ui->plotter->mapToGlobal(pos));
 }
 
@@ -373,14 +381,14 @@ void FFT_Dialog::appendData(DataProtocol::RowData_t &oneRowData)
             graphsData.append(QVector<double>(fft_cal_point - 1));
             fft_layer.append(new QCPBars(ui->plotter->xAxis, ui->plotter->yAxis));
             fft_layer.last()->setAntialiased(true);
-            if(nameSet.size() >= graphsData.size())
-                fft_layer.last()->setName(nameSet.at(graphsData.size()-1));
+            if(nameSet.size() >= fft_layer.size())
+                fft_layer.last()->setName(nameSet.at(fft_layer.size()-1));
             else
                 fft_layer.last()->setName("unknown");
-            if(colorSet.size() >= graphsData.size())
+            if(colorSet.size() >= fft_layer.size())
             {
-                fft_layer.last()->setBrush(colorSet.at(graphsData.size()-1));
-                fft_layer.last()->setPen(colorSet.at(graphsData.size()-1));
+                fft_layer.last()->setBrush(colorSet.at(fft_layer.size()-1));
+                fft_layer.last()->setPen(colorSet.at(fft_layer.size()-1));
             }
             else
             {
@@ -406,31 +414,17 @@ void FFT_Dialog::appendData(DataProtocol::RowData_t &oneRowData)
     dataLock = 0;
 }
 
-void FFT_Dialog::clearGraph(int8_t index)
+void FFT_Dialog::clearGraphs()
 {
-    if(index > graphsData.size() || index < -1)
+    //删除指定曲线会引起数据错位
+    graphsData.clear();
+    while(fft_layer.size())
     {
-        return;
+        fft_layer.last()->setData(QVector<double>(), QVector<double>());
+        fft_layer.last()->removeFromLegend(ui->plotter->legend);
+        fft_layer.pop_back();
     }
-
-    switch(index)
-    {
-    case -1:
-        graphsData.clear();
-        while(fft_layer.size())
-        {
-            fft_layer.last()->setData(QVector<double>(), QVector<double>());
-            fft_layer.last()->removeFromLegend(ui->plotter->legend);
-            fft_layer.pop_back();
-        }
-        break;
-    default:
-        graphsData.removeAt(index);
-        fft_layer.at(index)->setData(QVector<double>(), QVector<double>());
-        fft_layer.at(index)->removeFromLegend(ui->plotter->legend);
-        fft_layer.remove(index);
-        break;
-    }
+    fft_cal_point_changed_tips = ui->cal_point->currentText().toInt();
     ui->plotter->replot();
 }
 
@@ -513,6 +507,7 @@ void FFT_Dialog::get_fft_result(qint8 index, QVector<double> x_ticks, QVector<do
 
 void FFT_Dialog::closeEvent(QCloseEvent *event)
 {
+    Q_UNUSED(event)
     if(__checkHandler && __checkHandler->isChecked())
         __checkHandler->triggered(false);
 }

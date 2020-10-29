@@ -271,13 +271,14 @@ void HTTP::httpFinishedSlot(QNetworkReply *)
                     button = QMessageBox::information(nullptr,"提示","当前版本号："+ localVersion +
                                                         "\n远端版本号："+remoteVersion+
                                                         "\n发布时间："+publishedTime+
-                                                        "\n更新内容：\n"+remoteNote
+                                                        "\n更新内容：\n"+remoteNote+
+                                                        "\n\n点击ok将打开外链进行下载（若下载缓慢可通过底部状态栏的下载链接进行更新）。"
                                                       , QMessageBox::Ok|QMessageBox::No);
                     if(button == QMessageBox::Ok){
-//                        QDesktopServices::openUrl(QUrl("https://github.com/inhowe/ComAssistant/releases"));
+                        QDesktopServices::openUrl(QUrl("https://github.com/inhowe/ComAssistant/releases/latest/download/ComAssistant_x64.zip"));
                     }
                 }
-                parent->setWindowTitle("串口调试助手 发现新版本：V"+remoteVersion);
+                parent->setWindowTitle("纸飞机串口助手 当前版本：V" + localVersion + " 发现新版本：V" + remoteVersion);
             }else{
                 if(state == GetVersion || GetVersion_failed>0){
                     GetVersion_failed = 0;

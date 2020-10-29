@@ -3,5 +3,6 @@
         <file>manual.html</file>
         <file>style.css</file>
         <file>stm32isp.exe</file>
+        <file>AsciiTable.html</file>
     </qresource>
 </RCC>

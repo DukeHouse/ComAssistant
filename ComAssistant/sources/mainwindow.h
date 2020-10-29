@@ -39,6 +39,7 @@
 #include "stm32isp_dialog.h"
 #include "about_me_dialog.h"
 #include "settings_dialog.h"
+#include "ascii_table_dialog.h"
 //文本提取引擎
 #include "text_extract_engine.h"
 //FFT显示
@@ -105,6 +106,10 @@ private slots:
     void on_actionSTM32_ISP_triggered();
     void on_actionPopupHotkey_triggered();
     void on_actionSendComment_triggered(bool checked);
+    void on_actionTeeSupport_triggered(bool checked);
+    void on_actionTeeLevel2NameSupport_triggered(bool checked);
+    void on_actionASCIITable_triggered();
+    void on_actionRecorder_triggered(bool checked);
 
     //setting
     void on_actionCOM_Config_triggered();
@@ -130,6 +135,8 @@ private slots:
     void on_actionSumCheck_triggered(bool checked);
     void on_actionOpenGL_triggered(bool checked);
     void on_actionAutoRefreshYAxis_triggered(bool checked);
+    void on_actionSelectXAxis_triggered(bool checked);
+    void on_actionTimeStampMode_triggered(bool checked);
 
     //help
     void on_actionManual_triggered();
@@ -148,17 +155,13 @@ private slots:
     //contextMenuRequested
     void on_textBrowser_customContextMenuRequested(const QPoint &pos);
     void clearTextBrowserSlot();
-
     void on_valueDisplay_customContextMenuRequested(const QPoint &pos);
     void deleteValueDisplayRowSlot();
     void deleteValueDisplaySlot();
-
     void on_multiString_customContextMenuRequested(const QPoint &pos);
     void editSeedSlot();
     void deleteSeedSlot();
     void clearSeedsSlot();
-
-    void on_actionSelectXAxis_triggered(bool checked);
 
 private:
     QString formatTime(int ms);
@@ -171,8 +174,10 @@ private:
     void closeInteractiveUI();
     int32_t divideDataToPacks(QByteArray &input, QByteArrayList &output, int32_t pack_size, bool &divideFlag);
     int32_t parseDatFile(QString path, bool removeAfterRead);
-    void recordDataToFile(QByteArray &buff);
-    void readRecorderFile();
+    int32_t appendDataToFile(QString path, QByteArray &buff);
+    void readRecoveryFile();
+    void setVisualizerTitle(void);
+    void resetVisualizerTitle(void);
     Ui::MainWindow *ui;
     mySerialPort serial;
 
@@ -192,8 +197,8 @@ private:
     int BrowserBuffIndex = 0; //显示指示
     QByteArray unshowedRxBuff;    //未上屏的接收缓冲
 
-    const int32_t PLOTTER_SHOW_PERIOD = 15;  //绘图器默认显示周期66FPS
-    const int32_t TEXT_SHOW_PERIOD    = 30;  //文本默认显示周期33FPS
+    const int32_t PLOTTER_SHOW_PERIOD = 20;  //绘图器默认显示周期50FPS
+    const int32_t TEXT_SHOW_PERIOD    = 20;  //文本默认显示周期50FPS
 
     QTimer cycleSendTimer;  //循环发送定时器
     QTimer debugTimer;      //调试定时器
@@ -212,6 +217,9 @@ private:
     bool RefreshTextBrowser = true; //数据显示区刷新标记
     bool autoRefreshYAxisFlag;
 
+    QString recorderFilePath = "";
+    QString lastRecorderFilePath = "";
+
     //统计
     int currentRunTime = 0; //运行时间
     double rxSpeedKB = 0;
@@ -229,6 +237,7 @@ private:
     int characterCount = 0; //可显示字符数
 
     //文本提取引擎
+    bool textExtractEnable = true;
     const QString MAIN_TAB_NAME = "main";
     QThread *p_textExtractThread;
     TextExtractEngine *p_textExtract;

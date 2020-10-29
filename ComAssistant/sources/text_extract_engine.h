@@ -45,6 +45,8 @@ public:
 
     explicit TextExtractEngine(QObject *parent = nullptr);
     ~TextExtractEngine();
+    void setLevel2NameSupport(bool enable);//二级名字过滤开关
+    bool getLevel2NameSupport(void);
 
 public slots:
     void appendData(const QByteArray &newData);
@@ -70,10 +72,11 @@ private:
     const QString PACK_TAIL_REG     = "\r?\n";
 
     void inline appendPackDataToTextGroups(QByteArray &name, QByteArray &data,  QByteArray& pack);
-    bool inline parseNameAndDataFromPack(QByteArray &pack);
+    bool inline parseNameAndDataFromPack(QByteArray &pack, bool enableLevel2NameSupport);
     void parsePacksFromBuffer(QByteArray &buffer, QByteArray &restBuffer);
     QVector<textGroup_t> textGroups;  //classified text groups: one tab page one group
     rawData_t rawData;
+    bool enableLevel2NameSupport = 0;
 };
 
 #endif // TEXT_EXTRACT_ENGINE_H

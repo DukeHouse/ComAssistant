@@ -17,12 +17,12 @@
 //默认发送间隔
 #define DEFAULT_SEND_INTERVAL   100
 //节
-#define SECTION_GLOBAL    QString("Global/")
-#define SECTION_SERIAL    QString("Serial/")
-#define SECTION_MULTISTR  QString("MultiStr/")
-#define SECTION_PLOTTER   QString("Plotter/")
-#define SECTION_STATIC    QString("Static/")
-#define SECTION_ABOUT     QString("About/")
+#define SECTION_GLOBAL      QString("Global/")
+#define SECTION_SERIAL      QString("Serial/")
+#define SECTION_MULTISTR    QString("MultiStr/")
+#define SECTION_PLOTTER     QString("Plotter/")
+#define SECTION_STATISTIC   QString("Statistic/")
+#define SECTION_ABOUT       QString("About/")
 
 //global键
 #define KEY_FIRSTRUN            QString("FirstRun")
@@ -40,6 +40,8 @@
 #define KEY_BACKGROUNDCOLOR     QString("BackGroudColor")
 #define KEY_POPUPHOTKEY         QString("PopUpHotKey")
 #define KEY_SENDCOMMENT         QString("SendCommentEnable")
+#define KEY_TEE_Support         QString("TeeEnable")
+#define KEY_TEE_LEVEL2_NAME     QString("TeeLevel2NameEnable")
 
 //serial键
 #define KEY_PORTNAME        QString("PortName")
@@ -65,7 +67,7 @@
 #define KEY_LINETYPE            QString("LineType")
 //#define KEY_XRANGELENGH         QString("xRangeLength")
 
-//static键
+//statistic键
 #define KEY_STARTTIME       QString("StartTime")
 #define KEY_LASTRUNTIME     QString("LastRunTime")
 #define KEY_TOTALRUNTIME    QString("TotalRunTime")
@@ -113,7 +115,7 @@ class Config
 public:
     #define defualtGraphName  "Graph 1;Graph 2;Graph 3;Graph 4;Graph 5;Graph 6;Graph 7;Graph 8;Graph 9;Graph 10;Graph 11;Graph 12;Graph 13;Graph 14;Graph 15;"
     //版本
-    #define VERSION_STRING  "0.4.3"
+    #define VERSION_STRING  "0.4.4"
 
     Config();
     static void writeDefault();
@@ -173,6 +175,10 @@ public:
     static QString getPopupHotKey();
     static void setSendComment(bool enable);
     static bool getSendComment();
+    static void setTeeSupport(bool enable);
+    static bool getTeeSupport();
+    static void setTeeLevel2NameSupport(bool enable);
+    static bool getTeeLevel2NameSupport();
 
     //plotter
     static void setPlotterState(bool checked);

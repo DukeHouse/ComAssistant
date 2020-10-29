@@ -33,21 +33,8 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 CONFIG += c++11
 
-# QHotkey支持
-mac: LIBS += -framework Carbon
-else:win32: LIBS += -luser32
-else:unix {
-        QT += x11extras
-        LIBS += -lX11
-}
-
-SOURCES += QHotkey/QHotkey/qhotkey.cpp
-
-mac: SOURCES += QHotkey/QHotkey/qhotkey_mac.cpp
-else:win32: SOURCES += QHotkey/QHotkey/qhotkey_win.cpp
-else:unix: SOURCES += QHotkey/QHotkey/qhotkey_x11.cpp
-
 SOURCES += \
+    QHotkey/QHotkey/qhotkey.cpp \
     QXlsx/myxlsx.cpp \
     QXlsx/source/xlsxabstractooxmlfile.cpp \
     QXlsx/source/xlsxabstractsheet.cpp \
@@ -86,6 +73,7 @@ SOURCES += \
     dialog/settings_dialog.cpp \
     dialog/stm32isp_dialog.cpp \
     dialog/fft_dialog.cpp \
+    dialog/ascii_table_dialog.cpp\
     plotter/axistag.cpp \
     plotter/dataprotocol.cpp \
     plotter/myqcustomplot.cpp \
@@ -158,6 +146,7 @@ HEADERS += \
     dialog/settings_dialog.h \
     dialog/stm32isp_dialog.h \
     dialog/fft_dialog.h \
+    dialog/ascii_table_dialog.h \
     plotter/axistag.h \
     plotter/dataprotocol.h \
     plotter/myqcustomplot.h \
@@ -175,10 +164,23 @@ HEADERS += \
 
 FORMS += \
         ui/about_me_dialog.ui \
+        ui/ascii_table_dialog.ui \
         ui/mainwindow.ui \
         ui/settings_dialog.ui \
         ui/stm32isp_dialog.ui \
         ui/fft_dialog.ui \
+
+# QHotkey支持
+mac: LIBS += -framework Carbon
+else:win32: LIBS += -luser32
+else:unix {
+        QT += x11extras
+        LIBS += -lX11
+}
+
+mac: SOURCES += QHotkey/QHotkey/qhotkey_mac.cpp
+else:win32: SOURCES += QHotkey/QHotkey/qhotkey_win.cpp
+else:unix: SOURCES += QHotkey/QHotkey/qhotkey_x11.cpp
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

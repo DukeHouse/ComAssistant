@@ -686,9 +686,15 @@ p, li { white-space: pre-wrap; }
     <addaction name="actionMultiString"/>
     <addaction name="actionSendComment"/>
     <addaction name="separator"/>
+    <addaction name="actionTeeSupport"/>
+    <addaction name="actionTeeLevel2NameSupport"/>
+    <addaction name="separator"/>
+    <addaction name="actionRecorder"/>
+    <addaction name="separator"/>
     <addaction name="actionSTM32_ISP"/>
+    <addaction name="actionASCIITable"/>
    </widget>
-   <widget class="QMenu" name="plotter">
+   <widget class="QMenu" name="visualizer">
     <property name="title">
      <string>数据可视化</string>
     </property>
@@ -717,6 +723,7 @@ p, li { white-space: pre-wrap; }
      <addaction name="actionOpenGL"/>
      <addaction name="separator"/>
      <addaction name="actionSelectXAxis"/>
+     <addaction name="actionTimeStampMode"/>
     </widget>
     <addaction name="actionPlotterSwitch"/>
     <addaction name="plotterSetting"/>
@@ -731,7 +738,7 @@ p, li { white-space: pre-wrap; }
    <addaction name="file"/>
    <addaction name="function"/>
    <addaction name="settings"/>
-   <addaction name="plotter"/>
+   <addaction name="visualizer"/>
    <addaction name="help"/>
   </widget>
   <action name="actionAbout">
@@ -836,7 +843,7 @@ p, li { white-space: pre-wrap; }
     <bool>true</bool>
    </property>
    <property name="checked">
-    <bool>true</bool>
+    <bool>false</bool>
    </property>
    <property name="text">
     <string>多字符串</string>
@@ -1056,6 +1063,58 @@ p, li { white-space: pre-wrap; }
    </property>
    <property name="statusTip">
     <string/>
+   </property>
+  </action>
+  <action name="actionTeeLevel2NameSupport">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>提取二级名称</string>
+   </property>
+   <property name="toolTip">
+    <string>提取二级名称</string>
+   </property>
+   <property name="statusTip">
+    <string>二级分类支持，例{name1:{name2}hello world}\n</string>
+   </property>
+  </action>
+  <action name="actionTeeSupport">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>分类解析引擎</string>
+   </property>
+   <property name="statusTip">
+    <string>勾选以使能文本分类显示功能。例{name:text contain}\n</string>
+   </property>
+  </action>
+  <action name="actionTimeStampMode">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>时间戳模式</string>
+   </property>
+   <property name="statusTip">
+    <string>需要选择一条曲线作为时间戳数据</string>
+   </property>
+  </action>
+  <action name="actionASCIITable">
+   <property name="text">
+    <string>ASCII码表</string>
+   </property>
+  </action>
+  <action name="actionRecorder">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>记录数据到文件</string>
    </property>
   </action>
  </widget>
