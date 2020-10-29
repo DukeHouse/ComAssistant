@@ -2,8 +2,8 @@
 #include "ui_mainwindow.h"
 #include <QHotkey>
 
-#define RECORDER_FILE_PATH           "ComAssistantRecorder.dat"
-#define BACKUP_RECORDER_FILE_PATH    "ComAssistantRecorder_back.dat"
+#define RECOVERY_FILE_PATH           "ComAssistantRecovery.dat"
+#define BACKUP_RECOVERY_FILE_PATH    "ComAssistantRecovery_back.dat"
 
 static qint32   g_xAxisSource = XAxis_Cnt;
 static qint32   g_multiStr_cur_index;
@@ -390,7 +390,7 @@ MainWindow::MainWindow(QWidget *parent) :
         on_actionAbout_triggered();        
     }
 
-    readRecorderFile();
+    readRecoveryFile();
 
 }
 
@@ -490,47 +490,47 @@ int32_t MainWindow::parseDatFile(QString path, bool removeAfterRead)
     return 0;
 }
 
-//启动时检测有无记录数据文件
-void MainWindow::readRecorderFile()
+//启动时检测有无数据恢复文件
+void MainWindow::readRecoveryFile()
 {
-    QFile recorderFile(RECORDER_FILE_PATH);
-    if(recorderFile.exists() && recorderFile.size())
+    QFile recoveryFile(RECOVERY_FILE_PATH);
+    if(recoveryFile.exists() && recoveryFile.size())
     {
         qint32 button;
         button = QMessageBox::information(this, tr("提示"),
-                                          tr("检测到数据记录文件，可能是上次未正确关闭程序导致的。") + "\n\n" +
-                                          tr("点击Ok恢复上次数据") + "\n" +
+                                          tr("检测到数据恢复文件，可能是上次未正确关闭程序导致的。") + "\n\n" +
+                                          tr("点击Ok重新加载上次数据") + "\n" +
                                           tr("点击Discard丢弃上次数据") + "\n" +
                                           tr("点击Cancel自行处理上次数据") + "\n",
                                           QMessageBox::Ok, QMessageBox::Discard, QMessageBox::Cancel);
         if(button == QMessageBox::Discard)
         {
-            recorderFile.remove();
+            recoveryFile.remove();
         }
         else if(button == QMessageBox::Cancel)
         {
             //重命名前确保没有含新名字的文件
-            QFile backFile(BACKUP_RECORDER_FILE_PATH);
+            QFile backFile(BACKUP_RECOVERY_FILE_PATH);
             if(backFile.exists())
                 backFile.remove();
             if(backFile.exists())
             {
                 QMessageBox::information(this, tr("提示"),
-                                        tr("旧备份记录数据文件删除失败，请自行处理：") + BACKUP_RECORDER_FILE_PATH);
+                                        tr("旧备份恢复数据文件删除失败，请自行处理：") + BACKUP_RECOVERY_FILE_PATH);
                 return;
             }
             //重命名
-            recorderFile.rename(BACKUP_RECORDER_FILE_PATH);
+            recoveryFile.rename(BACKUP_RECOVERY_FILE_PATH);
             QDir appDir(QCoreApplication::applicationDirPath());
             QMessageBox::information(this, tr("提示"),
-                                     tr("记录数据文件已另存到程序所在目录：") + "\n" +
-                                     appDir.absoluteFilePath(BACKUP_RECORDER_FILE_PATH) + "\n" +
+                                     tr("数据恢复文件已另存到程序所在目录：") + "\n" +
+                                     appDir.absoluteFilePath(BACKUP_RECOVERY_FILE_PATH) + "\n" +
                                      tr("请自行处理。"));
         }
         else if(button == QMessageBox::Ok)
         {
             //读文件
-            parseDatFile(RECORDER_FILE_PATH, true);
+            parseDatFile(RECOVERY_FILE_PATH, true);
         }
     }
 }
@@ -868,10 +868,10 @@ MainWindow::~MainWindow()
     delete http;
     delete g_popupHotkey;
 
-    QFile recorderFile(RECORDER_FILE_PATH);
-    if(recorderFile.exists())
+    QFile recoveryFile(RECOVERY_FILE_PATH);
+    if(recoveryFile.exists())
     {
-        recorderFile.remove();
+        recoveryFile.remove();
     }
     qDebug()<<"~MainWindow";
 }
@@ -982,14 +982,18 @@ void MainWindow::on_comSwitch_clicked(bool checked)
     on_refreshCom_clicked();
 }
 
-void MainWindow::recordDataToFile(QByteArray &buff)
+int32_t MainWindow::appendDataToFile(QString path, QByteArray &buff)
 {
-    QFile file(RECORDER_FILE_PATH);
+    if(path.isEmpty())
+        return -1;
+    QFile file(path);
     QTextStream stream(&file);
     if(file.open(QFile::WriteOnly|QFile::Append)){
         stream<<buff;
         file.close();
+        return 0;
     }
+    return -1;
 }
 
 /*
@@ -1070,7 +1074,11 @@ void MainWindow::readSerialPort()
         ui->customPlot->appendDataWaitToParse(tmpReadBuff);
     }
 
-    recordDataToFile(tmpReadBuff);
+    appendDataToFile(RECOVERY_FILE_PATH, tmpReadBuff);
+    if(!recorderFilePath.isEmpty())
+    {
+        appendDataToFile(recorderFilePath, tmpReadBuff);
+    }
 
     //时间戳选项
     if(ui->timeStampCheckBox->isChecked() && timeStampTimer.isActive()==false){
@@ -1511,9 +1519,9 @@ void MainWindow::on_clearWindows_clicked()
     //数值显示器
     deleteValueDisplaySlot();
 
-    //实时数据记录仪
-    QFile recorderFile(RECORDER_FILE_PATH);
-    recorderFile.remove();
+    //数据恢复仪
+    QFile recoveryFile(RECOVERY_FILE_PATH);
+    recoveryFile.remove();
 
     //更新收发统计
     statusStatisticLabel->setText(serial.getTxRxString());
@@ -3227,4 +3235,34 @@ void MainWindow::on_actionASCIITable_triggered()
     }
     p = new Ascii_Table_Dialog(this);
     p->show();
+}
+
+void MainWindow::on_actionRecorder_triggered(bool checked)
+{
+    ui->actionRecorder->setChecked(checked);
+    if(checked)
+    {
+        //如果上次文件记录路径是空则用保存数据的上次路径
+        if(lastRecorderFilePath.isEmpty())
+        {
+            lastRecorderFilePath = lastFileDialogPath;
+        }
+        //打开保存文件对话框
+        QString savePath = QFileDialog::getSaveFileName(this,
+                                                        tr("记录数据到文件-选择文件路径"),
+                                                        lastRecorderFilePath + "Recorder-" + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".dat",
+                                                        "Dat File(*.dat);;All File(*.*)");
+        //检查路径格式
+        if(!savePath.endsWith(".dat")){
+            if(!savePath.isEmpty())
+                QMessageBox::information(this,tr("提示"),"尚未支持的文件格式，请选择dat文件。");
+            ui->actionRecorder->setChecked(false);
+            return;
+        }
+        recorderFilePath = savePath;
+        return;
+    }
+    lastRecorderFilePath = recorderFilePath;
+    lastRecorderFilePath = lastRecorderFilePath.mid(0, lastRecorderFilePath.lastIndexOf('/')+1);
+    recorderFilePath.clear();
 }

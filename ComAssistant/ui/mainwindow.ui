@@ -689,6 +689,8 @@ p, li { white-space: pre-wrap; }
     <addaction name="actionTeeSupport"/>
     <addaction name="actionTeeLevel2NameSupport"/>
     <addaction name="separator"/>
+    <addaction name="actionRecorder"/>
+    <addaction name="separator"/>
     <addaction name="actionSTM32_ISP"/>
     <addaction name="actionASCIITable"/>
    </widget>
@@ -1105,6 +1107,14 @@ p, li { white-space: pre-wrap; }
   <action name="actionASCIITable">
    <property name="text">
     <string>ASCII码表</string>
+   </property>
+  </action>
+  <action name="actionRecorder">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>记录数据到文件</string>
    </property>
   </action>
  </widget>
