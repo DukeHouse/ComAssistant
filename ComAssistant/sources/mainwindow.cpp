@@ -3206,7 +3206,7 @@ void MainWindow::on_actionTimeStampMode_triggered(bool checked)
     {
         QMessageBox::StandardButton button;
         button = QMessageBox::information(this, tr("提示"), tr("需要选择一条曲线作为时间戳数据"), QMessageBox::Ok, QMessageBox::Cancel);
-        if(!button)
+        if(button != QMessageBox::Ok)
         {
             ui->actionTimeStampMode->setChecked(!checked);
             ui->customPlot->plotControl->setEnableTimeStampMode(!checked);
