@@ -1794,7 +1794,7 @@ void MainWindow::on_actionCOM_Config_triggered()
     p->setDataBits(serial.dataBits());
     p->setParity(serial.parity());
     p->setFlowControl(serial.flowControl());
-    p->exec();
+    p->show();
     //对话框返回新配置并设置
     if(p->clickedOK()){
         if(!serial.moreSetting(p->getStopBits(),p->getParity(),p->getFlowControl(),p->getDataBits()))
