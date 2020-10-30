@@ -3242,6 +3242,12 @@ void MainWindow::on_actionRecorder_triggered(bool checked)
     ui->actionRecorder->setChecked(checked);
     if(checked)
     {
+        if(serial.isOpen())
+        {
+            ui->actionRecorder->setChecked(false);
+            QMessageBox::information(this, tr("提示"), tr("需要先关闭串口。"));
+            return;
+        }
         //如果上次文件记录路径是空则用保存数据的上次路径
         if(lastRecorderFilePath.isEmpty())
         {
