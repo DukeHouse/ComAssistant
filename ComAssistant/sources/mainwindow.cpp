@@ -396,7 +396,23 @@ MainWindow::MainWindow(QWidget *parent) :
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    Q_UNUSED(event);
+    if(rxSpeedKB || txSpeedKB)
+    {
+        QMessageBox::StandardButton button;
+        button = QMessageBox::information(this,
+                                          tr("提示"),
+                                          tr("纸飞机正在收发数据，确认关闭纸飞机吗？"),
+                                          QMessageBox::Ok,
+                                          QMessageBox::Cancel);
+        if(button == QMessageBox::Ok)
+        {
+            event->accept();
+        }
+        else
+        {
+            event->ignore();
+        }
+    }
 }
 
 //打开可交互控件
