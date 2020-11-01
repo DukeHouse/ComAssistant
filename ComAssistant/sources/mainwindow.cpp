@@ -3258,30 +3258,38 @@ void MainWindow::on_actionRecorder_triggered(bool checked)
     ui->actionRecorder->setChecked(checked);
     if(checked)
     {
+        QString savePath;
+        //串口开启状态下则默认保存到程序所在目录，因为选择文件路径的对话框是阻塞型的，串口开启下会影响接收
         if(serial.isOpen())
         {
-            ui->actionRecorder->setChecked(false);
-            QMessageBox::information(this, tr("提示"), tr("需要先关闭串口。"));
-            return;
+            savePath = "Recorder-" + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".dat";
+            recorderFilePath = QCoreApplication::applicationDirPath() + "/" + savePath;
+            QMessageBox::information(this,
+                                     tr("提示"),
+                                     tr("接下来的数据将被记录到程序所在目录下的") + savePath + tr("文件中") + "\n" +
+                                     tr("如需更改数据记录位置，请先关闭串口再使用本功能。"));
         }
-        //如果上次文件记录路径是空则用保存数据的上次路径
-        if(lastRecorderFilePath.isEmpty())
+        else
         {
-            lastRecorderFilePath = lastFileDialogPath;
+            //如果上次文件记录路径是空则用保存数据的上次路径
+            if(lastRecorderFilePath.isEmpty())
+            {
+                lastRecorderFilePath = lastFileDialogPath;
+            }
+            //打开保存文件对话框
+            savePath = QFileDialog::getSaveFileName(this,
+                                                    tr("记录数据到文件-选择文件路径"),
+                                                    lastRecorderFilePath + "Recorder-" + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".dat",
+                                                    "Dat File(*.dat);;All File(*.*)");
+            //检查路径格式
+            if(!savePath.endsWith(".dat")){
+                if(!savePath.isEmpty())
+                    QMessageBox::information(this,tr("提示"),"尚未支持的文件格式，请选择dat文件。");
+                ui->actionRecorder->setChecked(false);
+                return;
+            }
+            recorderFilePath = savePath;
         }
-        //打开保存文件对话框
-        QString savePath = QFileDialog::getSaveFileName(this,
-                                                        tr("记录数据到文件-选择文件路径"),
-                                                        lastRecorderFilePath + "Recorder-" + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".dat",
-                                                        "Dat File(*.dat);;All File(*.*)");
-        //检查路径格式
-        if(!savePath.endsWith(".dat")){
-            if(!savePath.isEmpty())
-                QMessageBox::information(this,tr("提示"),"尚未支持的文件格式，请选择dat文件。");
-            ui->actionRecorder->setChecked(false);
-            return;
-        }
-        recorderFilePath = savePath;
         return;
     }
     lastRecorderFilePath = recorderFilePath;
