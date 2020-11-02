@@ -609,6 +609,18 @@ p, li { white-space: pre-wrap; }
      <property name="contextMenuPolicy">
       <enum>Qt::CustomContextMenu</enum>
      </property>
+     <property name="dragEnabled">
+      <bool>true</bool>
+     </property>
+     <property name="dragDropMode">
+      <enum>QAbstractItemView::DragDrop</enum>
+     </property>
+     <property name="defaultDropAction">
+      <enum>Qt::MoveAction</enum>
+     </property>
+     <property name="alternatingRowColors">
+      <bool>true</bool>
+     </property>
     </widget>
    </widget>
   </widget>
@@ -684,7 +696,6 @@ p, li { white-space: pre-wrap; }
      <string>功能</string>
     </property>
     <addaction name="actionMultiString"/>
-    <addaction name="actionSendComment"/>
     <addaction name="separator"/>
     <addaction name="actionTeeSupport"/>
     <addaction name="actionTeeLevel2NameSupport"/>

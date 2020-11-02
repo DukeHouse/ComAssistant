@@ -39,7 +39,6 @@
 #define KEY_GUIFONT             QString("GUIFont")
 #define KEY_BACKGROUNDCOLOR     QString("BackGroudColor")
 #define KEY_POPUPHOTKEY         QString("PopUpHotKey")
-#define KEY_SENDCOMMENT         QString("SendCommentEnable")
 #define KEY_TEE_Support         QString("TeeEnable")
 #define KEY_TEE_LEVEL2_NAME     QString("TeeLevel2NameEnable")
 
@@ -173,8 +172,6 @@ public:
     static QColor getBackGroundColor();
     static void setPopupHotKey(QString keySequence);
     static QString getPopupHotKey();
-    static void setSendComment(bool enable);
-    static bool getSendComment();
     static void setTeeSupport(bool enable);
     static bool getTeeSupport();
     static void setTeeLevel2NameSupport(bool enable);
