@@ -37,7 +37,6 @@ void Config::writeDefault(){
     iniFile->setValue(SECTION_GLOBAL+KEY_GUIFONT, defaultFont);
     iniFile->setValue(SECTION_GLOBAL+KEY_BACKGROUNDCOLOR, defaultColor);
     iniFile->setValue(SECTION_GLOBAL+KEY_POPUPHOTKEY, "Shift+Alt+C");
-    iniFile->setValue(SECTION_GLOBAL+KEY_SENDCOMMENT, false);
     iniFile->setValue(SECTION_GLOBAL+KEY_TEE_Support, true);
     iniFile->setValue(SECTION_GLOBAL+KEY_TEE_LEVEL2_NAME, false);
 
@@ -310,11 +309,11 @@ bool Config::getMultiStringState(){
 bool Config::setMultiString(QStringList multiStr){
 
     if(multiStr.isEmpty()){
-        multiStr.append("发送的数据会自动添加进条目");
-        multiStr.append("双击条目发送");
-        multiStr.append("右击条目删除/编辑");
-        multiStr.append("\"发送注释\"可以忽略发送//后面的内容");
-        multiStr.append("在//后标记[n]可延时n毫秒后自动发送下一指令");
+        multiStr.append("CMD_0 |竖线左侧为注释, 右侧为数据");
+        multiStr.append("CMD_1 |发送的数据会自动添加进本窗口");
+        multiStr.append("CMD_2 |双击条目可发送数据");
+        multiStr.append("CMD_3 |右击条目可删除/编辑注释或数据");
+        multiStr.append("CMD_4 |在注释中添加[n]标记可延时n毫秒后自动发送下一条目");
     }
 
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
@@ -342,11 +341,11 @@ QStringList Config::getMultiString(){
     for(int i = 0; i > -1; i++){
         QString preStr;
         switch (i) {
-            case 0: preStr = "发送的数据会自动添加进条目"; break;
-            case 1: preStr = "双击条目发送"; break;
-            case 2: preStr = "右击条目删除/编辑"; break;
-            case 3: preStr = "\"发送注释\"可以忽略发送//后面的内容"; break;
-            case 4: preStr = "在//后标记[n]可延时n毫秒后自动发送下一指令"; break;
+            case 0: preStr = "CMD_0 |竖线左侧为注释, 右侧为数据"; break;
+            case 1: preStr = "CMD_1 |发送的数据会自动添加进本窗口"; break;
+            case 2: preStr = "CMD_2 |双击条目可发送数据"; break;
+            case 3: preStr = "CMD_3 |右击条目可删除/编辑注释或数据"; break;
+            case 4: preStr = "CMD_4 |在注释中添加[n]标记可延时n毫秒后自动发送下一指令"; break;
             default: preStr = ""; break;
         }
         QString value = iniFile->value(SECTION_MULTISTR+KEY_MULTISTRING+QString::number(i), preStr).toString();
@@ -443,20 +442,7 @@ QString Config::getPopupHotKey()
     delete iniFile;
     return value;
 }
-void Config::setSendComment(bool enable)
-{
-    createDefaultIfNotExist();
-    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    iniFile->setValue(SECTION_GLOBAL+KEY_SENDCOMMENT, enable);
-    delete iniFile;
-}
-bool Config::getSendComment()
-{
-    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    bool value = iniFile->value(SECTION_GLOBAL+KEY_SENDCOMMENT, false).toBool();
-    delete iniFile;
-    return value;
-}
+
 void Config::setTeeSupport(bool enable)
 {
     createDefaultIfNotExist();

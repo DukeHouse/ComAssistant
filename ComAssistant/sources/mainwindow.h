@@ -105,7 +105,6 @@ private slots:
     void on_actionMultiString_triggered(bool checked);
     void on_actionSTM32_ISP_triggered();
     void on_actionPopupHotkey_triggered();
-    void on_actionSendComment_triggered(bool checked);
     void on_actionTeeSupport_triggered(bool checked);
     void on_actionTeeLevel2NameSupport_triggered(bool checked);
     void on_actionASCIITable_triggered();
@@ -160,8 +159,12 @@ private slots:
     void deleteValueDisplaySlot();
     void on_multiString_customContextMenuRequested(const QPoint &pos);
     void editSeedSlot();
+    void editCommentSeedSlot();
+    void moveUpSeedSlot();
+    void moveDownSeedSlot();
     void deleteSeedSlot();
     void clearSeedsSlot();
+    void addSeedSlot();
 
 private:
     QString formatTime(int ms);
@@ -178,6 +181,7 @@ private:
     void readRecoveryFile();
     void setVisualizerTitle(void);
     void resetVisualizerTitle(void);
+    void addTextToMultiString(const QString &text);
     Ui::MainWindow *ui;
     mySerialPort serial;
 
@@ -199,6 +203,8 @@ private:
 
     const int32_t PLOTTER_SHOW_PERIOD = 20;  //绘图器默认显示周期50FPS
     const int32_t TEXT_SHOW_PERIOD    = 20;  //文本默认显示周期50FPS
+
+    bool is_multi_str_double_click = false;
 
     QTimer cycleSendTimer;  //循环发送定时器
     QTimer debugTimer;      //调试定时器

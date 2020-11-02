@@ -6,7 +6,7 @@
 #define BACKUP_RECOVERY_FILE_PATH    "ComAssistantRecovery_back.dat"
 
 static qint32   g_xAxisSource = XAxis_Cnt;
-static qint32   g_multiStr_cur_index;
+static qint32   g_multiStr_cur_index = -1;  // -1 means closed this function
 static QColor   g_background_color;
 static QFont    g_font;
 static bool     g_enableSumCheck;
@@ -61,8 +61,6 @@ void MainWindow::readConfig()
     Config::setVersion();
     Config::setStartTime(QDateTime::currentDateTime().toString("yyyyMMddhhmmss"));
 
-    //发送注释
-    on_actionSendComment_triggered(Config::getSendComment());
     //文本解析引擎
     on_actionTeeSupport_triggered(Config::getTeeSupport());
     on_actionTeeLevel2NameSupport_triggered(Config::getTeeLevel2NameSupport());
@@ -811,7 +809,6 @@ MainWindow::~MainWindow()
         Config::setGUIFont(g_font);
         Config::setBackGroundColor(g_background_color);
         Config::setPopupHotKey(g_popupHotKeySequence);
-        Config::setSendComment(ui->actionSendComment->isChecked());
         Config::setTeeSupport(textExtractEnable);
         Config::setTeeLevel2NameSupport(p_textExtract->getLevel2NameSupport());
 
@@ -1270,13 +1267,18 @@ qint32 extractSeqenceTime(QString &str)
     QString temp;
     qint32 seqTime = -1;
     bool ok;
-    if(str.indexOf('[')==-1)
+    QString comment;
+    if(str.indexOf('|') != -1)
+    {
+        comment = str.mid(0, str.indexOf('|'));
+    }
+    if(comment.indexOf('[')==-1)
     {
         return -1;
     }
-    temp = str.mid(str.indexOf('['));
+    temp = comment.mid(comment.indexOf('['));
 
-    if(str.indexOf(']')==-1)
+    if(comment.indexOf(']')==-1)
     {
         return -1;
     }
@@ -1296,41 +1298,67 @@ void MainWindow::multiStrSeqSendTimerSlot()
 {
     if (!ui->actionMultiString->isChecked())
     {
+        ui->clearWindows->setText(tr("清  空"));
         multiStrSeqSendTimer.stop();
         return;
     }
-    if(ui->multiString->item(g_multiStr_cur_index + 1)==nullptr)
+    if(ui->multiString->item(g_multiStr_cur_index + 1) == nullptr)
     {
         g_multiStr_cur_index = -1;
+        ui->clearWindows->setText(tr("清  空"));
+        multiStrSeqSendTimer.stop();
     }
 
-    //十六进制发送下的输入格式检查，遇到非法字符串时及时停止发送，否则on_textEdit_textChanged()机制会引起数据重发
-    QString tmp, noCut_tmp;
-    noCut_tmp = tmp = ui->multiString->item(++g_multiStr_cur_index)->text();
-    if(ui->actionSendComment->isChecked())
+    //剔除注释,并补上没有注释的字符串
+    QString tmp = ui->multiString->item(++g_multiStr_cur_index)->text();
+    if(tmp.indexOf('|') != -1)
     {
-        if(tmp.lastIndexOf("//") != -1)
-        {
-            tmp = tmp.mid(0, tmp.lastIndexOf("//"));
-        }
-        else if(tmp.lastIndexOf("/") != -1 && ui->hexSend->isChecked()) //注意顺序
-        {
-            tmp = tmp.mid(0, tmp.lastIndexOf("/"));
-        }
+        tmp = tmp.mid(tmp.indexOf('|') + 1);
     }
-    if(ui->hexSend->isChecked()){
-        if(!hexFormatCheck(tmp)){
-            QMessageBox::warning(this, tr("警告"), QString("The %1th string has illegal hexadecimal format.").arg(g_multiStr_cur_index));
-            multiStrSeqSendTimer.stop();
-            ui->clearWindows->setText(tr("清  空"));
-            //存在非法字符就及时停止发送
-            return;
+    else
+    {
+        qint32 i = 0;
+        for(i = 0; i < ui->multiString->count(); i++)
+        {
+            if(ui->multiString->item(i) == ui->multiString->item(g_multiStr_cur_index))
+            {
+                break;
+            }
         }
+        ui->multiString->item(g_multiStr_cur_index)->setText("CMD_" +
+                                                              QString::number(i) + " |" +
+                                                              tmp);
     }
-    //实际上填入数据后还会再触发一次on_textEdit_textChanged()进行格式检查，
-    //但是on_textEdit_textChanged()会重置回上一次字符串，导致会发送上一次数据，有必要先行检查
-    ui->textEdit->setText(noCut_tmp);
+    ui->textEdit->setText(tmp);
     on_sendButton_clicked();
+}
+
+void MainWindow::addTextToMultiString(const QString &text)
+{
+    bool hasItem=false;
+    QString containt;
+    //比较发送的数据是否已经在多字符串列表中，顺便把没有注释的字符串补上注释
+    for(qint32 i = 0; i < ui->multiString->count(); i++){
+        containt = ui->multiString->item(i)->text();
+        if(containt.indexOf('|') != -1)
+        {
+            containt = containt.mid(containt.indexOf('|') + 1);
+        }
+        else
+        {
+            ui->multiString->item(i)->setText("CMD_" +
+                                                QString::number(i) + " |" +
+                                                containt);
+        }
+        if(containt == text)
+        {
+            hasItem = true;
+        }
+    }
+    if(!hasItem)
+        ui->multiString->addItem("CMD_" + 
+                                QString::number(ui->multiString->count()) + " |" + 
+                                text);
 }
 
 /*
@@ -1346,43 +1374,9 @@ void MainWindow::on_sendButton_clicked()
         return;
     }
 
-    //不处理注释(发送注释功能)
     tmp = ui->textEdit->toPlainText().toLocal8Bit();
-    if(ui->actionSendComment->isChecked())
-    {
-        if(tmp.lastIndexOf("//") != -1)
-        {
-            tail = tmp.mid(tmp.lastIndexOf("//"));
-            tmp = tmp.mid(0, tmp.lastIndexOf("//"));
-        }
-        else if(tmp.lastIndexOf("/") != -1 && ui->hexSend->isChecked()) //注意顺序
-        {
-            tail = tmp.mid(tmp.lastIndexOf("/"));
-            tmp = tmp.mid(0, tmp.lastIndexOf("/"));
-        }
-        //多字符串序列发送
-        if(ui->actionMultiString->isChecked())
-        {
-            qint32 seqTime = extractSeqenceTime(tail);
-            if(seqTime > 0)
-            {
-                ui->clearWindows->setText(tr("中  止"));
-                multiStrSeqSendTimer.start(seqTime);
-            }
-            else
-            {
-                ui->clearWindows->setText(tr("清  空"));
-                multiStrSeqSendTimer.stop();
-            }
-        }
-        else
-        {
-            multiStrSeqSendTimer.stop();
-        }
-    }
 
     //回车风格转换，win风格补上'\r'，默认unix风格
-
     if(ui->action_winLikeEnter->isChecked()){
         //win风格
         while (tmp.indexOf('\n') != -1) {
@@ -1434,19 +1428,32 @@ void MainWindow::on_sendButton_clicked()
         printToTextBrowser();
     }
 
-    //给多字符串控件添加条目
-    if(ui->actionMultiString->isChecked()){
-        bool hasItem=false;
-        for(qint32 i = 0; i < ui->multiString->count(); i++){
-            if(ui->multiString->item(i)->text()==ui->textEdit->toPlainText())
-                hasItem = true;
-        }
-        if(!hasItem)
-            ui->multiString->addItem(ui->textEdit->toPlainText());
+    //给多字符串控件添加条目, is_multi_str_double_click用于减少处理次数，高频发送时很有效
+    if(ui->actionMultiString->isChecked() && !is_multi_str_double_click){
+        addTextToMultiString(ui->textEdit->toPlainText());
     }
+    is_multi_str_double_click = false;
 
     //更新收发统计
     statusStatisticLabel->setText(serial.getTxRxString());
+
+    //多字符串序列发送
+    if(g_multiStr_cur_index != -1)
+    {
+        QString tmp = ui->multiString->item(g_multiStr_cur_index)->text();
+        qint32 seqTime = extractSeqenceTime(tmp);
+        if(seqTime > 0)
+        {
+            ui->clearWindows->setText(tr("中  止"));
+            multiStrSeqSendTimer.start(seqTime);
+        }
+        else
+        {
+            g_multiStr_cur_index = -1;
+            ui->clearWindows->setText(tr("清  空"));
+            multiStrSeqSendTimer.stop();
+        }
+    }
 }
 
 void MainWindow::on_clearWindows_clicked()
@@ -1574,26 +1581,22 @@ void MainWindow::on_cycleSendCheck_clicked(bool checked)
 void MainWindow::on_textEdit_textChanged()
 {
     QString tmp;
-    QString noCut_tmp;
-    //不处理注释
-    noCut_tmp = tmp = ui->textEdit->toPlainText();
-    if(ui->actionSendComment->isChecked())
-    {
-        if(tmp.lastIndexOf("//") != -1)
-        {
-            tmp = tmp.mid(0, tmp.lastIndexOf("//"));
-        }
-        else if(tmp.lastIndexOf("/") != -1 && ui->hexSend->isChecked()) //注意顺序
-        {
-            tmp = tmp.mid(0, tmp.lastIndexOf("/"));
-        }
-    }
+    tmp = ui->textEdit->toPlainText();
 
     //十六进制发送下的输入格式检查
     static QString lastText;
     if(ui->hexSend->isChecked()){
         if(!hexFormatCheck(tmp)){
-            QMessageBox::warning(this, tr("警告"), tr("hex发送模式下存在非法的十六进制格式。"));
+            if(g_multiStr_cur_index != -1)
+            {
+                QMessageBox::warning(this, tr("警告"), 
+                                    QString("The %1th multi_string has illegal hexadecimal format.")
+                                    .arg(g_multiStr_cur_index));
+            }
+            else
+            {
+                QMessageBox::warning(this, tr("警告"), tr("hex发送模式下存在非法的十六进制格式。"));
+            }
             multiStrSeqSendTimer.stop();
             ui->clearWindows->setText(tr("清  空"));
             ui->textEdit->clear();
@@ -1601,8 +1604,8 @@ void MainWindow::on_textEdit_textChanged()
             return;
         }
         //不能记录非空数据，因为clear操作也会触发本事件
-        if(!noCut_tmp.isEmpty())
-            lastText = noCut_tmp;
+        if(!tmp.isEmpty())
+            lastText = tmp;
     }
 }
 
@@ -1960,31 +1963,30 @@ void MainWindow::on_actionSTM32_ISP_triggered()
 */
 void MainWindow::on_multiString_itemDoubleClicked(QListWidgetItem *item)
 {
-    //十六进制发送下的输入格式检查（先剔除注释数据）
+    is_multi_str_double_click = true;
+    //剔除注释
     QString tmp = item->text();
-    if(ui->actionSendComment->isChecked())
+    if(tmp.indexOf('|') != -1)
     {
-        if(tmp.lastIndexOf("//") != -1)
-        {
-            tmp = tmp.mid(0, tmp.lastIndexOf("//"));
-        }
-        else if(tmp.lastIndexOf("/") != -1 && ui->hexSend->isChecked()) //注意顺序
-        {
-            tmp = tmp.mid(0, tmp.lastIndexOf("/"));
-        }
+        tmp = tmp.mid(tmp.indexOf('|') + 1);
     }
-    if(ui->hexSend->isChecked()){
-        if(!hexFormatCheck(tmp)){
-            QMessageBox::warning(this, tr("警告"), tr("hex发送模式下存在非法的十六进制格式。"));
-            multiStrSeqSendTimer.stop();
-            ui->clearWindows->setText(tr("清  空"));
-            return;
+    else
+    {
+        qint32 i = 0;
+        for(i = 0; i < ui->multiString->count(); i++)
+        {
+            if(ui->multiString->item(i) == item)
+            {
+                break;
+            }
         }
+        item->setText("CMD_" +
+                      QString::number(i) + " |" +
+                      tmp);
     }
-    //实际上填入数据后还会再触发一次on_textEdit_textChanged()进行格式检查，
-    //但是on_textEdit_textChanged()会重置回上一次字符串，导致会发送上一次数据，所以先进行检查
+
     g_multiStr_cur_index = ui->multiString->currentIndex().row();
-    ui->textEdit->setText(item->text());
+    ui->textEdit->setText(tmp);
     on_sendButton_clicked();
 }
 
@@ -2010,23 +2012,40 @@ void MainWindow::on_multiString_customContextMenuRequested(const QPoint &pos)
 {
     QListWidgetItem* curItem = ui->multiString->itemAt( pos );
     QAction *editSeed = nullptr;
-    QAction *clearSeeds = nullptr;
+    QAction *editCommentSeed = nullptr;
+    QAction *moveUpSeed = nullptr;
+    QAction *moveDownSeed = nullptr;
     QAction *deleteSeed = nullptr;
+    QAction *addSeed = nullptr;
+    QAction *clearSeeds = nullptr;
     QMenu *popMenu = new QMenu( this );
     //添加右键菜单
     if( curItem != nullptr ){
         editSeed = new QAction(tr("编辑当前条目"), this);
         popMenu->addAction( editSeed );
         connect( editSeed, SIGNAL(triggered() ), this, SLOT( editSeedSlot()) );
+        editCommentSeed = new QAction(tr("编辑当前条目注释"), this);
+        popMenu->addAction( editCommentSeed );
+        connect( editCommentSeed, SIGNAL(triggered() ), this, SLOT( editCommentSeedSlot()) );
 
         popMenu->addSeparator();
+        moveUpSeed = new QAction(tr("上移当前条目"), this);
+        popMenu->addAction( moveUpSeed );
+        connect( moveUpSeed, SIGNAL(triggered() ), this, SLOT( moveUpSeedSlot()) );
+        moveDownSeed = new QAction(tr("下移当前条目"), this);
+        popMenu->addAction( moveDownSeed );
+        connect( moveDownSeed, SIGNAL(triggered() ), this, SLOT( moveDownSeedSlot()) );
 
+        popMenu->addSeparator();
         deleteSeed = new QAction(tr("删除当前条目"), this);
         popMenu->addAction( deleteSeed );
         connect( deleteSeed, SIGNAL(triggered() ), this, SLOT( deleteSeedSlot()) );
 
         popMenu->addSeparator();
     }
+    addSeed = new QAction(tr("新增一个条目"), this);
+    popMenu->addAction( addSeed );
+    connect( addSeed, SIGNAL(triggered() ), this, SLOT( addSeedSlot()) );
     clearSeeds = new QAction(tr("清空所有条目"), this);
     popMenu->addAction( clearSeeds );
     connect( clearSeeds, SIGNAL(triggered() ), this, SLOT( clearSeedsSlot()) );
@@ -2047,11 +2066,73 @@ void MainWindow::editSeedSlot()
 
     qint32 curIndex = ui->multiString->row(item);
     bool ok = false;
+    QString comment, containt;
+    containt = ui->multiString->item(curIndex)->text();
+    if(containt.indexOf('|') != -1)
+    {
+        comment = containt.mid(0, containt.indexOf('|'));
+        containt = containt.mid(containt.indexOf('|') + 1);
+    }
+
     QString newStr = QInputDialog::getMultiLineText(this, tr("编辑条目"), tr("新的文本："),
-                                                    ui->multiString->item(curIndex)->text(),
+                                                    containt,
                                                     &ok, Qt::WindowCloseButtonHint);
+    newStr = comment + '|' + newStr;
     if(ok == true)
         ui->multiString->item(curIndex)->setText(newStr);
+}
+
+void MainWindow::editCommentSeedSlot()
+{
+    QListWidgetItem * item = ui->multiString->currentItem();
+    if( item == nullptr )
+        return;
+
+    qint32 curIndex = ui->multiString->row(item);
+    bool ok = false;
+    QString comment, containt;
+    containt = ui->multiString->item(curIndex)->text();
+    if(containt.indexOf('|') != -1)
+    {
+        comment = containt.mid(0, containt.indexOf('|'));
+        containt = containt.mid(containt.indexOf('|') + 1);
+    }
+    QString newStr = QInputDialog::getMultiLineText(this, tr("编辑条目注释"), tr("新的文本："),
+                                                    comment,
+                                                    &ok, Qt::WindowCloseButtonHint);
+    if(newStr.indexOf('|') != -1)
+    {
+        QMessageBox::information(this, tr("提示"), tr("注释不允许使用 | 符号，本次修改被放弃"));
+        return;
+    }
+    newStr = newStr + '|' + containt;
+    if(ok == true)
+        ui->multiString->item(curIndex)->setText(newStr);
+}
+
+void MainWindow::moveUpSeedSlot()
+{
+    QListWidgetItem * item = ui->multiString->currentItem();
+    if( item == nullptr )
+        return;
+
+    qint32 curIndex = ui->multiString->row(item);
+    if(curIndex - 1 >= 0)
+    {
+        ui->multiString->takeItem(curIndex);
+        ui->multiString->insertItem(curIndex - 1, item);
+    }
+}
+
+void MainWindow::moveDownSeedSlot()
+{
+    QListWidgetItem * item = ui->multiString->currentItem();
+    if( item == nullptr )
+        return;
+
+    qint32 curIndex = ui->multiString->row(item);
+    ui->multiString->takeItem(curIndex);
+    ui->multiString->insertItem(curIndex + 1, item);
 }
 
 /*
@@ -2073,11 +2154,28 @@ void MainWindow::deleteSeedSlot()
 */
 void MainWindow::clearSeedsSlot()
 {
-    QListWidgetItem * item = ui->multiString->currentItem();
-    if( item == nullptr )
+    QMessageBox::StandardButton button;
+    button = QMessageBox::information(this,
+                                      tr("提示"),
+                                      tr("确认清除所有条目？"),
+                                      QMessageBox::Ok, QMessageBox::Cancel);
+    if(button != QMessageBox::Ok)
         return;
 
     ui->multiString->clear();
+}
+
+void MainWindow::addSeedSlot()
+{
+    bool ok;
+    QString newStr = QInputDialog::getMultiLineText(this, tr("新增条目内容"), tr("新的文本："),
+                                                    "",
+                                                    &ok, Qt::WindowCloseButtonHint);
+    if(!ok)
+    {
+        return;
+    }
+    addTextToMultiString(newStr);
 }
 
 //更新数据可视化按钮的标题
@@ -3042,25 +3140,6 @@ void MainWindow::on_tabWidget_tabBarClicked(int index)
         resizeEvent(nullptr);
         RefreshTextBrowser = true;
     }
-}
-
-void MainWindow::on_actionSendComment_triggered(bool checked)
-{
-    if(checked)
-    {
-        ui->function->setTitle(tr("功能：发送注释"));
-    }
-    else
-    {
-        if(ui->hexSend->isChecked() && ui->textEdit->toPlainText().indexOf("//")!=-1)
-        {
-            QMessageBox::information(this, tr("提示"), tr("hex发送模式下关闭发送注释功能前需要先删除注释"));
-            ui->actionSendComment->setChecked(true);
-            return;
-        }
-        ui->function->setTitle(tr("功能"));
-    }
-    ui->actionSendComment->setChecked(checked);
 }
 
 void MainWindow::on_actionAutoRefreshYAxis_triggered(bool checked)
