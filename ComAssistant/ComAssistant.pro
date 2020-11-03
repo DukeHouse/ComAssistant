@@ -70,6 +70,7 @@ SOURCES += \
     QXlsx/source/xlsxzipreader.cpp \
     QXlsx/source/xlsxzipwriter.cpp \
     dialog/about_me_dialog.cpp \
+    dialog/hex_tool_dialog.cpp \
     dialog/settings_dialog.cpp \
     dialog/stm32isp_dialog.cpp \
     dialog/fft_dialog.cpp \
@@ -143,6 +144,7 @@ HEADERS += \
     QXlsx/header/xlsxzipwriter_p.h \
     QXlsx/myxlsx.h \
     dialog/about_me_dialog.h \
+    dialog/hex_tool_dialog.h \
     dialog/settings_dialog.h \
     dialog/stm32isp_dialog.h \
     dialog/fft_dialog.h \
@@ -165,6 +167,7 @@ HEADERS += \
 FORMS += \
         ui/about_me_dialog.ui \
         ui/ascii_table_dialog.ui \
+    ui/hex_tool_dialog.ui \
         ui/mainwindow.ui \
         ui/settings_dialog.ui \
         ui/stm32isp_dialog.ui \

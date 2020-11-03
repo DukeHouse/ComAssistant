@@ -3375,3 +3375,16 @@ void MainWindow::on_actionRecorder_triggered(bool checked)
     lastRecorderFilePath = lastRecorderFilePath.mid(0, lastRecorderFilePath.lastIndexOf('/')+1);
     recorderFilePath.clear();
 }
+
+void MainWindow::on_actionHexConverter_triggered(bool checked)
+{
+    Q_UNUSED(checked)
+    static Hex_Tool_Dialog *p = nullptr;
+    if(p)
+    {
+        p->show();
+        return;
+    }
+    p = new Hex_Tool_Dialog(this);
+    p->show();
+}
