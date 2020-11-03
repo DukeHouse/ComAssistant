@@ -40,6 +40,7 @@
 #include "about_me_dialog.h"
 #include "settings_dialog.h"
 #include "ascii_table_dialog.h"
+#include "hex_tool_dialog.h"
 //文本提取引擎
 #include "text_extract_engine.h"
 //FFT显示
@@ -165,6 +166,8 @@ private slots:
     void deleteSeedSlot();
     void clearSeedsSlot();
     void addSeedSlot();
+
+    void on_actionHexConverter_triggered(bool checked);
 
 private:
     QString formatTime(int ms);
