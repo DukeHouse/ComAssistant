@@ -169,7 +169,7 @@ HEADERS += \
 FORMS += \
         ui/about_me_dialog.ui \
         ui/ascii_table_dialog.ui \
-    ui/hex_tool_dialog.ui \
+        ui/hex_tool_dialog.ui \
         ui/mainwindow.ui \
         ui/settings_dialog.ui \
         ui/stm32isp_dialog.ui \
