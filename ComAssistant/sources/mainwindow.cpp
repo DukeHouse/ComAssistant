@@ -490,8 +490,8 @@ int32_t MainWindow::parseDatFile(QString path, bool removeAfterRead)
             file.remove();
         }
 
-        //文件分包
-        #define PACKSIZE 4096
+        //文件分包（分包太大会可能导致绘图解析那边卡顿甚至崩溃，应该是一个包解出来的数据太多了）
+        #define PACKSIZE 1024
         parseFileBuffIndex = 0;
         parseFileBuff.clear();
         parseFile = true;
