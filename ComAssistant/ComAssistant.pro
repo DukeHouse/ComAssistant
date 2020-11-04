@@ -83,6 +83,7 @@ SOURCES += \
     plotter/qcustomplotcontrol.cpp \
     sources/baseconversion.cpp \
     sources/config.cpp \
+    sources/data_logger.cpp \
     sources/highlighter.cpp \
     sources/http.cpp \
     sources/main.cpp \
@@ -157,6 +158,7 @@ HEADERS += \
     plotter/qcustomplotcontrol.h \
     sources/baseconversion.h \
     sources/config.h \
+    sources/data_logger.h \
     sources/fft.h \
     sources/highlighter.h \
     sources/http.h \

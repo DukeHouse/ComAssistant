@@ -310,8 +310,19 @@ MainWindow::MainWindow(QWidget *parent) :
             this, SLOT(tee_textGroupsUpdate(const QString &, const QByteArray &)));
     connect(p_textExtract, SIGNAL(saveDataResult(const qint32&, const QString &, const qint32 )),
             this, SLOT(tee_saveDataResult(const qint32&, const QString &, const qint32 )));
-
     p_textExtractThread->start();
+
+    //数据记录器(设计成线程模式为了做一个缓冲收集一段时间数据批量写入以缓解高频接收时的硬盘写入压力
+    //（虽然直接写好像硬盘也没看出使用率很高）)
+    p_logger_thread = new QThread(this);
+    p_logger        = new Data_Logger();
+    p_logger->moveToThread(p_logger_thread);
+    qRegisterMetaType<uint8_t>("uint8_t");
+    connect(p_logger_thread, SIGNAL(finished()), p_logger, SLOT(deleteLater()));
+    connect(this, SIGNAL(logger_append(uint8_t , const QByteArray &)), p_logger, SLOT(append_data_logger_buff(uint8_t , const QByteArray &)));
+    connect(this, SIGNAL(logger_flush(uint8_t)), p_logger, SLOT(logger_buff_flush(uint8_t)));
+    p_logger_thread->start();
+    p_logger->init_logger(RECOVERY_LOG, RECOVERY_FILE_PATH);
 
     //http
     http = new HTTP(this);
@@ -720,6 +731,13 @@ void MainWindow::secTimerSlot()
         g_lastSecsSinceEpoch = QDateTime::currentSecsSinceEpoch();
     }
 
+    //数据记录器定时保存数据
+    emit logger_flush(RECOVERY_LOG);
+    if(!recorderFilePath.isEmpty())
+    {
+        emit logger_flush(RECORDER_LOG);
+    }
+
     secCnt++;
     currentRunTime++;
 }
@@ -868,10 +886,22 @@ MainWindow::~MainWindow()
         Config::writeDefault();
     }
 
+    //退出时做一次flush操作
+    p_logger->logger_buff_flush(RECOVERY_LOG);
+    if(!recorderFilePath.isEmpty())
+    {
+        p_logger->logger_buff_flush(RECORDER_LOG);
+    }
+
     p_textExtractThread->quit();
     p_textExtractThread->wait();
 //    delete p_textExtract; //deleteLater自动删除？
     delete p_textExtractThread;
+
+    p_logger_thread->quit();
+    p_logger_thread->wait();
+//    delete p_logger_thread; //deleteLater自动删除？
+    delete p_logger_thread;
 
     delete fft_window;
     fft_window = nullptr;
@@ -1087,10 +1117,10 @@ void MainWindow::readSerialPort()
         ui->customPlot->appendDataWaitToParse(tmpReadBuff);
     }
 
-    appendDataToFile(RECOVERY_FILE_PATH, tmpReadBuff);
+    emit logger_append(RECOVERY_LOG, tmpReadBuff);
     if(!recorderFilePath.isEmpty())
     {
-        appendDataToFile(recorderFilePath, tmpReadBuff);
+        emit logger_append(RECORDER_LOG, tmpReadBuff);
     }
 
     //时间戳选项
@@ -1543,8 +1573,7 @@ void MainWindow::on_clearWindows_clicked()
     deleteValueDisplaySlot();
 
     //数据恢复仪
-    QFile recoveryFile(RECOVERY_FILE_PATH);
-    recoveryFile.remove();
+    p_logger->clear_logger(RECOVERY_LOG);
 
     //更新收发统计
     statusStatisticLabel->setText(serial.getTxRxString());
@@ -3343,6 +3372,7 @@ void MainWindow::on_actionRecorder_triggered(bool checked)
         {
             savePath = "Recorder-" + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".dat";
             recorderFilePath = QCoreApplication::applicationDirPath() + "/" + savePath;
+            p_logger->init_logger(RECORDER_LOG, recorderFilePath);
             QMessageBox::information(this,
                                      tr("提示"),
                                      tr("接下来的数据将被记录到程序所在目录下的") + savePath + tr("文件中") + "\n" +
@@ -3368,12 +3398,14 @@ void MainWindow::on_actionRecorder_triggered(bool checked)
                 return;
             }
             recorderFilePath = savePath;
+            p_logger->init_logger(RECORDER_LOG, recorderFilePath);
         }
         return;
     }
     lastRecorderFilePath = recorderFilePath;
     lastRecorderFilePath = lastRecorderFilePath.mid(0, lastRecorderFilePath.lastIndexOf('/')+1);
     recorderFilePath.clear();
+    p_logger->logger_buff_flush(RECORDER_LOG);
 }
 
 void MainWindow::on_actionHexConverter_triggered(bool checked)
