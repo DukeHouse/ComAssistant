@@ -35,6 +35,7 @@
 #include "baseconversion.h"
 #include "config.h"
 #include "http.h"
+#include "data_logger.h"
 //界面类
 #include "stm32isp_dialog.h"
 #include "about_me_dialog.h"
@@ -110,6 +111,7 @@ private slots:
     void on_actionTeeLevel2NameSupport_triggered(bool checked);
     void on_actionASCIITable_triggered();
     void on_actionRecorder_triggered(bool checked);
+    void on_actionHexConverter_triggered(bool checked);
 
     //setting
     void on_actionCOM_Config_triggered();
@@ -166,8 +168,6 @@ private slots:
     void deleteSeedSlot();
     void clearSeedsSlot();
     void addSeedSlot();
-
-    void on_actionHexConverter_triggered(bool checked);
 
 private:
     QString formatTime(int ms);
@@ -226,8 +226,11 @@ private:
     bool RefreshTextBrowser = true; //数据显示区刷新标记
     bool autoRefreshYAxisFlag;
 
+    //数据记录
     QString recorderFilePath = "";
     QString lastRecorderFilePath = "";
+    QThread *p_logger_thread;
+    Data_Logger *p_logger;
 
     //统计
     int currentRunTime = 0; //运行时间
@@ -260,6 +263,8 @@ signals:
     void tee_clearData(const QString &name);
     qint32 tee_saveData(const QString &path, const QString &name, const bool& savePackBuff);
     void sendKeyToPlotter(QKeyEvent *e, bool isPressAct);
+    void logger_append(uint8_t type, const QByteArray &data);
+    void logger_flush(uint8_t type);
 
 public slots:
     void tee_textGroupsUpdate(const QString &name, const QByteArray &data);
