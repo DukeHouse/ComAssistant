@@ -307,14 +307,27 @@ bool Config::getMultiStringState(){
 }
 
 bool Config::setMultiString(QStringList multiStr){
-
-    if(multiStr.isEmpty()){
-        multiStr.append("CMD_0 |竖线左侧为注释, 右侧为数据");
-        multiStr.append("CMD_1 |发送的数据会自动添加进本窗口");
-        multiStr.append("CMD_2 |双击条目可发送数据");
-        multiStr.append("CMD_3 |右击条目可删除/编辑注释或数据");
-        multiStr.append("CMD_4 |在注释中添加[n]标记可延时n毫秒后自动发送下一条目");
+    if (QLocale::system().name() != "zh_CN")
+    {
+        if(multiStr.isEmpty()){
+            multiStr.append("CMD_0 |Data and comments are separated by vertical line");
+            multiStr.append("CMD_1 |Sended data will be append to here");
+            multiStr.append("CMD_2 |Double click item to send data");
+            multiStr.append("CMD_3 |Right click to delete/edit comment or data");
+            multiStr.append("CMD_4 |Insert [n] in comment to delay n ms to send next command");
+        }
     }
+    else
+    {
+        if(multiStr.isEmpty()){
+            multiStr.append("CMD_0 |竖线左侧为注释, 右侧为数据");
+            multiStr.append("CMD_1 |发送的数据会自动添加进本窗口");
+            multiStr.append("CMD_2 |双击条目可发送数据");
+            multiStr.append("CMD_3 |右击条目可删除/编辑注释或数据");
+            multiStr.append("CMD_4 |在注释中添加[n]标记可延时n毫秒后自动发送下一条目");
+        }
+    }
+
 
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
 
@@ -340,13 +353,27 @@ QStringList Config::getMultiString(){
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
     for(int i = 0; i > -1; i++){
         QString preStr;
-        switch (i) {
+        if (QLocale::system().name() != "zh_CN")
+        {
+            switch (i) {
+            case 0: preStr = "CMD_0 |Data and comments are separated by vertical line"; break;
+            case 1: preStr = "CMD_1 |Sended data will be append to here"; break;
+            case 2: preStr = "CMD_2 |Double click item to send data"; break;
+            case 3: preStr = "CMD_3 |Right click to delete/edit comment or data"; break;
+            case 4: preStr = "CMD_4 |Insert [n] in comment to delay n ms to send next command"; break;
+            default: preStr = ""; break;
+            }
+        }
+        else
+        {
+            switch (i) {
             case 0: preStr = "CMD_0 |竖线左侧为注释, 右侧为数据"; break;
             case 1: preStr = "CMD_1 |发送的数据会自动添加进本窗口"; break;
             case 2: preStr = "CMD_2 |双击条目可发送数据"; break;
             case 3: preStr = "CMD_3 |右击条目可删除/编辑注释或数据"; break;
             case 4: preStr = "CMD_4 |在注释中添加[n]标记可延时n毫秒后自动发送下一指令"; break;
             default: preStr = ""; break;
+            }
         }
         QString value = iniFile->value(SECTION_MULTISTR+KEY_MULTISTRING+QString::number(i), preStr).toString();
         if(value.isEmpty())
