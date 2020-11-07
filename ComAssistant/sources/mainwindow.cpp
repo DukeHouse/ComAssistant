@@ -258,6 +258,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(&secTimer, SIGNAL(timeout()), this, SLOT(secTimerSlot()));
     connect(&printToTextBrowserTimer, SIGNAL(timeout()), this, SLOT(printToTextBrowserTimerSlot()));
     connect(&plotterShowTimer, SIGNAL(timeout()), this, SLOT(plotterShowTimerSlot()));
+    connect(&parseTimer100hz, SIGNAL(timeout()), this, SLOT(parseTimer100hzSlot()));
     connect(&multiStrSeqSendTimer, SIGNAL(timeout()), this, SLOT(multiStrSeqSendTimerSlot()));
     connect(&serial, SIGNAL(readyRead()), this, SLOT(readSerialPort()));
     connect(&serial, SIGNAL(bytesWritten(qint64)), this, SLOT(serialBytesWritten(qint64)));
@@ -378,6 +379,8 @@ MainWindow::MainWindow(QWidget *parent) :
     plotterShowTimer.start(PLOTTER_SHOW_PERIOD);
     multiStrSeqSendTimer.setTimerType(Qt::PreciseTimer);
     multiStrSeqSendTimer.setSingleShot(true);
+    parseTimer100hz.setTimerType(Qt::PreciseTimer);
+    parseTimer100hz.start(10);
 
     //计时器
     g_lastSecsSinceEpoch = QDateTime::currentSecsSinceEpoch();
@@ -1187,23 +1190,11 @@ void MainWindow::printToTextBrowser()
         resizeEvent(nullptr);
     }
 
-    //触发文本提取引擎解析
-    if(textExtractEnable)
-        emit tee_parseData();
-
-    //触发绘图器解析
-    if(ui->actionPlotterSwitch->isChecked() ||
-       ui->actionValueDisplay->isChecked() ||
-       ui->actionFFTShow->isChecked())
-    {
-        ui->customPlot->startParse(g_enableSumCheck);
-    }
-
     //多显示一点
     if(ui->hexDisplay->isChecked())
-        PAGING_SIZE = characterCount * 1.5; //hex模式性能慢
+        PAGING_SIZE = characterCount * 1.2; //hex模式性能慢
     else
-        PAGING_SIZE = characterCount * 2;
+        PAGING_SIZE = characterCount * 1.2;
 
     //且满足gbk/utf8编码长度的倍数
     if(ui->actionGBK->isChecked()){
@@ -1227,6 +1218,7 @@ void MainWindow::printToTextBrowser()
             ui->textBrowser->setPlainText(BrowserBuff);
             BrowserBuffIndex = BrowserBuff.size();
         }else{
+            //about 20ms
             ui->textBrowser->setPlainText(BrowserBuff.mid(BrowserBuff.size()-PAGING_SIZE));
             BrowserBuffIndex = PAGING_SIZE;
         }
@@ -1361,6 +1353,30 @@ void MainWindow::multiStrSeqSendTimerSlot()
     }
     ui->textEdit->setText(tmp);
     on_sendButton_clicked();
+}
+
+void MainWindow::parseTimer100hzSlot()
+{
+    static uint32_t cnt = 0;
+    if(cnt % (PLOTTER_SHOW_PERIOD/10) == 0)
+    {
+        //协议解析控制
+        if(RefreshTextBrowser == false)
+            return;
+
+        //触发文本提取引擎解析
+        if(textExtractEnable)
+            emit tee_parseData();
+
+        //触发绘图器解析
+        if(ui->actionPlotterSwitch->isChecked() ||
+           ui->actionValueDisplay->isChecked() ||
+           ui->actionFFTShow->isChecked())
+        {
+            ui->customPlot->startParse(g_enableSumCheck);
+        }
+    }
+    cnt++;
 }
 
 void MainWindow::addTextToMultiString(const QString &text)

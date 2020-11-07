@@ -17,7 +17,6 @@
 *.lai
 *.so
 *.so.*
-*.dll
 *.dylib
 
 # Qt-es
@@ -39,7 +38,6 @@ ui_*.h
 *.jsc
 Makefile*
 *build-*
-*.qm
 *.prl
 
 # Qt unit tests
