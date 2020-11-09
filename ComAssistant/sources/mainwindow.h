@@ -177,6 +177,7 @@ private:
     bool registPopupHotKey(QString keySequence);
     void layoutConfig();
     void adjustLayout();
+    void quickHelp();
     void openInteractiveUI();
     void closeInteractiveUI();
     int32_t divideDataToPacks(QByteArray &input, QByteArrayList &output, int32_t pack_size, bool &divideFlag);
