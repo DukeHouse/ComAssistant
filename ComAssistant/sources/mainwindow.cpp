@@ -385,6 +385,9 @@ MainWindow::MainWindow(QWidget *parent) :
     //计时器
     g_lastSecsSinceEpoch = QDateTime::currentSecsSinceEpoch();
 
+    //快速教程
+    quickHelp();
+
     //显示界面
     this->show();
 
@@ -404,6 +407,47 @@ MainWindow::MainWindow(QWidget *parent) :
 
     readRecoveryFile();
 
+}
+
+void MainWindow::quickHelp()
+{
+    QString helpText;
+    if (QLocale::system().name() != "zh_CN")
+    {
+        helpText = "Data display area"
+                "\n\n"
+                "Quick Guide：\n\n"
+                "# ASCII protocol(text string): \n"
+                "  \"{tag:hello world}\\n\"\n"
+                "  'tag' is any name you like\n"
+                "  'hello world' is any text containt\n"
+                "  '\\n' is wrap symbol\n\n"
+                "# Guide with C language\n"
+                "  1.Define macro function to simplify work\n"
+                "    #define PRINT(tag, fmt, ...) printf(\"{\"#tag\":\"fmt\"}\\n\", __VA_ARGS__)\n"
+                "  2.To draw graph, use it like this: \n"
+                "    PRINT(plot, \"%f,%f,%f\", data1, data2, data3); It means 3 graphs.\n"
+                "  3.To classify text, use it like this: \n"
+                "    PRINT(name, \"one year has %d days\", var); It means text associate with name\n";
+        ui->textBrowser->setPlaceholderText(helpText);
+        return;
+    }
+    helpText = "数据显示区"
+            "\n\n"
+            "快速教程：\n\n"
+            "# ASCII协议规则(字符串)：\n"
+            "  \"{tag:hello world}\\n\"\n"
+            "  tag为自定义名称标签\n"
+            "  hello world为自定义内容\n"
+            "  \\n为换行符，不可省\n\n"
+            "# C语言使用方法：\n"
+            "  1.定义宏函数可简化后期工作：\n"
+            "    #define PRINT(tag, fmt, ...) printf(\"{\"#tag\":\"fmt\"}\\n\", __VA_ARGS__)\n"
+            "  2.若要绘图可这样使用：\n"
+            "    PRINT(plot, \"%f,%f,%f\", data1, data2, data3);即可，表示3条曲线数据\n"
+            "  3.若要分类显示可这样使用：\n"
+            "    PRINT(name, \"one year has %d days\", var);即可，表示跟name有关的数据\n";
+    ui->textBrowser->setPlaceholderText(helpText);
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)

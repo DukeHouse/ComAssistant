@@ -109,8 +109,8 @@
     C语言示例代码
     </p>
     <pre style="background-color: rgb(235, 235, 235);">
-    #define PRINT_VOL(fmt, ...) printf("{voltage:"##fmt"}\n", __VA_ARGS__)
-    #define PRINT_CUR(fmt, ...) printf("{current:"##fmt"}\n", __VA_ARGS__)
+    #define PRINT_VOL(fmt, ...) printf("{voltage:"#fmt"}\n", __VA_ARGS__)
+    #define PRINT_CUR(fmt, ...) printf("{current:"#fmt"}\n", __VA_ARGS__)
 
     float vol = 3.32;
     float cur = 0.23;
