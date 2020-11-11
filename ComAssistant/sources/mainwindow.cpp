@@ -6,7 +6,7 @@
 #define BACKUP_RECOVERY_FILE_PATH    "ComAssistantRecovery_back.dat"
 
 static qint32   g_xAxisSource = XAxis_Cnt;
-static qint32   g_multiStr_cur_index;
+static qint32   g_multiStr_cur_index = -1;  // -1 means closed this function
 static QColor   g_background_color;
 static QFont    g_font;
 static bool     g_enableSumCheck;
@@ -61,8 +61,6 @@ void MainWindow::readConfig()
     Config::setVersion();
     Config::setStartTime(QDateTime::currentDateTime().toString("yyyyMMddhhmmss"));
 
-    //发送注释
-    on_actionSendComment_triggered(Config::getSendComment());
     //文本解析引擎
     on_actionTeeSupport_triggered(Config::getTeeSupport());
     on_actionTeeLevel2NameSupport_triggered(Config::getTeeLevel2NameSupport());
@@ -260,6 +258,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(&secTimer, SIGNAL(timeout()), this, SLOT(secTimerSlot()));
     connect(&printToTextBrowserTimer, SIGNAL(timeout()), this, SLOT(printToTextBrowserTimerSlot()));
     connect(&plotterShowTimer, SIGNAL(timeout()), this, SLOT(plotterShowTimerSlot()));
+    connect(&parseTimer100hz, SIGNAL(timeout()), this, SLOT(parseTimer100hzSlot()));
     connect(&multiStrSeqSendTimer, SIGNAL(timeout()), this, SLOT(multiStrSeqSendTimerSlot()));
     connect(&serial, SIGNAL(readyRead()), this, SLOT(readSerialPort()));
     connect(&serial, SIGNAL(bytesWritten(qint64)), this, SLOT(serialBytesWritten(qint64)));
@@ -312,8 +311,19 @@ MainWindow::MainWindow(QWidget *parent) :
             this, SLOT(tee_textGroupsUpdate(const QString &, const QByteArray &)));
     connect(p_textExtract, SIGNAL(saveDataResult(const qint32&, const QString &, const qint32 )),
             this, SLOT(tee_saveDataResult(const qint32&, const QString &, const qint32 )));
-
     p_textExtractThread->start();
+
+    //数据记录器(设计成线程模式为了做一个缓冲收集一段时间数据批量写入以缓解高频接收时的硬盘写入压力
+    //（虽然直接写好像硬盘也没看出使用率很高）)
+    p_logger_thread = new QThread(this);
+    p_logger        = new Data_Logger();
+    p_logger->moveToThread(p_logger_thread);
+    qRegisterMetaType<uint8_t>("uint8_t");
+    connect(p_logger_thread, SIGNAL(finished()), p_logger, SLOT(deleteLater()));
+    connect(this, SIGNAL(logger_append(uint8_t , const QByteArray &)), p_logger, SLOT(append_data_logger_buff(uint8_t , const QByteArray &)));
+    connect(this, SIGNAL(logger_flush(uint8_t)), p_logger, SLOT(logger_buff_flush(uint8_t)));
+    p_logger_thread->start();
+    p_logger->init_logger(RECOVERY_LOG, RECOVERY_FILE_PATH);
 
     //http
     http = new HTTP(this);
@@ -369,9 +379,14 @@ MainWindow::MainWindow(QWidget *parent) :
     plotterShowTimer.start(PLOTTER_SHOW_PERIOD);
     multiStrSeqSendTimer.setTimerType(Qt::PreciseTimer);
     multiStrSeqSendTimer.setSingleShot(true);
+    parseTimer100hz.setTimerType(Qt::PreciseTimer);
+    parseTimer100hz.start(10);
 
     //计时器
     g_lastSecsSinceEpoch = QDateTime::currentSecsSinceEpoch();
+
+    //快速教程
+    quickHelp();
 
     //显示界面
     this->show();
@@ -394,9 +409,66 @@ MainWindow::MainWindow(QWidget *parent) :
 
 }
 
+void MainWindow::quickHelp()
+{
+    QString helpText;
+    if (QLocale::system().name() != "zh_CN")
+    {
+        helpText = "Data display area"
+                "\n\n"
+                "Quick Guide：\n\n"
+                "# ASCII protocol(text string): \n"
+                "  \"{tag:hello world}\\n\"\n"
+                "  'tag' is any name you like\n"
+                "  'hello world' is any text containt\n"
+                "  '\\n' is wrap symbol\n\n"
+                "# Guide with C language\n"
+                "  1.Define macro function to simplify work\n"
+                "    #define PRINT(tag, fmt, ...) printf(\"{\"#tag\":\"fmt\"}\\n\", __VA_ARGS__)\n"
+                "  2.To draw graph, use it like this: \n"
+                "    PRINT(plot, \"%f,%f,%f\", data1, data2, data3); It means 3 graphs.\n"
+                "  3.To classify text, use it like this: \n"
+                "    PRINT(name, \"one year has %d days\", var); It means text associate with name\n";
+        ui->textBrowser->setPlaceholderText(helpText);
+        return;
+    }
+    helpText = "数据显示区"
+            "\n\n"
+            "快速教程：\n\n"
+            "# ASCII协议规则(字符串)：\n"
+            "  \"{tag:hello world}\\n\"\n"
+            "  tag为自定义名称标签\n"
+            "  hello world为自定义内容\n"
+            "  \\n为换行符，不可省\n\n"
+            "# C语言使用方法：\n"
+            "  1.定义宏函数可简化后期工作：\n"
+            "    #define PRINT(tag, fmt, ...) printf(\"{\"#tag\":\"fmt\"}\\n\", __VA_ARGS__)\n"
+            "  2.若要绘图可这样使用：\n"
+            "    PRINT(plot, \"%f,%f,%f\", data1, data2, data3);即可，表示3条曲线数据\n"
+            "  3.若要分类显示可这样使用：\n"
+            "    PRINT(name, \"one year has %d days\", var);即可，表示跟name有关的数据\n";
+    ui->textBrowser->setPlaceholderText(helpText);
+}
+
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    Q_UNUSED(event);
+    if(rxSpeedKB || txSpeedKB)
+    {
+        QMessageBox::StandardButton button;
+        button = QMessageBox::information(this,
+                                          tr("提示"),
+                                          tr("纸飞机正在收发数据，确认关闭纸飞机吗？"),
+                                          QMessageBox::Ok,
+                                          QMessageBox::Cancel);
+        if(button == QMessageBox::Ok)
+        {
+            event->accept();
+        }
+        else
+        {
+            event->ignore();
+        }
+    }
 }
 
 //打开可交互控件
@@ -465,8 +537,8 @@ int32_t MainWindow::parseDatFile(QString path, bool removeAfterRead)
             file.remove();
         }
 
-        //文件分包
-        #define PACKSIZE 4096
+        //文件分包（分包太大会可能导致绘图解析那边卡顿甚至崩溃，应该是一个包解出来的数据太多了）
+        #define PACKSIZE 1024
         parseFileBuffIndex = 0;
         parseFileBuff.clear();
         parseFile = true;
@@ -706,6 +778,13 @@ void MainWindow::secTimerSlot()
         g_lastSecsSinceEpoch = QDateTime::currentSecsSinceEpoch();
     }
 
+    //数据记录器定时保存数据
+    emit logger_flush(RECOVERY_LOG);
+    if(!recorderFilePath.isEmpty())
+    {
+        emit logger_flush(RECORDER_LOG);
+    }
+
     secCnt++;
     currentRunTime++;
 }
@@ -795,7 +874,6 @@ MainWindow::~MainWindow()
         Config::setGUIFont(g_font);
         Config::setBackGroundColor(g_background_color);
         Config::setPopupHotKey(g_popupHotKeySequence);
-        Config::setSendComment(ui->actionSendComment->isChecked());
         Config::setTeeSupport(textExtractEnable);
         Config::setTeeLevel2NameSupport(p_textExtract->getLevel2NameSupport());
 
@@ -855,10 +933,22 @@ MainWindow::~MainWindow()
         Config::writeDefault();
     }
 
+    //退出时做一次flush操作
+    p_logger->logger_buff_flush(RECOVERY_LOG);
+    if(!recorderFilePath.isEmpty())
+    {
+        p_logger->logger_buff_flush(RECORDER_LOG);
+    }
+
     p_textExtractThread->quit();
     p_textExtractThread->wait();
 //    delete p_textExtract; //deleteLater自动删除？
     delete p_textExtractThread;
+
+    p_logger_thread->quit();
+    p_logger_thread->wait();
+//    delete p_logger_thread; //deleteLater自动删除？
+    delete p_logger_thread;
 
     delete fft_window;
     fft_window = nullptr;
@@ -1074,10 +1164,10 @@ void MainWindow::readSerialPort()
         ui->customPlot->appendDataWaitToParse(tmpReadBuff);
     }
 
-    appendDataToFile(RECOVERY_FILE_PATH, tmpReadBuff);
+    emit logger_append(RECOVERY_LOG, tmpReadBuff);
     if(!recorderFilePath.isEmpty())
     {
-        appendDataToFile(recorderFilePath, tmpReadBuff);
+        emit logger_append(RECORDER_LOG, tmpReadBuff);
     }
 
     //时间戳选项
@@ -1144,23 +1234,11 @@ void MainWindow::printToTextBrowser()
         resizeEvent(nullptr);
     }
 
-    //触发文本提取引擎解析
-    if(textExtractEnable)
-        emit tee_parseData();
-
-    //触发绘图器解析
-    if(ui->actionPlotterSwitch->isChecked() ||
-       ui->actionValueDisplay->isChecked() ||
-       ui->actionFFTShow->isChecked())
-    {
-        ui->customPlot->startParse(g_enableSumCheck);
-    }
-
     //多显示一点
     if(ui->hexDisplay->isChecked())
-        PAGING_SIZE = characterCount * 1.5; //hex模式性能慢
+        PAGING_SIZE = characterCount * 1.2; //hex模式性能慢
     else
-        PAGING_SIZE = characterCount * 2;
+        PAGING_SIZE = characterCount * 1.2;
 
     //且满足gbk/utf8编码长度的倍数
     if(ui->actionGBK->isChecked()){
@@ -1184,6 +1262,7 @@ void MainWindow::printToTextBrowser()
             ui->textBrowser->setPlainText(BrowserBuff);
             BrowserBuffIndex = BrowserBuff.size();
         }else{
+            //about 20ms
             ui->textBrowser->setPlainText(BrowserBuff.mid(BrowserBuff.size()-PAGING_SIZE));
             BrowserBuffIndex = PAGING_SIZE;
         }
@@ -1254,13 +1333,18 @@ qint32 extractSeqenceTime(QString &str)
     QString temp;
     qint32 seqTime = -1;
     bool ok;
-    if(str.indexOf('[')==-1)
+    QString comment;
+    if(str.indexOf('|') != -1)
+    {
+        comment = str.mid(0, str.indexOf('|'));
+    }
+    if(comment.indexOf('[')==-1)
     {
         return -1;
     }
-    temp = str.mid(str.indexOf('['));
+    temp = comment.mid(comment.indexOf('['));
 
-    if(str.indexOf(']')==-1)
+    if(comment.indexOf(']')==-1)
     {
         return -1;
     }
@@ -1280,41 +1364,91 @@ void MainWindow::multiStrSeqSendTimerSlot()
 {
     if (!ui->actionMultiString->isChecked())
     {
+        ui->clearWindows->setText(tr("清  空"));
         multiStrSeqSendTimer.stop();
         return;
     }
-    if(ui->multiString->item(g_multiStr_cur_index + 1)==nullptr)
+    if(ui->multiString->item(g_multiStr_cur_index + 1) == nullptr)
     {
         g_multiStr_cur_index = -1;
+        ui->clearWindows->setText(tr("清  空"));
+        multiStrSeqSendTimer.stop();
     }
 
-    //十六进制发送下的输入格式检查，遇到非法字符串时及时停止发送，否则on_textEdit_textChanged()机制会引起数据重发
-    QString tmp, noCut_tmp;
-    noCut_tmp = tmp = ui->multiString->item(++g_multiStr_cur_index)->text();
-    if(ui->actionSendComment->isChecked())
+    //剔除注释,并补上没有注释的字符串
+    QString tmp = ui->multiString->item(++g_multiStr_cur_index)->text();
+    if(tmp.indexOf('|') != -1)
     {
-        if(tmp.lastIndexOf("//") != -1)
-        {
-            tmp = tmp.mid(0, tmp.lastIndexOf("//"));
-        }
-        else if(tmp.lastIndexOf("/") != -1 && ui->hexSend->isChecked()) //注意顺序
-        {
-            tmp = tmp.mid(0, tmp.lastIndexOf("/"));
-        }
+        tmp = tmp.mid(tmp.indexOf('|') + 1);
     }
-    if(ui->hexSend->isChecked()){
-        if(!hexFormatCheck(tmp)){
-            QMessageBox::warning(this, tr("警告"), QString("The %1th string has illegal hexadecimal format.").arg(g_multiStr_cur_index));
-            multiStrSeqSendTimer.stop();
-            ui->clearWindows->setText(tr("清  空"));
-            //存在非法字符就及时停止发送
-            return;
+    else
+    {
+        qint32 i = 0;
+        for(i = 0; i < ui->multiString->count(); i++)
+        {
+            if(ui->multiString->item(i) == ui->multiString->item(g_multiStr_cur_index))
+            {
+                break;
+            }
         }
+        ui->multiString->item(g_multiStr_cur_index)->setText("CMD_" +
+                                                              QString::number(i) + " |" +
+                                                              tmp);
     }
-    //实际上填入数据后还会再触发一次on_textEdit_textChanged()进行格式检查，
-    //但是on_textEdit_textChanged()会重置回上一次字符串，导致会发送上一次数据，有必要先行检查
-    ui->textEdit->setText(noCut_tmp);
+    ui->textEdit->setText(tmp);
     on_sendButton_clicked();
+}
+
+void MainWindow::parseTimer100hzSlot()
+{
+    static uint32_t cnt = 0;
+    if(cnt % (PLOTTER_SHOW_PERIOD/10) == 0)
+    {
+        //协议解析控制
+        if(RefreshTextBrowser == false)
+            return;
+
+        //触发文本提取引擎解析
+        if(textExtractEnable)
+            emit tee_parseData();
+
+        //触发绘图器解析
+        if(ui->actionPlotterSwitch->isChecked() ||
+           ui->actionValueDisplay->isChecked() ||
+           ui->actionFFTShow->isChecked())
+        {
+            ui->customPlot->startParse(g_enableSumCheck);
+        }
+    }
+    cnt++;
+}
+
+void MainWindow::addTextToMultiString(const QString &text)
+{
+    bool hasItem=false;
+    QString containt;
+    //比较发送的数据是否已经在多字符串列表中，顺便把没有注释的字符串补上注释
+    for(qint32 i = 0; i < ui->multiString->count(); i++){
+        containt = ui->multiString->item(i)->text();
+        if(containt.indexOf('|') != -1)
+        {
+            containt = containt.mid(containt.indexOf('|') + 1);
+        }
+        else
+        {
+            ui->multiString->item(i)->setText("CMD_" +
+                                                QString::number(i) + " |" +
+                                                containt);
+        }
+        if(containt == text)
+        {
+            hasItem = true;
+        }
+    }
+    if(!hasItem)
+        ui->multiString->addItem("CMD_" + 
+                                QString::number(ui->multiString->count()) + " |" + 
+                                text);
 }
 
 /*
@@ -1330,43 +1464,9 @@ void MainWindow::on_sendButton_clicked()
         return;
     }
 
-    //不处理注释(发送注释功能)
     tmp = ui->textEdit->toPlainText().toLocal8Bit();
-    if(ui->actionSendComment->isChecked())
-    {
-        if(tmp.lastIndexOf("//") != -1)
-        {
-            tail = tmp.mid(tmp.lastIndexOf("//"));
-            tmp = tmp.mid(0, tmp.lastIndexOf("//"));
-        }
-        else if(tmp.lastIndexOf("/") != -1 && ui->hexSend->isChecked()) //注意顺序
-        {
-            tail = tmp.mid(tmp.lastIndexOf("/"));
-            tmp = tmp.mid(0, tmp.lastIndexOf("/"));
-        }
-        //多字符串序列发送
-        if(ui->actionMultiString->isChecked())
-        {
-            qint32 seqTime = extractSeqenceTime(tail);
-            if(seqTime > 0)
-            {
-                ui->clearWindows->setText(tr("中  止"));
-                multiStrSeqSendTimer.start(seqTime);
-            }
-            else
-            {
-                ui->clearWindows->setText(tr("清  空"));
-                multiStrSeqSendTimer.stop();
-            }
-        }
-        else
-        {
-            multiStrSeqSendTimer.stop();
-        }
-    }
 
     //回车风格转换，win风格补上'\r'，默认unix风格
-
     if(ui->action_winLikeEnter->isChecked()){
         //win风格
         while (tmp.indexOf('\n') != -1) {
@@ -1418,19 +1518,32 @@ void MainWindow::on_sendButton_clicked()
         printToTextBrowser();
     }
 
-    //给多字符串控件添加条目
-    if(ui->actionMultiString->isChecked()){
-        bool hasItem=false;
-        for(qint32 i = 0; i < ui->multiString->count(); i++){
-            if(ui->multiString->item(i)->text()==ui->textEdit->toPlainText())
-                hasItem = true;
-        }
-        if(!hasItem)
-            ui->multiString->addItem(ui->textEdit->toPlainText());
+    //给多字符串控件添加条目, is_multi_str_double_click用于减少处理次数，高频发送时很有效
+    if(ui->actionMultiString->isChecked() && !is_multi_str_double_click){
+        addTextToMultiString(ui->textEdit->toPlainText());
     }
+    is_multi_str_double_click = false;
 
     //更新收发统计
     statusStatisticLabel->setText(serial.getTxRxString());
+
+    //多字符串序列发送
+    if(g_multiStr_cur_index != -1)
+    {
+        QString tmp = ui->multiString->item(g_multiStr_cur_index)->text();
+        qint32 seqTime = extractSeqenceTime(tmp);
+        if(seqTime > 0)
+        {
+            ui->clearWindows->setText(tr("中  止"));
+            multiStrSeqSendTimer.start(seqTime);
+        }
+        else
+        {
+            g_multiStr_cur_index = -1;
+            ui->clearWindows->setText(tr("清  空"));
+            multiStrSeqSendTimer.stop();
+        }
+    }
 }
 
 void MainWindow::on_clearWindows_clicked()
@@ -1520,8 +1633,7 @@ void MainWindow::on_clearWindows_clicked()
     deleteValueDisplaySlot();
 
     //数据恢复仪
-    QFile recoveryFile(RECOVERY_FILE_PATH);
-    recoveryFile.remove();
+    p_logger->clear_logger(RECOVERY_LOG);
 
     //更新收发统计
     statusStatisticLabel->setText(serial.getTxRxString());
@@ -1558,26 +1670,22 @@ void MainWindow::on_cycleSendCheck_clicked(bool checked)
 void MainWindow::on_textEdit_textChanged()
 {
     QString tmp;
-    QString noCut_tmp;
-    //不处理注释
-    noCut_tmp = tmp = ui->textEdit->toPlainText();
-    if(ui->actionSendComment->isChecked())
-    {
-        if(tmp.lastIndexOf("//") != -1)
-        {
-            tmp = tmp.mid(0, tmp.lastIndexOf("//"));
-        }
-        else if(tmp.lastIndexOf("/") != -1 && ui->hexSend->isChecked()) //注意顺序
-        {
-            tmp = tmp.mid(0, tmp.lastIndexOf("/"));
-        }
-    }
+    tmp = ui->textEdit->toPlainText();
 
     //十六进制发送下的输入格式检查
     static QString lastText;
     if(ui->hexSend->isChecked()){
         if(!hexFormatCheck(tmp)){
-            QMessageBox::warning(this, tr("警告"), tr("hex发送模式下存在非法的十六进制格式。"));
+            if(g_multiStr_cur_index != -1)
+            {
+                QMessageBox::warning(this, tr("警告"), 
+                                    QString("The %1th multi_string has illegal hexadecimal format.")
+                                    .arg(g_multiStr_cur_index));
+            }
+            else
+            {
+                QMessageBox::warning(this, tr("警告"), tr("hex发送模式下存在非法的十六进制格式。"));
+            }
             multiStrSeqSendTimer.stop();
             ui->clearWindows->setText(tr("清  空"));
             ui->textEdit->clear();
@@ -1585,8 +1693,8 @@ void MainWindow::on_textEdit_textChanged()
             return;
         }
         //不能记录非空数据，因为clear操作也会触发本事件
-        if(!noCut_tmp.isEmpty())
-            lastText = noCut_tmp;
+        if(!tmp.isEmpty())
+            lastText = tmp;
     }
 }
 
@@ -1794,7 +1902,7 @@ void MainWindow::on_actionCOM_Config_triggered()
     p->setDataBits(serial.dataBits());
     p->setParity(serial.parity());
     p->setFlowControl(serial.flowControl());
-    p->exec();
+    p->show();
     //对话框返回新配置并设置
     if(p->clickedOK()){
         if(!serial.moreSetting(p->getStopBits(),p->getParity(),p->getFlowControl(),p->getDataBits()))
@@ -1944,31 +2052,30 @@ void MainWindow::on_actionSTM32_ISP_triggered()
 */
 void MainWindow::on_multiString_itemDoubleClicked(QListWidgetItem *item)
 {
-    //十六进制发送下的输入格式检查（先剔除注释数据）
+    is_multi_str_double_click = true;
+    //剔除注释
     QString tmp = item->text();
-    if(ui->actionSendComment->isChecked())
+    if(tmp.indexOf('|') != -1)
     {
-        if(tmp.lastIndexOf("//") != -1)
-        {
-            tmp = tmp.mid(0, tmp.lastIndexOf("//"));
-        }
-        else if(tmp.lastIndexOf("/") != -1 && ui->hexSend->isChecked()) //注意顺序
-        {
-            tmp = tmp.mid(0, tmp.lastIndexOf("/"));
-        }
+        tmp = tmp.mid(tmp.indexOf('|') + 1);
     }
-    if(ui->hexSend->isChecked()){
-        if(!hexFormatCheck(tmp)){
-            QMessageBox::warning(this, tr("警告"), tr("hex发送模式下存在非法的十六进制格式。"));
-            multiStrSeqSendTimer.stop();
-            ui->clearWindows->setText(tr("清  空"));
-            return;
+    else
+    {
+        qint32 i = 0;
+        for(i = 0; i < ui->multiString->count(); i++)
+        {
+            if(ui->multiString->item(i) == item)
+            {
+                break;
+            }
         }
+        item->setText("CMD_" +
+                      QString::number(i) + " |" +
+                      tmp);
     }
-    //实际上填入数据后还会再触发一次on_textEdit_textChanged()进行格式检查，
-    //但是on_textEdit_textChanged()会重置回上一次字符串，导致会发送上一次数据，所以先进行检查
+
     g_multiStr_cur_index = ui->multiString->currentIndex().row();
-    ui->textEdit->setText(item->text());
+    ui->textEdit->setText(tmp);
     on_sendButton_clicked();
 }
 
@@ -1994,23 +2101,40 @@ void MainWindow::on_multiString_customContextMenuRequested(const QPoint &pos)
 {
     QListWidgetItem* curItem = ui->multiString->itemAt( pos );
     QAction *editSeed = nullptr;
-    QAction *clearSeeds = nullptr;
+    QAction *editCommentSeed = nullptr;
+    QAction *moveUpSeed = nullptr;
+    QAction *moveDownSeed = nullptr;
     QAction *deleteSeed = nullptr;
+    QAction *addSeed = nullptr;
+    QAction *clearSeeds = nullptr;
     QMenu *popMenu = new QMenu( this );
     //添加右键菜单
     if( curItem != nullptr ){
         editSeed = new QAction(tr("编辑当前条目"), this);
         popMenu->addAction( editSeed );
         connect( editSeed, SIGNAL(triggered() ), this, SLOT( editSeedSlot()) );
+        editCommentSeed = new QAction(tr("编辑当前条目注释"), this);
+        popMenu->addAction( editCommentSeed );
+        connect( editCommentSeed, SIGNAL(triggered() ), this, SLOT( editCommentSeedSlot()) );
 
         popMenu->addSeparator();
+        moveUpSeed = new QAction(tr("上移当前条目"), this);
+        popMenu->addAction( moveUpSeed );
+        connect( moveUpSeed, SIGNAL(triggered() ), this, SLOT( moveUpSeedSlot()) );
+        moveDownSeed = new QAction(tr("下移当前条目"), this);
+        popMenu->addAction( moveDownSeed );
+        connect( moveDownSeed, SIGNAL(triggered() ), this, SLOT( moveDownSeedSlot()) );
 
+        popMenu->addSeparator();
         deleteSeed = new QAction(tr("删除当前条目"), this);
         popMenu->addAction( deleteSeed );
         connect( deleteSeed, SIGNAL(triggered() ), this, SLOT( deleteSeedSlot()) );
 
         popMenu->addSeparator();
     }
+    addSeed = new QAction(tr("新增一个条目"), this);
+    popMenu->addAction( addSeed );
+    connect( addSeed, SIGNAL(triggered() ), this, SLOT( addSeedSlot()) );
     clearSeeds = new QAction(tr("清空所有条目"), this);
     popMenu->addAction( clearSeeds );
     connect( clearSeeds, SIGNAL(triggered() ), this, SLOT( clearSeedsSlot()) );
@@ -2031,11 +2155,73 @@ void MainWindow::editSeedSlot()
 
     qint32 curIndex = ui->multiString->row(item);
     bool ok = false;
+    QString comment, containt;
+    containt = ui->multiString->item(curIndex)->text();
+    if(containt.indexOf('|') != -1)
+    {
+        comment = containt.mid(0, containt.indexOf('|'));
+        containt = containt.mid(containt.indexOf('|') + 1);
+    }
+
     QString newStr = QInputDialog::getMultiLineText(this, tr("编辑条目"), tr("新的文本："),
-                                                    ui->multiString->item(curIndex)->text(),
+                                                    containt,
                                                     &ok, Qt::WindowCloseButtonHint);
+    newStr = comment + '|' + newStr;
     if(ok == true)
         ui->multiString->item(curIndex)->setText(newStr);
+}
+
+void MainWindow::editCommentSeedSlot()
+{
+    QListWidgetItem * item = ui->multiString->currentItem();
+    if( item == nullptr )
+        return;
+
+    qint32 curIndex = ui->multiString->row(item);
+    bool ok = false;
+    QString comment, containt;
+    containt = ui->multiString->item(curIndex)->text();
+    if(containt.indexOf('|') != -1)
+    {
+        comment = containt.mid(0, containt.indexOf('|'));
+        containt = containt.mid(containt.indexOf('|') + 1);
+    }
+    QString newStr = QInputDialog::getMultiLineText(this, tr("编辑条目注释"), tr("新的文本："),
+                                                    comment,
+                                                    &ok, Qt::WindowCloseButtonHint);
+    if(newStr.indexOf('|') != -1)
+    {
+        QMessageBox::information(this, tr("提示"), tr("注释不允许使用 | 符号，本次修改被放弃"));
+        return;
+    }
+    newStr = newStr + '|' + containt;
+    if(ok == true)
+        ui->multiString->item(curIndex)->setText(newStr);
+}
+
+void MainWindow::moveUpSeedSlot()
+{
+    QListWidgetItem * item = ui->multiString->currentItem();
+    if( item == nullptr )
+        return;
+
+    qint32 curIndex = ui->multiString->row(item);
+    if(curIndex - 1 >= 0)
+    {
+        ui->multiString->takeItem(curIndex);
+        ui->multiString->insertItem(curIndex - 1, item);
+    }
+}
+
+void MainWindow::moveDownSeedSlot()
+{
+    QListWidgetItem * item = ui->multiString->currentItem();
+    if( item == nullptr )
+        return;
+
+    qint32 curIndex = ui->multiString->row(item);
+    ui->multiString->takeItem(curIndex);
+    ui->multiString->insertItem(curIndex + 1, item);
 }
 
 /*
@@ -2057,11 +2243,28 @@ void MainWindow::deleteSeedSlot()
 */
 void MainWindow::clearSeedsSlot()
 {
-    QListWidgetItem * item = ui->multiString->currentItem();
-    if( item == nullptr )
+    QMessageBox::StandardButton button;
+    button = QMessageBox::information(this,
+                                      tr("提示"),
+                                      tr("确认清除所有条目？"),
+                                      QMessageBox::Ok, QMessageBox::Cancel);
+    if(button != QMessageBox::Ok)
         return;
 
     ui->multiString->clear();
+}
+
+void MainWindow::addSeedSlot()
+{
+    bool ok;
+    QString newStr = QInputDialog::getMultiLineText(this, tr("新增条目内容"), tr("新的文本："),
+                                                    "",
+                                                    &ok, Qt::WindowCloseButtonHint);
+    if(!ok)
+    {
+        return;
+    }
+    addTextToMultiString(newStr);
 }
 
 //更新数据可视化按钮的标题
@@ -3028,25 +3231,6 @@ void MainWindow::on_tabWidget_tabBarClicked(int index)
     }
 }
 
-void MainWindow::on_actionSendComment_triggered(bool checked)
-{
-    if(checked)
-    {
-        ui->function->setTitle(tr("功能：发送注释"));
-    }
-    else
-    {
-        if(ui->hexSend->isChecked() && ui->textEdit->toPlainText().indexOf("//")!=-1)
-        {
-            QMessageBox::information(this, tr("提示"), tr("hex发送模式下关闭发送注释功能前需要先删除注释"));
-            ui->actionSendComment->setChecked(true);
-            return;
-        }
-        ui->function->setTitle(tr("功能"));
-    }
-    ui->actionSendComment->setChecked(checked);
-}
-
 void MainWindow::on_actionAutoRefreshYAxis_triggered(bool checked)
 {
 
@@ -3206,7 +3390,7 @@ void MainWindow::on_actionTimeStampMode_triggered(bool checked)
     {
         QMessageBox::StandardButton button;
         button = QMessageBox::information(this, tr("提示"), tr("需要选择一条曲线作为时间戳数据"), QMessageBox::Ok, QMessageBox::Cancel);
-        if(!button)
+        if(button != QMessageBox::Ok)
         {
             ui->actionTimeStampMode->setChecked(!checked);
             ui->customPlot->plotControl->setEnableTimeStampMode(!checked);
@@ -3242,27 +3426,57 @@ void MainWindow::on_actionRecorder_triggered(bool checked)
     ui->actionRecorder->setChecked(checked);
     if(checked)
     {
-        //如果上次文件记录路径是空则用保存数据的上次路径
-        if(lastRecorderFilePath.isEmpty())
+        QString savePath;
+        //串口开启状态下则默认保存到程序所在目录，因为选择文件路径的对话框是阻塞型的，串口开启下会影响接收
+        if(serial.isOpen())
         {
-            lastRecorderFilePath = lastFileDialogPath;
+            savePath = "Recorder-" + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".dat";
+            recorderFilePath = QCoreApplication::applicationDirPath() + "/" + savePath;
+            p_logger->init_logger(RECORDER_LOG, recorderFilePath);
+            QMessageBox::information(this,
+                                     tr("提示"),
+                                     tr("接下来的数据将被记录到程序所在目录下的") + savePath + tr("文件中") + "\n" +
+                                     tr("如需更改数据记录位置，请先关闭串口再使用本功能。"));
         }
-        //打开保存文件对话框
-        QString savePath = QFileDialog::getSaveFileName(this,
-                                                        tr("记录数据到文件-选择文件路径"),
-                                                        lastRecorderFilePath + "Recorder-" + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".dat",
-                                                        "Dat File(*.dat);;All File(*.*)");
-        //检查路径格式
-        if(!savePath.endsWith(".dat")){
-            if(!savePath.isEmpty())
-                QMessageBox::information(this,tr("提示"),"尚未支持的文件格式，请选择dat文件。");
-            ui->actionRecorder->setChecked(false);
-            return;
+        else
+        {
+            //如果上次文件记录路径是空则用保存数据的上次路径
+            if(lastRecorderFilePath.isEmpty())
+            {
+                lastRecorderFilePath = lastFileDialogPath;
+            }
+            //打开保存文件对话框
+            savePath = QFileDialog::getSaveFileName(this,
+                                                    tr("记录数据到文件-选择文件路径"),
+                                                    lastRecorderFilePath + "Recorder-" + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".dat",
+                                                    "Dat File(*.dat);;All File(*.*)");
+            //检查路径格式
+            if(!savePath.endsWith(".dat")){
+                if(!savePath.isEmpty())
+                    QMessageBox::information(this,tr("提示"),"尚未支持的文件格式，请选择dat文件。");
+                ui->actionRecorder->setChecked(false);
+                return;
+            }
+            recorderFilePath = savePath;
+            p_logger->init_logger(RECORDER_LOG, recorderFilePath);
         }
-        recorderFilePath = savePath;
         return;
     }
     lastRecorderFilePath = recorderFilePath;
     lastRecorderFilePath = lastRecorderFilePath.mid(0, lastRecorderFilePath.lastIndexOf('/')+1);
     recorderFilePath.clear();
+    p_logger->logger_buff_flush(RECORDER_LOG);
+}
+
+void MainWindow::on_actionHexConverter_triggered(bool checked)
+{
+    Q_UNUSED(checked)
+    static Hex_Tool_Dialog *p = nullptr;
+    if(p)
+    {
+        p->show();
+        return;
+    }
+    p = new Hex_Tool_Dialog(this);
+    p->show();
 }

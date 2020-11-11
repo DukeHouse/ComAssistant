@@ -39,7 +39,6 @@
 #define KEY_GUIFONT             QString("GUIFont")
 #define KEY_BACKGROUNDCOLOR     QString("BackGroudColor")
 #define KEY_POPUPHOTKEY         QString("PopUpHotKey")
-#define KEY_SENDCOMMENT         QString("SendCommentEnable")
 #define KEY_TEE_Support         QString("TeeEnable")
 #define KEY_TEE_LEVEL2_NAME     QString("TeeLevel2NameEnable")
 
@@ -115,7 +114,7 @@ class Config
 public:
     #define defualtGraphName  "Graph 1;Graph 2;Graph 3;Graph 4;Graph 5;Graph 6;Graph 7;Graph 8;Graph 9;Graph 10;Graph 11;Graph 12;Graph 13;Graph 14;Graph 15;"
     //版本
-    #define VERSION_STRING  "0.4.4"
+    #define VERSION_STRING  "0.4.5"
 
     Config();
     static void writeDefault();
@@ -173,8 +172,6 @@ public:
     static QColor getBackGroundColor();
     static void setPopupHotKey(QString keySequence);
     static QString getPopupHotKey();
-    static void setSendComment(bool enable);
-    static bool getSendComment();
     static void setTeeSupport(bool enable);
     static bool getTeeSupport();
     static void setTeeLevel2NameSupport(bool enable);

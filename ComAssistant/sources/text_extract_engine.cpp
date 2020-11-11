@@ -140,7 +140,7 @@ void TextExtractEngine::appendData(const QByteArray &newData)
 
 void TextExtractEngine::parseData()
 {
-    #define MAX_EXTRACT_LENGTH 2048
+    #define MAX_EXTRACT_LENGTH 1024
     parsePacksFromBuffer(rawData.buff, rawData.buff);
     //在解析完成后剔除前面已扫描过的数据
     if(rawData.buff.size() > MAX_EXTRACT_LENGTH)

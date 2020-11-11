@@ -15,9 +15,10 @@
 <h2>功能</h2>
 <ul>
   <li><b>多字符串</b>：发送的数据均会记录下来供重复使用。</li>
-  <li><b>发送注释</b>：使能该功能将不会发送//后面的内容。如发送字符串“你好//注释”，实际上只会发送字符串“你好”，在多指令发送时，配合“多字符串组件”发送效果较好</li>
-  <li><b>多字符串序列发送</b>：在使能“发送注释”后，在注释部分添加[num]即可，其中num为延时毫秒，num毫秒后自动发送下一个字符串，当num为0时停止发送，常用于多指令序列发送。</li>
+  <li><b>多字符串序列发送</b>：在注释部分添加[num]即可，其中num为延时毫秒，num毫秒后自动发送下一个字符串，当num为0时停止发送，常用于多指令序列发送。</li>
+  <li><b>分类解析引擎</b>：分类解析引擎开关，关闭后将无法进行分类显示</li>
   <li><b>提取二级名称</b>：分类文本显示支持二级名称的提取以进行二级分类，规则为进一步将text_data段中的花括号数据提取出来作为二级名称，如{name1:{name2}hello world}\n，注意绘图协议不支持二级名称，只能是形如{name:num1,num2,num3}的结构</li>
+  <li><b>记录数据到文件</b>：将收到的数据写入文件保存，为了保护硬盘，最快写入频率约1Hz，即若软件意外崩溃，自崩溃起1秒内的数据可能丢失</li>
   <li><b>STM32-ISP</b>：实现STM32F1和F4系列的芯片的一键下载功能。该功能最好依赖自动下载电路，或者使用软件方法使单片机进入ISP模式
   <pre style="background-color: rgb(235, 235, 235);">
     
@@ -57,6 +58,8 @@
     }
     </pre>
   </li>
+  <li><b>ASCII码表</b>：提供一个ASCII码表格进行查询</li>
+  <li><b>HEX转换</b>：提供了一个ASCII和HEX相互转换的小工具</li>
 </ul>
 
 <h2>设置</h2>
@@ -91,7 +94,7 @@
     :为name和text_data之间的分隔符
     text_data 表示文本数据，支持除去花括号以外的所有可见英文字符
     \n为回车换行符，可以是\n也可以是\r\n，该字符不可遗漏。
-    单个数据包长限制为2048字节
+    单个数据包长限制为1024字节
     </pre>
     同一个文本名称的数据将会被分类到同一个界面下显示。<br>
     <br>
@@ -106,8 +109,8 @@
     C语言示例代码
     </p>
     <pre style="background-color: rgb(235, 235, 235);">
-    #define PRINT_VOL(fmt, ...) printf("{voltage:"##fmt"}\n", __VA_ARGS__)
-    #define PRINT_CUR(fmt, ...) printf("{current:"##fmt"}\n", __VA_ARGS__)
+    #define PRINT_VOL(fmt, ...) printf("{voltage:"#fmt"}\n", __VA_ARGS__)
+    #define PRINT_CUR(fmt, ...) printf("{current:"#fmt"}\n", __VA_ARGS__)
 
     float vol = 3.32;
     float cur = 0.23;

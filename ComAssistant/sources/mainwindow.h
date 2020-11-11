@@ -35,11 +35,13 @@
 #include "baseconversion.h"
 #include "config.h"
 #include "http.h"
+#include "data_logger.h"
 //界面类
 #include "stm32isp_dialog.h"
 #include "about_me_dialog.h"
 #include "settings_dialog.h"
 #include "ascii_table_dialog.h"
+#include "hex_tool_dialog.h"
 //文本提取引擎
 #include "text_extract_engine.h"
 //FFT显示
@@ -105,11 +107,11 @@ private slots:
     void on_actionMultiString_triggered(bool checked);
     void on_actionSTM32_ISP_triggered();
     void on_actionPopupHotkey_triggered();
-    void on_actionSendComment_triggered(bool checked);
     void on_actionTeeSupport_triggered(bool checked);
     void on_actionTeeLevel2NameSupport_triggered(bool checked);
     void on_actionASCIITable_triggered();
     void on_actionRecorder_triggered(bool checked);
+    void on_actionHexConverter_triggered(bool checked);
 
     //setting
     void on_actionCOM_Config_triggered();
@@ -151,6 +153,7 @@ private slots:
     void printToTextBrowserTimerSlot();
     void plotterShowTimerSlot();
     void multiStrSeqSendTimerSlot();
+    void parseTimer100hzSlot();
 
     //contextMenuRequested
     void on_textBrowser_customContextMenuRequested(const QPoint &pos);
@@ -160,8 +163,12 @@ private slots:
     void deleteValueDisplaySlot();
     void on_multiString_customContextMenuRequested(const QPoint &pos);
     void editSeedSlot();
+    void editCommentSeedSlot();
+    void moveUpSeedSlot();
+    void moveDownSeedSlot();
     void deleteSeedSlot();
     void clearSeedsSlot();
+    void addSeedSlot();
 
 private:
     QString formatTime(int ms);
@@ -170,6 +177,7 @@ private:
     bool registPopupHotKey(QString keySequence);
     void layoutConfig();
     void adjustLayout();
+    void quickHelp();
     void openInteractiveUI();
     void closeInteractiveUI();
     int32_t divideDataToPacks(QByteArray &input, QByteArrayList &output, int32_t pack_size, bool &divideFlag);
@@ -178,6 +186,7 @@ private:
     void readRecoveryFile();
     void setVisualizerTitle(void);
     void resetVisualizerTitle(void);
+    void addTextToMultiString(const QString &text);
     Ui::MainWindow *ui;
     mySerialPort serial;
 
@@ -197,15 +206,18 @@ private:
     int BrowserBuffIndex = 0; //显示指示
     QByteArray unshowedRxBuff;    //未上屏的接收缓冲
 
-    const int32_t PLOTTER_SHOW_PERIOD = 20;  //绘图器默认显示周期50FPS
-    const int32_t TEXT_SHOW_PERIOD    = 20;  //文本默认显示周期50FPS
+    const int32_t PLOTTER_SHOW_PERIOD = 40;  //绘图器显示频率25FPS（解析频率由parseTimer100hz控制）
+    const int32_t TEXT_SHOW_PERIOD    = 50;  //文本显示频率20FPS（刷新率太高低配机型会卡顿）
+
+    bool is_multi_str_double_click = false;
 
     QTimer cycleSendTimer;  //循环发送定时器
     QTimer debugTimer;      //调试定时器
     QTimer secTimer;        //秒定时器
     QTimer timeStampTimer;  //时间戳定时器
     QTimer printToTextBrowserTimer; //刷新文本显示区的定时器
-    QTimer plotterShowTimer;       //协议解析定时器
+    QTimer parseTimer100hz;
+    QTimer plotterShowTimer;       //绘图显示定时器
     QTimer multiStrSeqSendTimer;    //多字符串序列发送定时器
 
     QString lastFileDialogPath; //上次文件对话框路径
@@ -217,8 +229,11 @@ private:
     bool RefreshTextBrowser = true; //数据显示区刷新标记
     bool autoRefreshYAxisFlag;
 
+    //数据记录
     QString recorderFilePath = "";
     QString lastRecorderFilePath = "";
+    QThread *p_logger_thread;
+    Data_Logger *p_logger;
 
     //统计
     int currentRunTime = 0; //运行时间
@@ -251,6 +266,8 @@ signals:
     void tee_clearData(const QString &name);
     qint32 tee_saveData(const QString &path, const QString &name, const bool& savePackBuff);
     void sendKeyToPlotter(QKeyEvent *e, bool isPressAct);
+    void logger_append(uint8_t type, const QByteArray &data);
+    void logger_flush(uint8_t type);
 
 public slots:
     void tee_textGroupsUpdate(const QString &name, const QByteArray &data);

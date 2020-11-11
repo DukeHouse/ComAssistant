@@ -609,6 +609,18 @@ p, li { white-space: pre-wrap; }
      <property name="contextMenuPolicy">
       <enum>Qt::CustomContextMenu</enum>
      </property>
+     <property name="dragEnabled">
+      <bool>true</bool>
+     </property>
+     <property name="dragDropMode">
+      <enum>QAbstractItemView::DragDrop</enum>
+     </property>
+     <property name="defaultDropAction">
+      <enum>Qt::MoveAction</enum>
+     </property>
+     <property name="alternatingRowColors">
+      <bool>true</bool>
+     </property>
     </widget>
    </widget>
   </widget>
@@ -684,7 +696,6 @@ p, li { white-space: pre-wrap; }
      <string>功能</string>
     </property>
     <addaction name="actionMultiString"/>
-    <addaction name="actionSendComment"/>
     <addaction name="separator"/>
     <addaction name="actionTeeSupport"/>
     <addaction name="actionTeeLevel2NameSupport"/>
@@ -693,6 +704,7 @@ p, li { white-space: pre-wrap; }
     <addaction name="separator"/>
     <addaction name="actionSTM32_ISP"/>
     <addaction name="actionASCIITable"/>
+    <addaction name="actionHexConverter"/>
    </widget>
    <widget class="QMenu" name="visualizer">
     <property name="title">
@@ -1115,6 +1127,11 @@ p, li { white-space: pre-wrap; }
    </property>
    <property name="text">
     <string>记录数据到文件</string>
+   </property>
+  </action>
+  <action name="actionHexConverter">
+   <property name="text">
+    <string>HEX转换</string>
    </property>
   </action>
  </widget>
