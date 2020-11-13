@@ -141,7 +141,7 @@ void MyQCustomPlot::legendDoubleClick(QCPLegend *legend, QCPAbstractLegendItem *
     if (ok)
     {
       plItem->plottable()->setName(newName);
-      plotControl->getNameSetsFromPlot();
+      plotControl->setNameSet(plotControl->getNameSetsFromPlot());
       this->replot();
 
       //把新名字传递给fft窗口

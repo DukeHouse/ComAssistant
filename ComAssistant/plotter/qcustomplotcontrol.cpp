@@ -100,6 +100,7 @@ QVector<QColor> QCustomPlotControl::getColorSet()
     return colorSet;
 }
 
+//此函数会改变nameSet要注意
 QVector<QString> QCustomPlotControl::getNameSetsFromPlot()
 {
     nameSet.clear();
@@ -124,7 +125,7 @@ QVector<QString> QCustomPlotControl::getNameSetsFromPlot()
 void QCustomPlotControl::setNameSet(QVector<QString> names)
 {
     int min = (names.size() - colorSet.size()) > 0 ? colorSet.size() : names.size();
-    for (int i = 0; i<min ; i++) {
+    for (int i = 0; i < min ; i++) {
         nameSet[i] = names.at(i);
     }
     for (int i = 0; i < customPlot->graphCount(); i++) {
@@ -133,7 +134,7 @@ void QCustomPlotControl::setNameSet(QVector<QString> names)
 
     if(fft_dialog)
     {
-        fft_dialog->setNameSet(getNameSetsFromPlot());
+        fft_dialog->setNameSet(nameSet);
     }
 }
 
