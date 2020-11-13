@@ -17,7 +17,6 @@ MyQCustomPlot::MyQCustomPlot(QWidget* parent)
     connect(this, SIGNAL(axisDoubleClick(QCPAxis*,QCPAxis::SelectablePart,QMouseEvent*)), this, SLOT(axisLabelDoubleClick(QCPAxis*,QCPAxis::SelectablePart)));
     connect(this, SIGNAL(legendDoubleClick(QCPLegend*,QCPAbstractLegendItem*,QMouseEvent*)), this, SLOT(legendDoubleClick(QCPLegend*,QCPAbstractLegendItem*)));
 
-    // connect slot that shows a message in the status bar when a graph is clicked:
     connect(this, SIGNAL(plottableClick(QCPAbstractPlottable*,int,QMouseEvent*)), this, SLOT(graphClicked(QCPAbstractPlottable*,int)));
 
     // setup policy and connect slot for context menu popup:
@@ -42,10 +41,9 @@ MyQCustomPlot::~MyQCustomPlot()
 //    delete protocol;
 }
 
-void MyQCustomPlot::init(QStatusBar* pBar, QMenu* plotterSetting, QAction* saveGraphData, QAction* saveGraphPicture,
+void MyQCustomPlot::init(QMenu* plotterSetting, QAction* saveGraphData, QAction* saveGraphPicture,
                          qint32 *xSource, bool *autoRescaleYAxisFlag, FFT_Dialog* window)
 {
-    bar = pBar;
     setting = plotterSetting;
     saveData = saveGraphData;
     savePicture = saveGraphPicture;
@@ -96,12 +94,32 @@ void MyQCustomPlot::axisLabelDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart 
     }
   }else if(part == QCPAxis::spAxis){
       if(axis==this->yAxis||axis==this->yAxis2){
-         bar->showMessage(tr("Y轴无法手动调整"), 2000);
+          bool ok;
+          double lower, upper;
+          lower = QInputDialog::getDouble(this,
+                                          tr("更改Y轴范围"), tr("新的Y轴下边界："),
+                                          this->yAxis->range().lower,
+                                          -2147483647, 2147483647, 1, &ok, Qt::WindowCloseButtonHint);
+          if (ok)
+          {
+              this->yAxis->setRangeLower(lower);
+              this->yAxis2->setRangeLower(lower);
+              upper = QInputDialog::getDouble(this,
+                                              tr("更改Y轴范围"), tr("新的Y轴上边界："),
+                                              this->yAxis->range().upper,
+                                              -2147483647, 2147483647, 1, &ok, Qt::WindowCloseButtonHint);
+              if (ok)
+              {
+                  this->yAxis->setRangeUpper(upper);
+                  this->yAxis2->setRangeUpper(upper);
+              }
+              this->replot();
+          }
          return;
       }
       bool ok;
       double newLength = QInputDialog::getDouble(this, tr("更改X轴长度"), tr("新的X轴长度："),plotControl->getXAxisLength(),
-                                                 0, 10000, 1, &ok, Qt::WindowCloseButtonHint);
+                                                 0, 2147483647, 1, &ok, Qt::WindowCloseButtonHint);
       if (ok)
       {
         plotControl->setXAxisLength(newLength);
@@ -309,6 +327,19 @@ void MyQCustomPlot::removeAllGraphs()
     this->replot();
 }
 
+void MyQCustomPlot::reNameSelectedGraph()
+{
+    for (int i=0; i<this->graphCount(); ++i)
+    {
+        QCPGraph *graph = this->graph(i);
+        QCPPlottableLegendItem *item = this->legend->itemWithPlottable(graph);
+        if (item->selected() || graph->selected())
+        {
+            legendDoubleClick(nullptr, qobject_cast<QCPAbstractLegendItem*>(item));
+        }
+    }
+}
+
 void MyQCustomPlot::hideSelectedGraph()
 {
     if (this->selectedGraphs().size() > 0)
@@ -402,6 +433,8 @@ void MyQCustomPlot::contextMenuRequest(QPoint pos)
   }
   //选择了曲线
   if (this->selectedGraphs().size() > 0){
+    menu->addSeparator();
+    menu->addAction(tr("重命名所选曲线"), this, SLOT(reNameSelectedGraph()));
     menu->addSeparator();
     //所选曲线是否可见
     if(this->selectedGraphs().first()->visible()){

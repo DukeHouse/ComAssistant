@@ -18,7 +18,6 @@
 #include "axistag.h"
 #include "mytracer.h"
 
-#include <QStatusBar>
 #include "fft_dialog.h"
 
 #define    XAxis_Cnt        0
@@ -50,7 +49,7 @@ public:
     ~MyQCustomPlot();
 
     MyTracer *m_Tracer; //坐标跟随鼠标
-    void init(QStatusBar* pBar, QMenu* plotterSetting, QAction* saveGraphData, QAction* saveGraphPicture,
+    void init(QMenu* plotterSetting, QAction* saveGraphData, QAction* saveGraphPicture,
               qint32 *xSource, bool *autoRescaleYAxisFlag, FFT_Dialog* window);
     bool saveGraphAsTxt(const QString& filePath, char separate=' ');
     QCustomPlotControl *plotControl = nullptr;
@@ -74,6 +73,7 @@ private slots:
     void removeSelectedGraph();
     void rescaleYAxis();
     void removeAllGraphs();
+    void reNameSelectedGraph();
     void hideSelectedGraph();
     void hideAllGraph();
     void showAllGraph();
@@ -84,7 +84,6 @@ private slots:
     void showTracer(QMouseEvent *event);
 
 private:
-    QStatusBar* bar = nullptr;
     QMenu* setting = nullptr;
     QAction* saveData = nullptr;
     QAction* savePicture = nullptr;

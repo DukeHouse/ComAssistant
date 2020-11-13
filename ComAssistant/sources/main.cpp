@@ -45,6 +45,7 @@ void outputMessage(QtMsgType type, const QMessageLogContext &context, const QStr
         text_stream << "\r\n"
                     << log_header
                     << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss ddd")
+                    << " V" + Config::getVersion()
                     << "\r\n";
     }
     text_stream << message << endl;

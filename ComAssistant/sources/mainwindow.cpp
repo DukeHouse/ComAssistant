@@ -291,7 +291,7 @@ MainWindow::MainWindow(QWidget *parent) :
     fft_window = new FFT_Dialog(ui->actionFFTShow, this);
 
     //初始化绘图控制器
-    ui->customPlot->init(ui->statusBar, ui->plotterSetting,
+    ui->customPlot->init(ui->plotterSetting,
                          ui->actionSavePlotData, ui->actionSavePlotAsPicture,
                          &g_xAxisSource, &autoRefreshYAxisFlag,
                          fft_window);
