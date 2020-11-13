@@ -2348,7 +2348,7 @@ void MainWindow::plotterShowTimerSlot()
         {
             ui->customPlot->yAxis->rescale(true);
         }
-        ui->customPlot->replot();   //<10ms
+        ui->customPlot->replot();   //<20ms
     }
     if(fft_window->isVisible())
     {

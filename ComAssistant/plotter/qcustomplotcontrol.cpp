@@ -180,7 +180,11 @@ bool QCustomPlotControl::addDataToPlotter(const QVector<double>& rowData, qint32
     //判断是否需要添加曲线
     if(rowData.size()>customPlot->graphCount()){
         if(customPlot->graphCount()<colorSet.size()){
-            addGraph(rowData.size() - customPlot->graphCount());
+            if(!addGraph(rowData.size() - customPlot->graphCount()))
+            {
+                qDebug() << "addDataToPlotter addGraph failed";
+                return false;
+            }
         }
     }
 
