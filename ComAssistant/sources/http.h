@@ -17,6 +17,7 @@
 #include <QTimer>
 #include <QDesktopServices>
 #include <QMessageBox>
+#include <QMutex>
 
 #include "config.h"
 
@@ -29,7 +30,7 @@ class MainWindow;
 class HTTP: public QObject
 {
     Q_OBJECT
-
+    #define TIMEOUT_SECOND  5
 public:
     typedef enum{
         Idle,
@@ -53,15 +54,18 @@ public:
 private:
     int32_t parseReleaseInfo(QString &inputStr, QString &remoteVersion, QString &remoteNote, QString &publishedTime);
 
+    QMutex httpLock;
     QWidget *parent;
     QTimer secTimer;
     //http访问
     QNetworkAccessManager *m_NetManger;
-    QNetworkReply* m_Reply;
+    QNetworkReply* m_Reply = nullptr;
     QVector<HttpFunction_e> httpTaskVector;
+    //由于共用m_Reply指针，因此httpTask实际只能运行完一个后才能运行下一个，
+    //所以httpTimeout也有流控作用
+    //把m_Replay改为向量后同时向外发包则问题在于不知道网络回的包属于哪一个task,也不太好搞
     int httpTimeout = 0;
     QStringList msgList;//远端下载的信息列表
-
 private slots:
     void httpTimeoutHandle();
     void httpFinishedSlot(QNetworkReply *);

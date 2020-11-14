@@ -9,10 +9,11 @@ HTTP::HTTP(QWidget *parentWidget)
     connect(m_NetManger, SIGNAL(finished(QNetworkReply*)), this, SLOT(httpFinishedSlot(QNetworkReply*)));
 
     //提交使用统计任务
+    httpLock.lock();
     httpTaskVector.push_back(PostStatic);
     httpTaskVector.push_back(DownloadMSGs);
     httpTaskVector.push_back(BackStageGetVersion);
-//    httpTaskVector.push_back(BackStageGetVersion_MyServer);
+    httpLock.unlock();
 
     connect(&secTimer, SIGNAL(timeout()), this, SLOT(httpTimeoutHandle()));
     secTimer.start(1000);
@@ -63,7 +64,7 @@ QString HTTP::getHostMacAddress()
 bool HTTP::postUsageStatistic(void)
 {
     //旧请求未完成时不执行。
-    if(httpTimeout>0)
+    if(httpTimeout > 0)
         return false;
 
 //    ui->statusBar->showMessage("正在提交使用统计...", 1000);
@@ -96,7 +97,7 @@ bool HTTP::postUsageStatistic(void)
 bool HTTP::getRemoteVersion(void)
 {
     //旧请求未完成时不执行。
-    if(httpTimeout>0)
+    if(httpTimeout > 0)
         return false;
 
 //    ui->statusBar->showMessage("正在检查更新，请稍候……", 1000);
@@ -127,7 +128,7 @@ bool HTTP::getRemoteVersion_my_server(void)
 bool HTTP::downloadMessages(void)
 {
     //旧请求未完成时不执行。
-    if(httpTimeout>0)
+    if(httpTimeout > 0)
         return false;
 
     //下载远端信息
@@ -141,7 +142,18 @@ bool HTTP::downloadMessages(void)
 
 void HTTP::addTask(HttpFunction_e name)
 {
+    //最好不要重复添加任务,否则似乎会崩溃,八成是m_Reply指针共用的原因，这边安全起见加几个大锁
+    httpLock.lock();
+    for(int32_t i = 0; i < httpTaskVector.size(); i++)
+    {
+        if(httpTaskVector.at(0) == name)
+        {
+            httpLock.unlock();
+            return;
+        }
+    }
     httpTaskVector.append(name);
+    httpLock.unlock();
 }
 
 QStringList HTTP::getMsgList()
@@ -151,12 +163,17 @@ QStringList HTTP::getMsgList()
 
 void HTTP::httpTimeoutHandle()
 {
+    httpLock.lock();
     //http超时放弃(要放在“处理http任务请求队列”前面)
-    if(httpTimeout){
+    if(httpTimeout > 0){
         httpTimeout--;
         if(httpTimeout == 0){
-            m_Reply->abort();
-            m_Reply->deleteLater();
+            if(m_Reply)
+            {
+                m_Reply->abort();
+                m_Reply->deleteLater();
+                m_Reply = nullptr;
+            }
             if(httpTaskVector.size() > 0){
                 qDebug() << "http request timed out." << httpTaskVector.at(0);
                 httpTaskVector.pop_front();
@@ -166,7 +183,7 @@ void HTTP::httpTimeoutHandle()
     }
 
     //处理http任务请求队列
-    if(httpTaskVector.size()>0 && httpTimeout==0){
+    if(httpTaskVector.size() > 0 && httpTimeout == 0){
         switch(httpTaskVector.at(0)){
         case GetVersion:
             getRemoteVersion();break;
@@ -183,8 +200,9 @@ void HTTP::httpTimeoutHandle()
         default:
             httpTaskVector.pop_front();break;
         }
-        httpTimeout = 5;
+        httpTimeout = TIMEOUT_SECOND;
     }
+    httpLock.unlock();
 }
 
 //解析发布信息
@@ -229,16 +247,18 @@ void HTTP::httpFinishedSlot(QNetworkReply *)
 {
     static uint32_t GetVersion_failed = 0;  //GetVersion失败次数
 
+    httpLock.lock();
     //超时定时器清0
     httpTimeout = 0;
     HttpFunction_e state;
-    if(httpTaskVector.size()>0){
-        state = httpTaskVector.at(0); //提取，防止超时pop
+    if(httpTaskVector.size() > 0){
+        state = httpTaskVector.at(0); //提取，注意加锁否则可能超时pop导致非法访问
         httpTaskVector.pop_front();
     }
     else{
         state = Idle;
     }
+    httpLock.unlock();
 
     m_Reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
     m_Reply->attribute(QNetworkRequest::RedirectionTargetAttribute);
@@ -295,17 +315,21 @@ void HTTP::httpFinishedSlot(QNetworkReply *)
             //把下载的远端信息添加进变量
             msgList = string.split('\n',QString::SkipEmptyParts);
         }else{
-            qDebug()<<string;
+            qDebug()<<"http state error" << string;
         }
     }
     else
     {
         //只有GetVersion是主动更新，因此获取不到版本号时才弹失败提示
         if(state == BackStageGetVersion){
+            httpLock.lock();
             httpTaskVector.push_back(BackStageGetVersion_MyServer);
+            httpLock.unlock();
         }else if(state == GetVersion){
             GetVersion_failed++;
+            httpLock.lock();
             httpTaskVector.push_back(BackStageGetVersion_MyServer);
+            httpLock.unlock();
         }else if(state == BackStageGetVersion_MyServer){
             //两个服务器都失败才弹提示
             if(GetVersion_failed){
@@ -324,9 +348,10 @@ void HTTP::httpFinishedSlot(QNetworkReply *)
         }else if(state == PostStatic){
 
         }
-        qDebug()<< m_Reply->errorString();
+        qDebug()<< "m_Reply err" << m_Reply->errorString();
         m_Reply->abort();
     }
 
     m_Reply->deleteLater();
+    m_Reply = nullptr;
 }
