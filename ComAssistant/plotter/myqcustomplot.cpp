@@ -481,8 +481,11 @@ void MyQCustomPlot::graphClicked(QCPAbstractPlottable *plottable, int dataIndex)
 void MyQCustomPlot::showTracer(QMouseEvent *event)
 {
     if(this->selectedGraphs().size() <= 0){
-        m_Tracer->setVisible(false);
-        this->replot();
+        if(m_Tracer->getVisible())
+        {
+            m_Tracer->setVisible(false);
+            this->replot();
+        }
         return;
     }
     m_Tracer->setVisible(true);

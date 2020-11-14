@@ -111,11 +111,17 @@ void MyTracer::setText(const QString &text)
     label->setText(text);
 }
 
-void MyTracer::setVisible(bool visible)
+void MyTracer::setVisible(bool yes)
 {
-    tracer->setVisible(visible);
-    label->setVisible(visible);
-    arrow->setVisible(visible);
+    tracer->setVisible(yes);
+    label->setVisible(yes);
+    arrow->setVisible(yes);
+    visible = yes;
+}
+
+bool MyTracer::getVisible()
+{
+    return visible;
 }
 
 void MyTracer::updatePosition(double xValue, double yValue)
@@ -123,7 +129,6 @@ void MyTracer::updatePosition(double xValue, double yValue)
     if (!visible)
     {
         setVisible(true);
-        visible = true;
     }
     if (yValue > plot->yAxis->range().upper)
         yValue = plot->yAxis->range().upper;

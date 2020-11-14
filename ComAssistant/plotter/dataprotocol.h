@@ -10,6 +10,7 @@
 #include <float.h>
 #include <QElapsedTimer>
 #include <QThread>
+#include <QMutex>
 
 //可视协议：{保留:数据1,数据2,...}
 //透传协议: float数据转为小端模式传输，以00 00 80 7F结尾
@@ -43,6 +44,8 @@ public slots:
     void appendData(const QByteArray &data);
     void parseData(bool enableSumCheck=false);
 private:
+    QMutex dataPoolLock;
+    QMutex tempDataPoolLock;
     //从pack中提取合法数据行
     RowData_t extractRowData(const Pack_t& pack);
     //将合法数据行添加进数据池
@@ -56,6 +59,8 @@ private:
     QByteArray MAXDATA_AS_END;
     //数组前4个字节转float
     bool byteArrayToFloat(const QByteArray& array, float& result);
+    //进一步筛除错误数据
+    int32_t hasErrorStr_Ascii(QByteArray &input);
     //调用byteArrayToFloat
     bool packToFloat(const Pack_t& pack , float& result);
     void parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBuffer, bool enableSumCheck);

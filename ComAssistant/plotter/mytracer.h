@@ -27,7 +27,8 @@ public:
     void setText(const QString &text);
     void setLabelPen(const QPen &pen);
     void updatePosition(double xValue, double yValue);
-    void setVisible(bool visible);
+    void setVisible(bool yes);
+    bool getVisible();
 
 protected:
     QCustomPlot *plot ;	     //传入实例化的QcustomPlot

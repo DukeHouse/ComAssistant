@@ -27,7 +27,9 @@ DataProtocol::ProtocolType_e DataProtocol::getProtocolType()
 
 void DataProtocol::appendData(const QByteArray &data)
 {
+    tempDataPoolLock.lock();
     tempDataPool.append(data);
+    tempDataPoolLock.unlock();
 }
 
 void DataProtocol::parseData(bool enableSumCheck)
@@ -36,16 +38,46 @@ void DataProtocol::parseData(bool enableSumCheck)
     //导致卡顿，如果是偶尔误码这种问题影响不大，但是如果刻意制造这种数据并大量发送则会卡死，似乎无解，
     //或放到子线程中，但依然会消耗很多时间，只是不会卡住GUI而已
     #define MAX_EXTRACT_LENGTH 512
+    tempDataPoolLock.lock();
     parsePacksFromBuffer(tempDataPool, tempDataPool, enableSumCheck);
+    tempDataPoolLock.unlock();
     //在解析完成后剔除前面已扫描过的数据
     if(tempDataPool.size() > MAX_EXTRACT_LENGTH)
     {
+        tempDataPoolLock.lock();
         tempDataPool = tempDataPool.mid(tempDataPool.size() - MAX_EXTRACT_LENGTH);
+        tempDataPoolLock.unlock();
     }
 }
 
+inline int32_t DataProtocol::hasErrorStr_Ascii(QByteArray &input)
+{
+    int32_t err = 0;
+    QRegularExpression reg;
+    QRegularExpressionMatch match;
+    //不应该出现1-2这样的数据，符号前面要么是逗号要么是空格
+    reg.setPattern("\\d[+-]");
+    reg.setPatternOptions(QRegularExpression::InvertedGreedinessOption);//设置为非贪婪模式匹配
+    match = reg.match(input, 0);
+    if(match.hasMatch()) {
+        err--;
+    }
+    if(err)
+    {
+        return err;
+    }
+    //不应该出现1.2.3这样的数据
+    reg.setPattern("\\.\\d+\\.");
+    reg.setPatternOptions(QRegularExpression::InvertedGreedinessOption);//设置为非贪婪模式匹配
+    match = reg.match(input, 0);
+    if(match.hasMatch()) {
+        err--;
+    }
+    return err;
+}
+
 //从缓存中提取所有包，每提取出一个包就解析一个
-void DataProtocol::parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBuffer, bool enableSumCheck)
+inline void DataProtocol::parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBuffer, bool enableSumCheck)
 {
     if(buffer.isEmpty())
         return;
@@ -64,6 +96,7 @@ void DataProtocol::parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBuff
         //:后，数据与逗号作为一个组，这个组至少出现一次，组中的逗号出现0次或1次，组开头允许有空白字符\\s
         //组中的数据：符号出现或者不出现，整数部分出现至少1次，小数点与小数作为整体，可不出现或者1次
         //换行符最多出现2次
+        //少数匹配错误的数据由hasErrorStr_Ascii进一步筛选
         reg.setPattern("\\{[^{:]*:(\\s*([+-]?\\d+(\\.\\d+)?)?,?)+\\}");
         reg.setPatternOptions(QRegularExpression::InvertedGreedinessOption);//设置为非贪婪模式匹配
         do {
@@ -75,17 +108,15 @@ void DataProtocol::parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBuff
                     //连续的逗号和分号逗号之间补0
                     onePack.clear();
                     onePack.append(match.captured(0).toLocal8Bit());
-                    while(onePack.indexOf(",,")!=-1){
-                        onePack.insert(onePack.indexOf(",,")+1,'0');
+                    if(hasErrorStr_Ascii(onePack) != 0)
+                    {
+                        qDebug()<<"hasErrorStr_Ascii"<<onePack;
+                        continue;
                     }
-                    while(onePack.indexOf(":,")!=-1){
-                        onePack.insert(onePack.indexOf(":,")+1,'0');
-                    }
+                    //补0
+                    onePack.replace(":,", ":0,");
+                    onePack.replace(",,", ",0,");
                     if(!onePack.isEmpty()){
-                        while(onePack.indexOf('\r')!=-1)
-                            onePack = onePack.replace("\r","");
-                        while(onePack.indexOf('\n')!=-1)
-                            onePack = onePack.replace("\n","");
                         RowData_t data = extractRowData(onePack);
                         addToDataPool(data, enableSumCheck);
                     }
@@ -117,8 +148,13 @@ void DataProtocol::parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBuff
 
 void DataProtocol::clearBuff()
 {
+    tempDataPoolLock.lock();
     tempDataPool.clear();
+    tempDataPoolLock.unlock();
+
+    dataPoolLock.lock();
     dataPool.clear();
+    dataPoolLock.unlock();
 }
 
 int DataProtocol::parsedBuffSize()
@@ -129,10 +165,12 @@ int DataProtocol::parsedBuffSize()
 QVector<double> DataProtocol::popOneRowData()
 {
     QVector<double> tmp;
-    if(dataPool.size()>0){
+    dataPoolLock.lock();
+    if(dataPool.size() > 0){
         tmp = dataPool.at(0);
         dataPool.pop_front();
     }
+    dataPoolLock.unlock();
     return tmp;
 }
 
@@ -203,7 +241,9 @@ inline void DataProtocol::addToDataPool(RowData_t &rowData, bool enableSumCheck=
         }
         rowData.pop_back();
     }
+    dataPoolLock.lock();
     dataPool << rowData;
+    dataPoolLock.unlock();
 }
 
 bool DataProtocol::byteArrayToFloat(const QByteArray& array, float& result)
