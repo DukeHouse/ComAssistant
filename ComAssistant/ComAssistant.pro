@@ -215,4 +215,5 @@ RESOURCES += \
 # 翻译文件
 TRANSLATIONS = resources/en_US.ts
 
-
+# RELEASE优化等级
+QMAKE_CXXFLAGS_RELEASE -= -O3
