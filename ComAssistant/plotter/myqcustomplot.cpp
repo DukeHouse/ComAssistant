@@ -329,7 +329,7 @@ void MyQCustomPlot::removeAllGraphs()
 
 void MyQCustomPlot::reNameSelectedGraph()
 {
-    for (int i=0; i<this->graphCount(); ++i)
+    for (int i = 0; i < this->graphCount(); ++i)
     {
         QCPGraph *graph = this->graph(i);
         QCPPlottableLegendItem *item = this->legend->itemWithPlottable(graph);

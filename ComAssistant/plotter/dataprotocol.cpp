@@ -114,8 +114,12 @@ inline void DataProtocol::parsePacksFromBuffer(QByteArray& buffer, QByteArray& r
                         continue;
                     }
                     //补0
-                    onePack.replace(":,", ":0,");
-                    onePack.replace(",,", ",0,");
+                    while(onePack.indexOf(",,") != -1){
+                        onePack.insert(onePack.indexOf(",,") + 1,'0');
+                    }
+                    while(onePack.indexOf(":,") != -1){
+                        onePack.insert(onePack.indexOf(":,") + 1,'0');
+                    }
                     if(!onePack.isEmpty()){
                         RowData_t data = extractRowData(onePack);
                         addToDataPool(data, enableSumCheck);
