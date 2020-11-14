@@ -1895,6 +1895,11 @@ void MainWindow::on_actionAbout_triggered()
 
 void MainWindow::on_actionCOM_Config_triggered()
 {
+    if(serial.isOpen())
+    {
+        QMessageBox::information(this, tr("提示"), tr("请先关闭串口。"));
+        return;
+    }
     //创建串口设置对话框
     settings_dialog* p = new settings_dialog(this);
     //对话框读取原配置
@@ -1902,11 +1907,17 @@ void MainWindow::on_actionCOM_Config_triggered()
     p->setDataBits(serial.dataBits());
     p->setParity(serial.parity());
     p->setFlowControl(serial.flowControl());
-    p->show();
+    p->exec();
     //对话框返回新配置并设置
-    if(p->clickedOK()){
-        if(!serial.moreSetting(p->getStopBits(),p->getParity(),p->getFlowControl(),p->getDataBits()))
-            QMessageBox::information(this,tr("提示"),tr("串口设置失败，请关闭串口重试"));
+    if(p->clickedOK())
+    {
+        if(!serial.moreSetting(p->getStopBits(),
+                               p->getParity(),
+                               p->getFlowControl(),
+                               p->getDataBits()))
+        {
+            QMessageBox::information(this, tr("提示"), tr("串口设置失败，请关闭串口重试"));
+        }
     }
 
     delete p;
@@ -2017,6 +2028,7 @@ void MainWindow::on_actionSaveShowedData_triggered()
 
 void MainWindow::on_actionUpdate_triggered()
 {
+    ui->statusBar->showMessage(tr("正在检查更新……"), 2000);
     http->addTask(HTTP::GetVersion);
 }
 
