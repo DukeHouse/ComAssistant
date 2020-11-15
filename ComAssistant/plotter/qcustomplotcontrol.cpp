@@ -75,6 +75,11 @@ void QCustomPlotControl::setEnableTimeStampMode(bool enable)
     enableTimeStampMode = enable;
 }
 
+bool QCustomPlotControl::getEnableTimeStampMode()
+{
+    return enableTimeStampMode;
+}
+
 int QCustomPlotControl::getMaxValidGraphNumber()
 {
     return colorSet.size();

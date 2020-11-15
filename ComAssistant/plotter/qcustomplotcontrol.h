@@ -28,6 +28,7 @@ public:
     ~QCustomPlotControl();
     QCustomPlotControl(MyQCustomPlot* plot, FFT_Dialog *window);//不知道为啥用了会崩溃
     void setEnableTimeStampMode(bool enable);
+    bool getEnableTimeStampMode();
     bool addGraph(int num=1);
     //清除指定曲线，-1清除所有曲线
     void clearPlotter(int index);

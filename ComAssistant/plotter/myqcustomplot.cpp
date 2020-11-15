@@ -80,26 +80,29 @@ void MyQCustomPlot::startParse(bool enableSumCheck)
 /*plotter交互*/
 void MyQCustomPlot::axisLabelDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart part)
 {
-    qDebug()<<"axisLabelDoubleClick";
   // Set an axis label by double clicking on it
   if (part == QCPAxis::spAxisLabel) // only react when the actual axis label is clicked, not tick label or axis backbone
   {
-    bool ok;
-    QString newLabel = QInputDialog::getText(this, tr("更改轴标签"), tr("新的轴标签："),
-                                             QLineEdit::Normal, axis->label(), &ok, Qt::WindowCloseButtonHint);
-    if (ok)
-    {
-      axis->setLabel(newLabel);
-      this->replot();
-    }
+      bool ok;
+      QString newLabel = QInputDialog::getText(this,
+                                               tr("更改轴标签"), tr("新的轴标签："),
+                                               QLineEdit::Normal, axis->label(),
+                                               &ok, Qt::WindowCloseButtonHint);
+      if (ok)
+      {
+        axis->setLabel(newLabel);
+        this->replot();
+      }
   }else if(part == QCPAxis::spAxis){
+      //选的Y轴
       if(axis==this->yAxis||axis==this->yAxis2){
           bool ok;
           double lower, upper;
           lower = QInputDialog::getDouble(this,
                                           tr("更改Y轴范围"), tr("新的Y轴下边界："),
                                           this->yAxis->range().lower,
-                                          -2147483647, 2147483647, 1, &ok, Qt::WindowCloseButtonHint);
+                                          -2147483647, 2147483647, 1,
+                                          &ok, Qt::WindowCloseButtonHint);
           if (ok)
           {
               this->yAxis->setRangeLower(lower);
@@ -107,7 +110,8 @@ void MyQCustomPlot::axisLabelDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart 
               upper = QInputDialog::getDouble(this,
                                               tr("更改Y轴范围"), tr("新的Y轴上边界："),
                                               this->yAxis->range().upper,
-                                              -2147483647, 2147483647, 1, &ok, Qt::WindowCloseButtonHint);
+                                              -2147483647, 2147483647, 1,
+                                              &ok, Qt::WindowCloseButtonHint);
               if (ok)
               {
                   this->yAxis->setRangeUpper(upper);
@@ -117,13 +121,49 @@ void MyQCustomPlot::axisLabelDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart 
           }
          return;
       }
-      bool ok;
-      double newLength = QInputDialog::getDouble(this, tr("更改X轴长度"), tr("新的X轴长度："),plotControl->getXAxisLength(),
-                                                 0, 2147483647, 1, &ok, Qt::WindowCloseButtonHint);
-      if (ok)
+      //选的X轴
+      if(!xAxisSource)
       {
-        plotControl->setXAxisLength(newLength);
-        this->replot();
+          qDebug() << "unregistered xAxisSource in axisLabelDoubleClick";
+          return;
+      }
+      //X轴在时间戳模式和非时间戳模式下具有不同的调整方式
+      if(*xAxisSource == XAxis_Cnt || plotControl->getEnableTimeStampMode())
+      {
+          bool ok;
+          double newLength = QInputDialog::getDouble(this, tr("更改X轴长度"), tr("新的X轴长度："),plotControl->getXAxisLength(),
+                                                     0, 2147483647, 1, &ok, Qt::WindowCloseButtonHint);
+          if (ok)
+          {
+            plotControl->setXAxisLength(newLength);
+            this->replot();
+          }
+      }
+      else//不是时间戳模式且数据源变了
+      {
+          bool ok;
+          double lower, upper;
+          lower = QInputDialog::getDouble(this,
+                                          tr("更改X轴范围"), tr("新的X轴左边界："),
+                                          this->xAxis->range().lower,
+                                          -2147483647, 2147483647, 1,
+                                          &ok, Qt::WindowCloseButtonHint);
+          if (ok)
+          {
+              this->xAxis->setRangeLower(lower);
+              this->xAxis2->setRangeLower(lower);
+              upper = QInputDialog::getDouble(this,
+                                              tr("更改X轴范围"), tr("新的X轴右边界："),
+                                              this->xAxis->range().upper,
+                                              -2147483647, 2147483647, 1,
+                                              &ok, Qt::WindowCloseButtonHint);
+              if (ok)
+              {
+                  this->xAxis->setRangeUpper(upper);
+                  this->xAxis2->setRangeUpper(upper);
+              }
+              this->replot();
+          }
       }
   }
 }
