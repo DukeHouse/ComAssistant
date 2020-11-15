@@ -66,9 +66,10 @@ private:
     //把m_Replay改为向量后同时向外发包则问题在于不知道网络回的包属于哪一个task,也不太好搞
     int httpTimeout = 0;
     QStringList msgList;//远端下载的信息列表
+    HttpFunction_e cur_task = Idle;
 private slots:
     void httpTimeoutHandle();
-    void httpFinishedSlot(QNetworkReply *);
+    void httpFinishedSlot(QNetworkReply *reply);
 };
 
 #endif // HTTP_H

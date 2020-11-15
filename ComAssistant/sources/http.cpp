@@ -146,7 +146,7 @@ void HTTP::addTask(HttpFunction_e name)
     httpLock.lock();
     for(int32_t i = 0; i < httpTaskVector.size(); i++)
     {
-        if(httpTaskVector.at(0) == name)
+        if(httpTaskVector.at(i) == name)
         {
             httpLock.unlock();
             return;
@@ -163,22 +163,13 @@ QStringList HTTP::getMsgList()
 
 void HTTP::httpTimeoutHandle()
 {
-    httpLock.lock();
     //http超时放弃(要放在“处理http任务请求队列”前面)
     if(httpTimeout > 0){
         httpTimeout--;
         if(httpTimeout == 0){
-            if(m_Reply)
-            {
-                m_Reply->abort();
-                m_Reply->deleteLater();
-                m_Reply = nullptr;
-            }
-            if(httpTaskVector.size() > 0){
-                qDebug() << "http request timed out." << httpTaskVector.at(0);
-                httpTaskVector.pop_front();
-            }
-//            ui->statusBar->showMessage("Http请求超时。", 1000);
+            m_Reply->abort();
+//            m_Reply->deleteLater();
+            qDebug() << "http request timed out: " << cur_task;
         }
     }
 
@@ -190,7 +181,7 @@ void HTTP::httpTimeoutHandle()
         case BackStageGetVersion:
             getRemoteVersion();break;
         case DownloadFile:
-            httpTaskVector.pop_front();break;
+            break;
         case PostStatic:
             postUsageStatistic();break;
         case DownloadMSGs:
@@ -198,11 +189,14 @@ void HTTP::httpTimeoutHandle()
         case BackStageGetVersion_MyServer:
             getRemoteVersion_my_server();break;
         default:
-            httpTaskVector.pop_front();break;
+            break;
         }
+        httpLock.lock();
+        cur_task = httpTaskVector.at(0);
+        httpTaskVector.pop_front();
+        httpLock.unlock();
         httpTimeout = TIMEOUT_SECOND;
     }
-    httpLock.unlock();
 }
 
 //解析发布信息
@@ -243,32 +237,21 @@ int32_t HTTP::parseReleaseInfo(QString &inputStr, QString &remoteVersion, QStrin
     return 0;
 }
 
-void HTTP::httpFinishedSlot(QNetworkReply *)
+void HTTP::httpFinishedSlot(QNetworkReply *reply)
 {
+    //立刻清零，防止超时delete
+    httpTimeout = 0;
     static uint32_t GetVersion_failed = 0;  //GetVersion失败次数
 
-    httpLock.lock();
-    //超时定时器清0
-    httpTimeout = 0;
-    HttpFunction_e state;
-    if(httpTaskVector.size() > 0){
-        state = httpTaskVector.at(0); //提取，注意加锁否则可能超时pop导致非法访问
-        httpTaskVector.pop_front();
-    }
-    else{
-        state = Idle;
-    }
-    httpLock.unlock();
+    reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
+    reply->attribute(QNetworkRequest::RedirectionTargetAttribute);
 
-    m_Reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
-    m_Reply->attribute(QNetworkRequest::RedirectionTargetAttribute);
-
-    if (m_Reply->error() == QNetworkReply::NoError)
+    if (reply->error() == QNetworkReply::NoError)
     {
-        QByteArray bytes = m_Reply->readAll();
+        QByteArray bytes = reply->readAll();
         QString string = QString::fromUtf8(bytes);
 
-        if(state == GetVersion || state == BackStageGetVersion || state == BackStageGetVersion_MyServer ){
+        if(cur_task == GetVersion || cur_task == BackStageGetVersion || cur_task == BackStageGetVersion_MyServer ){
 
             QString remoteVersion;
             QString remoteNote;
@@ -285,7 +268,7 @@ void HTTP::httpFinishedSlot(QNetworkReply *)
             //版本号比较
             if(version_to_number(remoteVersion) > version_to_number(localVersion)){
                 QMessageBox::Button button;
-                if(state == GetVersion || GetVersion_failed>0){
+                if(cur_task == GetVersion || GetVersion_failed>0){
                     GetVersion_failed = 0;
                     button = QMessageBox::information(nullptr, tr("提示"),
                                                       tr("当前版本号：") + localVersion + "\n" +
@@ -300,7 +283,7 @@ void HTTP::httpFinishedSlot(QNetworkReply *)
                 }
                 parent->setWindowTitle(tr("纸飞机串口助手") + " " + tr("当前版本：V") + localVersion + " " + tr("发现新版本：V") + remoteVersion);
             }else{
-                if(state == GetVersion || GetVersion_failed>0){
+                if(cur_task == GetVersion || GetVersion_failed>0){
                     GetVersion_failed = 0;
                     QMessageBox::information(nullptr, tr("提示"),
                                              tr("当前版本号：") + localVersion + "\n" +
@@ -308,10 +291,10 @@ void HTTP::httpFinishedSlot(QNetworkReply *)
                                              tr("已经是最新版本。"));
                 }
             }
-        }else if(state == PostStatic){
+        }else if(cur_task == PostStatic){
             if(!string.isEmpty())
                 qDebug()<<"PostStatic:"<<string;
-        }else if(state == DownloadMSGs){
+        }else if(cur_task == DownloadMSGs){
             //把下载的远端信息添加进变量
             msgList = string.split('\n',QString::SkipEmptyParts);
         }else{
@@ -321,37 +304,39 @@ void HTTP::httpFinishedSlot(QNetworkReply *)
     else
     {
         //只有GetVersion是主动更新，因此获取不到版本号时才弹失败提示
-        if(state == BackStageGetVersion){
+        if(cur_task == BackStageGetVersion){
             httpLock.lock();
             httpTaskVector.push_back(BackStageGetVersion_MyServer);
             httpLock.unlock();
-        }else if(state == GetVersion){
+        }else if(cur_task == GetVersion){
+            qDebug() << "change version server";
             GetVersion_failed++;
             httpLock.lock();
             httpTaskVector.push_back(BackStageGetVersion_MyServer);
             httpLock.unlock();
-        }else if(state == BackStageGetVersion_MyServer){
+        }else if(cur_task == BackStageGetVersion_MyServer){
             //两个服务器都失败才弹提示
             if(GetVersion_failed){
-                QMessageBox::information(nullptr, tr("提示"), tr("当前版本号：") + Config::getVersion() + "\n" +
-                                                      tr("检查更新失败。"));
-                QMessageBox::Button button;
-                button = QMessageBox::information(nullptr, tr("提示"), 
-                                                  tr("当前版本号：") + Config::getVersion() + "\n" +
-                                                  tr("检查更新失败。") + "\n" +
-                                                  tr("请访问：https://github.com/inhowe/ComAssistant/releases") + "\n" +
-                                                  tr("点击确认后将打开网页"),
-                                                  QMessageBox::Ok | QMessageBox::No);
-                if(button == QMessageBox::Ok)
-                    QDesktopServices::openUrl(QUrl("https://github.com/inhowe/ComAssistant/releases"));
+                QMessageBox::information(nullptr, tr("提示"),
+                                         tr("当前版本号：") + Config::getVersion() + "\n" +
+                                         tr("检查更新失败。"));
+//                QMessageBox::Button button;
+//                button = QMessageBox::information(nullptr, tr("提示"),
+//                                                  tr("当前版本号：") + Config::getVersion() + "\n" +
+//                                                  tr("检查更新失败。") + "\n" +
+//                                                  tr("请访问：https://github.com/inhowe/ComAssistant/releases") + "\n" +
+//                                                  tr("点击确认后将打开网页"),
+//                                                  QMessageBox::Ok | QMessageBox::No);
+//                if(button == QMessageBox::Ok)
+//                    QDesktopServices::openUrl(QUrl("https://github.com/inhowe/ComAssistant/releases"));
             }
-        }else if(state == PostStatic){
+        }else if(cur_task == PostStatic){
 
         }
-        qDebug()<< "m_Reply err" << m_Reply->errorString();
-        m_Reply->abort();
+        qDebug()<< "reply err" << reply->errorString();
+        reply->abort();
     }
 
-    m_Reply->deleteLater();
-    m_Reply = nullptr;
+    cur_task = Idle;
+    reply->deleteLater();
 }
