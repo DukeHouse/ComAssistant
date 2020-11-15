@@ -4,6 +4,7 @@
 #include <QDialog>
 #include <QFile>
 #include <QMessageBox>
+#include <QRegularExpression>
 #include "baseconversion.h"
 
 namespace Ui {
@@ -27,6 +28,7 @@ private slots:
 
 private:
     Ui::Hex_Tool_Dialog *ui;
+    int32_t hex_data_pre_formatter(QString input, QString &output);
 };
 
 #endif // HEX_TOOL_DIALOG_H
