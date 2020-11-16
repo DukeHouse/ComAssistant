@@ -549,8 +549,23 @@ void MyQCustomPlot::showTracer(QMouseEvent *event)
     }else
     {
         x = this->xAxis->pixelToCoord(event->pos().x());
-        x = static_cast<int>(x+0.5);// 四舍五入取整
-        y = (tmpContainer->constBegin() + static_cast<int>(x))->mainValue();
+        x = static_cast<int>(x + 0.5);// 四舍五入取整
+        if(x < 0)
+        {
+            y = 0;
+        }
+        else
+        {
+            int32_t offset = static_cast<int>(x - tmpContainer->constBegin()->mainKey() + 0.5);
+            if(offset < 0 || offset > tmpContainer->size())
+            {
+                y = 0;
+            }
+            else
+            {
+                y = (tmpContainer->constBegin() + offset)->mainValue();
+            }
+        }
     }
 
     //范围约束

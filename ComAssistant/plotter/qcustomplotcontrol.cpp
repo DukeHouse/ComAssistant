@@ -175,7 +175,7 @@ bool QCustomPlotControl::addGraph(int num)
 /*
  * Function:把数据取出来显示到绘图器上
 */
-bool QCustomPlotControl::addDataToPlotter(const QVector<double>& rowData, qint32 xSource)
+bool QCustomPlotControl::addDataToPlotter(QVector<double> rowData, qint32 xSource)
 {
     QElapsedTimer time;
     time.start();
@@ -183,14 +183,19 @@ bool QCustomPlotControl::addDataToPlotter(const QVector<double>& rowData, qint32
         return false;
 
     //判断是否需要添加曲线
-    if(rowData.size()>customPlot->graphCount()){
-        if(customPlot->graphCount()<colorSet.size()){
+    if(rowData.size() > customPlot->graphCount()){
+        if(customPlot->graphCount() < colorSet.size()){
             if(!addGraph(rowData.size() - customPlot->graphCount()))
             {
                 qDebug() << "addDataToPlotter addGraph failed";
                 return false;
             }
         }
+    }
+    //曲线数据减少时，进行补0填充，否则tracer会由于数据未对齐无法映射准确坐标
+    while(rowData.size() < customPlot->graphCount())
+    {
+        rowData.append(0);
     }
 
     //填充数据

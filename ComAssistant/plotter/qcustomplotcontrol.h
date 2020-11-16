@@ -36,7 +36,7 @@ public:
 //    void adjustXRange(const QCPRange& qcpRange);
 //    void adjustXRange(bool enlarge);
     //把数据添加到绘图器里（不刷新图像）
-    bool addDataToPlotter(const QVector<double>& rowData, qint32 xSource);
+    bool addDataToPlotter(QVector<double> rowData, qint32 xSource);
 //    设置字体
     void setupFont(QFont font);
     //设置openGL
