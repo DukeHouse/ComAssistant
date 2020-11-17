@@ -42,7 +42,7 @@ public:
     //设置openGL
     void setupOpenGL(bool enabled);
     //设置笔宽度
-    void setupPenWidth(double width = 1.5);
+    void setupPenWidth(double width = 2);
     //设置轴间距
     void setupAxisTick(int axisTickLenth = 6, int axisSubTickLenth = 3);
     //设置轴标签
@@ -69,8 +69,9 @@ public:
     //返回横坐标长度
     double getXAxisLength();
     bool setXAxisLength(double length);
-    //获取颜色集
+    //读写颜色集
     QVector<QColor> getColorSet();
+    void setColorSet(QVector<QColor> colors);
 
 private slots:
 

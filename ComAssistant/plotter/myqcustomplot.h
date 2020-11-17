@@ -74,6 +74,7 @@ private slots:
     void rescaleYAxis();
     void removeAllGraphs();
     void reNameSelectedGraph();
+    void reColorSelectedGraph();
     void hideSelectedGraph();
     void hideAllGraph();
     void showAllGraph();

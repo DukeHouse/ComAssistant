@@ -105,6 +105,11 @@ QVector<QColor> QCustomPlotControl::getColorSet()
     return colorSet;
 }
 
+void QCustomPlotControl::setColorSet(QVector<QColor> colors)
+{
+    colorSet = colors;
+}
+
 //此函数会改变nameSet要注意
 QVector<QString> QCustomPlotControl::getNameSetsFromPlot()
 {

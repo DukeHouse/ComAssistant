@@ -259,7 +259,6 @@ void MyQCustomPlot::mouseWheel(QWheelEvent *w)
 {
     // if an axis is selected, only allow the direction of that axis to be zoomed
     // if no axis is selected, both directions may be zoomed
-
     if (this->xAxis->selectedParts().testFlag(QCPAxis::spAxis) ||
         this->xAxis->selectTest(w->pos(), true)  != -1 ||
         this->xAxis2->selectTest(w->pos(), true) != -1)
@@ -385,6 +384,38 @@ void MyQCustomPlot::reNameSelectedGraph()
     }
 }
 
+void MyQCustomPlot::reColorSelectedGraph()
+{
+    QColor oldColor;
+    QVector<QColor> colorSet = plotControl->getColorSet();
+    for (int i = 0; i < this->graphCount(); ++i)
+    {
+        if (this->graph(i)->selected())
+        {
+            if(i >= colorSet.size())
+            {
+                qDebug() << "index is larger than color set size";
+                return;
+            }
+
+            oldColor = colorSet.at(i);
+            QColor newColor = QColorDialog::getColor(oldColor, this);
+            if(!newColor.isValid())
+            {
+                qDebug() << "invalid color";
+                return;
+            }
+            colorSet.replace(i, newColor);
+            plotControl->setColorSet(colorSet);
+
+            QPen pen;
+            pen.setColor(newColor);
+            pen.setWidthF(this->graph(i)->pen().widthF());
+            this->graph(i)->setPen(pen);
+        }
+    }
+}
+
 void MyQCustomPlot::hideSelectedGraph()
 {
     if (this->selectedGraphs().size() > 0)
@@ -479,6 +510,7 @@ void MyQCustomPlot::contextMenuRequest(QPoint pos)
   //选择了曲线
   if (this->selectedGraphs().size() > 0){
     menu->addSeparator();
+    menu->addAction(tr("更改所选曲线颜色"), this, SLOT(reColorSelectedGraph()));
     menu->addAction(tr("重命名所选曲线"), this, SLOT(reNameSelectedGraph()));
     menu->addSeparator();
     //所选曲线是否可见
