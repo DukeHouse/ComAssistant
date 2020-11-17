@@ -5,6 +5,8 @@
 
 void outputMessage(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
+    Q_UNUSED(context)
+
     static QMutex mutex;
     static int8_t first_run = 0;
     mutex.lock();

@@ -14,6 +14,7 @@ Data_Logger::~Data_Logger()
         }
         if(!it->file->open(QFile::WriteOnly|QFile::Append))
         {
+            qDebug() << it->file->fileName() << "open failed.";
             continue;
         }
         QTextStream stream(it->file);
