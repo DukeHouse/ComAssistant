@@ -267,6 +267,10 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(ui->textBrowser->verticalScrollBar(),SIGNAL(actionTriggered(int)),this,SLOT(verticalScrollBarActionTriggered(int)));
 
+    //点击下拉框刷新串口
+    connect(ui->comList, SIGNAL(leftPressed()), this, SLOT(on_refreshCom_clicked()));
+    ui->refreshCom->setVisible(false);
+
     //状态栏标签
     statusRemoteMsgLabel = new QLabel(this);
     statusSpeedLabel = new QLabel(this);
@@ -967,10 +971,12 @@ MainWindow::~MainWindow()
 }
 
 /*
- * Function:刷新串口按下。不知道为什么打开串口后再调用该函数就崩溃
+ * Function:刷新串口按下。不知道为什么打开串口后再调用该函数（不是指点击事件是指人工调用函数）就崩溃
 */
 void MainWindow::on_refreshCom_clicked()
 {   
+    static int32_t first_run = 1;//用于避免初始化扫描串口后执行ui->comList->showPopup()
+
     if(ui->refreshCom->isEnabled()==false){
         ui->statusBar->showMessage(tr("刷新功能被禁用"), 2000);
         return;
@@ -1001,6 +1007,13 @@ void MainWindow::on_refreshCom_clicked()
     }
 
     delete testSerial;
+
+    if(first_run)
+    {
+        first_run = 0;
+        return;
+    }
+    ui->comList->showPopup();
 }
 
 /*

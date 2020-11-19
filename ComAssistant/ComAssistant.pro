@@ -88,6 +88,7 @@ SOURCES += \
     sources/http.cpp \
     sources/main.cpp \
     sources/mainwindow.cpp \
+    sources/my_combo_box.cpp \
     sources/myserialport.cpp\
     sources/text_extract_engine.cpp \
     sources/fft.cpp
@@ -163,6 +164,7 @@ HEADERS += \
     sources/highlighter.h \
     sources/http.h \
     sources/mainwindow.h \
+    sources/my_combo_box.h \
     sources/myserialport.h \
     sources/text_extract_engine.h
 
