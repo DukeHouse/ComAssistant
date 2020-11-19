@@ -239,7 +239,7 @@ void MainWindow::layoutConfig()
     splitter_io->addWidget(ui->widget_input);
 
     //设置顶级布局
-    central = new QVBoxLayout(this);
+    central = new QVBoxLayout();
     central->addWidget(ui->widget_ctrl);
     central->addWidget(splitter_io);
     ui->centralWidget->setLayout(central);
@@ -961,6 +961,7 @@ MainWindow::~MainWindow()
     delete ui;
     delete http;
     delete g_popupHotkey;
+    delete central;
 
     QFile recoveryFile(RECOVERY_FILE_PATH);
     if(recoveryFile.exists())
@@ -1081,8 +1082,6 @@ void MainWindow::on_comSwitch_clicked(bool checked)
         ui->comSwitch->setText(tr("打开串口"));
         ui->comSwitch->setChecked(false);
     }
-
-    on_refreshCom_clicked();
 }
 
 int32_t MainWindow::appendDataToFile(QString path, QByteArray &buff)
