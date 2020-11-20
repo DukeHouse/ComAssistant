@@ -2931,6 +2931,18 @@ void MainWindow::on_actionValueDisplay_triggered(bool checked)
     adjustLayout();
 }
 
+void MainWindow::showAllTextBrowser_triggered()
+{
+    if(ui->hexDisplay->isChecked()){
+        ui->textBrowser->setPlainText(hexBrowserBuff);
+        hexBrowserBuffIndex = hexBrowserBuff.size();
+    }else{
+        ui->textBrowser->setPlainText(BrowserBuff);
+        BrowserBuffIndex = BrowserBuff.size();
+    }
+    ui->textBrowser->moveCursor(QTextCursor::End);
+}
+
 //复制所选文本到剪贴板
 void MainWindow::copySelectedTextBrowser_triggered(void)
 {
@@ -2961,6 +2973,7 @@ void MainWindow::on_textBrowser_customContextMenuRequested(const QPoint &pos)
     QPoint noWarning = pos;
     noWarning.x();
 
+    QAction *showAllText = nullptr;
     QAction *copyText = nullptr;
     QAction *copyAllText = nullptr;
     QAction *copyAllData = nullptr;
@@ -2970,6 +2983,7 @@ void MainWindow::on_textBrowser_customContextMenuRequested(const QPoint &pos)
 
     QMenu *popMenu = new QMenu( this );
     //添加右键菜单
+    showAllText = new QAction(tr("显示所有文本"), this);
     copyText = new QAction(tr("复制所选文本"), this);
     if(ui->textBrowser->textCursor().selectedText().isEmpty())
         copyText->setEnabled(false);
@@ -2979,6 +2993,8 @@ void MainWindow::on_textBrowser_customContextMenuRequested(const QPoint &pos)
     saveOriginData = new QAction(tr("保存原始数据"), this);
     clearTextBrowser = new QAction(tr("清空数据显示区"), this);
 
+    popMenu->addAction( showAllText );
+    popMenu->addSeparator();
     popMenu->addAction( copyText );
     popMenu->addSeparator();
     popMenu->addAction( copyAllText );
@@ -2989,6 +3005,7 @@ void MainWindow::on_textBrowser_customContextMenuRequested(const QPoint &pos)
     popMenu->addSeparator();
     popMenu->addAction( clearTextBrowser );
 
+    connect( showAllText, SIGNAL(triggered() ), this, SLOT( showAllTextBrowser_triggered()) );
     connect( copyText, SIGNAL(triggered() ), this, SLOT( copySelectedTextBrowser_triggered()) );
     connect( copyAllText, SIGNAL(triggered() ), this, SLOT( copyAllTextBrowser_triggered()) );
     connect( copyAllData, SIGNAL(triggered() ), this, SLOT( copyAllData_triggered()) );
@@ -3003,6 +3020,7 @@ void MainWindow::on_textBrowser_customContextMenuRequested(const QPoint &pos)
     delete copyAllData;
     delete copyAllText;
     delete copyText;
+    delete showAllText;
 }
 
 void MainWindow::clearTextBrowserSlot()
@@ -3153,8 +3171,10 @@ void MainWindow::on_actionSumCheck_triggered(bool checked)
 void MainWindow::on_actionPopupHotkey_triggered()
 {
     bool ok;
-    QString newKeySeq = QInputDialog::getText(this, tr("修改全局弹出热键"), tr("新的全局弹出热键："),
-                                             QLineEdit::Normal, g_popupHotKeySequence , &ok, Qt::WindowCloseButtonHint);
+    QString newKeySeq = QInputDialog::getText(this,
+                                              tr("修改全局弹出热键"), tr("新的全局弹出热键："),
+                                              QLineEdit::Normal, g_popupHotKeySequence ,
+                                              &ok, Qt::WindowCloseButtonHint);
     if(ok==false)
     {
         return;

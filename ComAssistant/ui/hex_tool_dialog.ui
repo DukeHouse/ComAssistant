@@ -15,53 +15,11 @@
   </property>
   <layout class="QGridLayout" name="gridLayout_2">
    <item row="0" column="0">
-    <layout class="QGridLayout" name="gridLayout" rowstretch="0,0,0,0" columnstretch="0,0,0" columnminimumwidth="0,0,0">
+    <layout class="QGridLayout" name="gridLayout" rowstretch="0,0,0,0,0" columnstretch="0,0,0" columnminimumwidth="0,0,0">
      <property name="spacing">
       <number>6</number>
      </property>
-     <item row="0" column="1">
-      <widget class="QPushButton" name="pushButton_toHex">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="text">
-        <string>---&gt;
-To HEX</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="0" rowspan="3">
-      <widget class="QPlainTextEdit" name="asciiBrowser">
-       <property name="placeholderText">
-        <string>ASCII输入/输出区</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="2" rowspan="3">
-      <widget class="QPlainTextEdit" name="hexBrowser">
-       <property name="placeholderText">
-        <string>HEX输入/输出区</string>
-       </property>
-      </widget>
-     </item>
      <item row="2" column="1">
-      <widget class="QPushButton" name="pushButton_toAscii">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="text">
-        <string>&lt;---
-To ASCII</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="1">
       <widget class="QPushButton" name="pushButton_clear">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -71,6 +29,78 @@ To ASCII</string>
        </property>
        <property name="text">
         <string>Clear</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="0" rowspan="5">
+      <widget class="QPlainTextEdit" name="asciiBrowser">
+       <property name="placeholderText">
+        <string>ASCII输入/输出区</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="2" rowspan="5">
+      <widget class="QPlainTextEdit" name="hexBrowser">
+       <property name="placeholderText">
+        <string>HEX输入/输出区</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QPushButton" name="pushButton_HexToAscii">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>&lt;---
+Hex To Ascii</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QPushButton" name="pushButton_FloatToHex">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>---&gt;
+Float To Hex
+(Little End)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QPushButton" name="pushButton_AsciiToHex">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>---&gt;
+Ascii To Hex</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QPushButton" name="pushButton_HexToFloat">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>&lt;---
+ Hex To Float
+(Little End)</string>
        </property>
       </widget>
      </item>

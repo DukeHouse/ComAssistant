@@ -91,6 +91,7 @@ private slots:
     void on_tabWidget_tabBarClicked(int index);
     void on_timeStampCheckBox_stateChanged(int arg1);
     void on_timeStampTimeOut_textChanged(const QString &arg1);
+    void showAllTextBrowser_triggered();
     void copySelectedTextBrowser_triggered(void);
     void copyAllTextBrowser_triggered(void);
     void copyAllData_triggered(void);

@@ -20,15 +20,22 @@ public:
     ~Hex_Tool_Dialog();
 
 private slots:
-    void on_pushButton_toHex_clicked();
+    void on_pushButton_AsciiToHex_clicked();
 
-    void on_pushButton_toAscii_clicked();
+    void on_pushButton_HexToAscii_clicked();
 
     void on_pushButton_clear_clicked();
 
+    void on_pushButton_FloatToHex_clicked();
+
+    void on_pushButton_HexToFloat_clicked();
+
 private:
     Ui::Hex_Tool_Dialog *ui;
+    int32_t replace_spliter_to_space(QString input, QString &output, QString RegExp);
     int32_t hex_data_pre_formatter(QString input, QString &output);
+    int32_t float_data_pre_formatter(QString input, QString &output);
+    bool byteArrayToFloat(const QByteArray& array, float& result);
 };
 
 #endif // HEX_TOOL_DIALOG_H
