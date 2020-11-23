@@ -195,17 +195,17 @@ private:
     
     bool sendFile = false;
     bool parseFile = false;
-    QByteArrayList parseFileBuff;    //解析文件分包缓冲
+    QByteArrayList parseFileBuff;   //解析文件分包缓冲
     int parseFileBuffIndex = 0;
     QByteArrayList SendFileBuff;    //发送文件分包缓冲
-    int SendFileBuffIndex = 0; //
+    int SendFileBuffIndex = 0;
 
-    QByteArray RxBuff, TxBuff; //原始数据的收发缓冲
-    QByteArray hexBrowserBuff; //十六进制格式的浏览器缓冲
+    QByteArray RxBuff, TxBuff;      //原始数据的收发缓冲
+    QByteArray hexBrowserBuff;      //十六进制格式的浏览器缓冲
     int hexBrowserBuffIndex = 0;
-    QByteArray BrowserBuff; //浏览器缓冲
-    int BrowserBuffIndex = 0; //显示指示
-    QByteArray unshowedRxBuff;    //未上屏的接收缓冲
+    QByteArray BrowserBuff;         //浏览器缓冲
+    int BrowserBuffIndex = 0;       //显示指示
+    QByteArray unshowedRxBuff;      //未上屏的接收缓冲
 
     const int32_t PLOTTER_SHOW_PERIOD = 40;  //绘图器显示频率25FPS（解析频率由parseTimer100hz控制）
     const int32_t TEXT_SHOW_PERIOD    = 50;  //文本显示频率20FPS（刷新率太高低配机型会卡顿）
@@ -217,8 +217,8 @@ private:
     QTimer secTimer;        //秒定时器
     QTimer timeStampTimer;  //时间戳定时器
     QTimer printToTextBrowserTimer; //刷新文本显示区的定时器
-    QTimer parseTimer100hz;
-    QTimer plotterShowTimer;       //绘图显示定时器
+    QTimer parseTimer100hz;         //解析定时器（文本和绘图）
+    QTimer plotterShowTimer;        //绘图显示定时器
     QTimer multiStrSeqSendTimer;    //多字符串序列发送定时器
 
     QString lastFileDialogPath; //上次文件对话框路径

@@ -89,7 +89,7 @@ bool inline TextExtractEngine::parseNameAndDataFromPack(QByteArray& pack, bool e
 }
 
 //从缓存中提取所有包，每提取出一个包就解析一个
-void TextExtractEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBuffer)
+void TextExtractEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBuffer, QMutex &bufferLock)
 {
     if(buffer.isEmpty())
         return;
@@ -120,11 +120,20 @@ void TextExtractEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& res
                 parseNameAndDataFromPack(onePack, enableLevel2NameSupport);
             }else{
 //                qDebug()<<"no match";
-                scanIndex++;
+                if(buffer.size() - scanIndex > MAX_EXTRACT_LENGTH)
+                {
+                    scanIndex += MAX_EXTRACT_LENGTH;
+                }
+                else
+                {
+                    scanIndex++;
+                }
             }
     } while(scanIndex < buffer.size());
 
+    bufferLock.lock();
     restBuffer = buffer.mid(lastScannedIndex);
+    bufferLock.unlock();
 }
 
 void TextExtractEngine::appendData(const QByteArray &newData)
@@ -135,17 +144,20 @@ void TextExtractEngine::appendData(const QByteArray &newData)
     {
         tmp.remove(tmp.indexOf('\0'), 1);
     }
+    dataLock.lock();
     rawData.buff.append(tmp);
+    dataLock.unlock();
 }
 
 void TextExtractEngine::parseData()
 {
-    #define MAX_EXTRACT_LENGTH 1024
-    parsePacksFromBuffer(rawData.buff, rawData.buff);
+    parsePacksFromBuffer(rawData.buff, rawData.buff, dataLock);
     //在解析完成后剔除前面已扫描过的数据
     if(rawData.buff.size() > MAX_EXTRACT_LENGTH)
     {
+        dataLock.lock();
         rawData.buff = rawData.buff.mid(rawData.buff.size() - MAX_EXTRACT_LENGTH);
+        dataLock.unlock();
     }
 }
 

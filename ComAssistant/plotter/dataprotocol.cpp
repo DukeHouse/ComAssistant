@@ -34,13 +34,9 @@ void DataProtocol::appendData(const QByteArray &data)
 
 void DataProtocol::parseData(bool enableSumCheck)
 {
-    //坑：如果一串数据前面的字符都匹配上了，最后几个字符没匹配上会引起正则匹配函数会消耗大量的时间，
-    //导致卡顿，如果是偶尔误码这种问题影响不大，但是如果刻意制造这种数据并大量发送则会卡死，似乎无解，
-    //或放到子线程中，但依然会消耗很多时间，只是不会卡住GUI而已
-    #define MAX_EXTRACT_LENGTH 512
-    tempDataPoolLock.lock();
-    parsePacksFromBuffer(tempDataPool, tempDataPool, enableSumCheck);
-    tempDataPoolLock.unlock();
+    parsePacksFromBuffer(tempDataPool, tempDataPool, 
+                         tempDataPoolLock, enableSumCheck);
+
     //在解析完成后剔除前面已扫描过的数据
     if(tempDataPool.size() > MAX_EXTRACT_LENGTH)
     {
@@ -77,16 +73,23 @@ inline int32_t DataProtocol::hasErrorStr_Ascii(QByteArray &input)
 }
 
 //从缓存中提取所有包，每提取出一个包就解析一个
-inline void DataProtocol::parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBuffer, bool enableSumCheck)
+inline void DataProtocol::parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBuffer,
+                                               QMutex &bufferLock, bool enableSumCheck)
 {
+    //坑：如果一串数据前面的字符都匹配上了，最后几个字符没匹配上会消耗大量的时间
+    //或者说在大量匹配数据中穿插一组连续的不匹配数据，此时由于需要scanIndex遍历也会异常耗时
+    //主要耗时点为match函数和scanIndex+1遍历，导致卡顿。刻意制造这种数据会使处理效率剧烈降低
+    //目前解决办法是限制scanIndex遍历长度为512
     if(buffer.isEmpty())
         return;
     if(protocolType == Ascii){
+        bufferLock.lock();
         //先剔除\0,\r,\n等特殊数据
         buffer = buffer.trimmed();
         while (buffer.indexOf('\0')!=-1) {
             buffer.remove(buffer.indexOf('\0'), 1);
         }
+        bufferLock.unlock();
         QRegularExpression reg;
         QRegularExpressionMatch match;
         int scanIndex = 0;
@@ -128,11 +131,20 @@ inline void DataProtocol::parsePacksFromBuffer(QByteArray& buffer, QByteArray& r
                 }
                 else{
 //                    qDebug()<<"no match";
-                    scanIndex++;
+                    if(buffer.size() - scanIndex > MAX_EXTRACT_LENGTH)
+                    {
+                        scanIndex += MAX_EXTRACT_LENGTH;
+                    }
+                    else
+                    {
+                        scanIndex++;
+                    }
                 }
         } while(scanIndex < buffer.size());
 
+        bufferLock.lock();
         restBuffer = buffer.mid(lastScannedIndex);
+        bufferLock.unlock();
 
     }else if(protocolType == Float){
         QByteArray tmpArray = buffer;
@@ -152,13 +164,8 @@ inline void DataProtocol::parsePacksFromBuffer(QByteArray& buffer, QByteArray& r
 
 void DataProtocol::clearBuff()
 {
-    tempDataPoolLock.lock();
     tempDataPool.clear();
-    tempDataPoolLock.unlock();
-
-    dataPoolLock.lock();
     dataPool.clear();
-    dataPoolLock.unlock();
 }
 
 int DataProtocol::parsedBuffSize()

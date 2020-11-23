@@ -13,6 +13,7 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QTimer>
+#include <QMutex>
 
 /*
  * TODO:
@@ -37,6 +38,7 @@ class TextExtractEngine : public QObject
 {
     Q_OBJECT
 public:
+    #define MAX_EXTRACT_LENGTH 512
     enum SaveDataResult{
         UNKNOW_NAME = -2,
         OPEN_FAILED = -1,
@@ -73,9 +75,10 @@ private:
 
     void inline appendPackDataToTextGroups(QByteArray &name, QByteArray &data,  QByteArray& pack);
     bool inline parseNameAndDataFromPack(QByteArray &pack, bool enableLevel2NameSupport);
-    void parsePacksFromBuffer(QByteArray &buffer, QByteArray &restBuffer);
+    void parsePacksFromBuffer(QByteArray &buffer, QByteArray &restBuffer, QMutex &bufferLock);
     QVector<textGroup_t> textGroups;  //classified text groups: one tab page one group
     rawData_t rawData;
+    QMutex dataLock;
     bool enableLevel2NameSupport = 0;
 };
 

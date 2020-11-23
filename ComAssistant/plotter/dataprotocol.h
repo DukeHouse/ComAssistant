@@ -21,6 +21,8 @@ class DataProtocol : public QObject
 {
     Q_OBJECT
 public:
+    #define MAX_EXTRACT_LENGTH 512
+
     typedef enum{
         Ascii,
         Float
@@ -63,7 +65,8 @@ private:
     int32_t hasErrorStr_Ascii(QByteArray &input);
     //调用byteArrayToFloat
     bool packToFloat(const Pack_t& pack , float& result);
-    void parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBuffer, bool enableSumCheck);
+    void parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBuffer,
+                              QMutex &bufferLock, bool enableSumCheck);
 };
 
 #endif // DATAPROTOCOL_H
