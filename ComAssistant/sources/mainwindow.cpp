@@ -3293,15 +3293,22 @@ void MainWindow::dragEnterEvent(QDragEnterEvent *e)
 void MainWindow::dropEvent(QDropEvent *e)
 {
     //获取文件路径列表
-    QStringList text = e->mimeData()->text().split('\n');
-    if(text.size() != 1)
+    if(e->mimeData()->text().indexOf('\n') != -1)
     {
         QMessageBox::information(this, tr("提示"), tr("仅支持单个dat文件解析。"));
         return;
     }
+    //e->mimeData()->text()好像是QT bug无法识别{}等符号，这里做一下转换
+    QString text = e->mimeData()->text();
+    text.replace("%7B", "{");
+    text.replace("%7D", "}");
+    text.replace("%23", "#");
+    text.replace("%25", "%");
+    text.replace("%5E", "^");
+    text.replace("%60", "`");
     //获取单个文件路径并剔除前缀
     QString path;
-    path = text.at(0);
+    path = text;
     path = path.mid(8);
     if(!path.endsWith("dat"))
     {
