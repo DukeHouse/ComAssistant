@@ -1607,15 +1607,15 @@ void MainWindow::on_clearWindows_clicked()
     BrowserBuff.clear();
     BrowserBuffIndex = 0;
     unshowedRxBuff.clear();
-    emit tee_clearData("");
+    emit tee_clearData("");//clear temp buff
     for(qint32 i = 0; i < ui->tabWidget->count(); i++){
         if(ui->tabWidget->tabText(i) != MAIN_TAB_NAME){
+            emit tee_clearData(ui->tabWidget->tabText(i));
             if(ui->tabWidget->widget(i) != nullptr)
             {
                 delete ui->tabWidget->widget(i);
             }
 //            ui->tabWidget->removeTab(i);
-            emit tee_clearData(ui->tabWidget->tabText(i));
             i = 0;//重置计数器
         }
     }
@@ -3295,7 +3295,7 @@ void MainWindow::dropEvent(QDropEvent *e)
     //获取文件路径列表
     if(e->mimeData()->text().indexOf('\n') != -1)
     {
-        QMessageBox::information(this, tr("提示"), tr("仅支持单个dat文件解析。"));
+        QMessageBox::information(this, tr("提示"), tr("仅支持单文件解析。"));
         return;
     }
     //e->mimeData()->text()好像是QT bug无法识别{}等符号，这里做一下转换
@@ -3312,11 +3312,13 @@ void MainWindow::dropEvent(QDropEvent *e)
     path = path.mid(8);
     if(!path.endsWith("dat"))
     {
-        QMessageBox::information(this, tr("提示"), tr("仅支持单个dat文件解析。"));
+        QMessageBox::information(this, tr("提示"), tr("仅支持dat文件解析。"));
         return;
     }
     if(QMessageBox::information(this, tr("提示"),
-                                tr("确认解析该文件？") + "\n" + path,
+                                tr("确认解析该文件？") + "\n" +
+                                path + "\n\n" +
+                                tr("该操作会清空当前内容。"),
                                 QMessageBox::Ok, QMessageBox::Cancel) != QMessageBox::Ok)
     {
         return;

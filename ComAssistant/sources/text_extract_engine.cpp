@@ -32,7 +32,7 @@ void inline TextExtractEngine::appendPackDataToTextGroups(QByteArray& name, QByt
     for(; it != textGroups.end(); it++){
         if(it->name == name){
             it->dataBuff.append(data + "\n");
-            it->packBuff.append(pack + "\n");
+            it->packBuff.append(pack);
             emit textGroupsUpdate(name, data);
             return;
         }
@@ -42,7 +42,7 @@ void inline TextExtractEngine::appendPackDataToTextGroups(QByteArray& name, QByt
     textGroup_t newTextGroup;
     newTextGroup.name = name;
     newTextGroup.dataBuff.append(data + "\n");
-    newTextGroup.packBuff.append(pack + "\n");
+    newTextGroup.packBuff.append(pack);
     textGroups.append(newTextGroup);
 
     emit textGroupsUpdate(name, data);
