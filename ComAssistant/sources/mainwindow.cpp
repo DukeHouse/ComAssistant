@@ -345,7 +345,7 @@ MainWindow::MainWindow(QWidget *parent) :
     statusStatisticLabel->setText(serial.getTxRxString());
 
     //搜寻可用串口，并尝试打开
-    on_refreshCom_clicked();
+    refreshCom();
     tryOpenSerial();
 
     //数值显示器初始化
@@ -397,6 +397,11 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //读取配置（所有资源加载完成后读取，有些配置需要根据可见性改变所以显示后读取）
     readConfig();
+
+    //release模式下关闭调试功能
+#ifdef QT_NO_DEBUG
+    ui->actiondebug->setVisible(false);
+#endif
 
     //调整窗体布局
     adjustLayout();
@@ -971,25 +976,15 @@ MainWindow::~MainWindow()
     qDebug()<<"~MainWindow";
 }
 
-/*
- * Function:刷新串口按下。不知道为什么打开串口后再调用该函数（不是指点击事件是指人工调用函数）就崩溃
-*/
-void MainWindow::on_refreshCom_clicked()
-{   
-    static int32_t first_run = 1;//用于避免初始化扫描串口后执行ui->comList->showPopup()
-
-    if(ui->refreshCom->isEnabled()==false){
-        ui->statusBar->showMessage(tr("刷新功能被禁用"), 2000);
-        return;
-    }
-
+void MainWindow::refreshCom()
+{
     //测试更新下拉列表
     mySerialPort *testSerial = new mySerialPort;
     QList<QString> tmp;
 
     tmp = testSerial->refreshSerialPort();
     //刷新串口状态，需要记录当前选择的条目用于刷新后恢复
-    QString portName = ui->comList->currentText().mid(0,ui->comList->currentText().indexOf('('));
+    QString portName = ui->comList->currentText().mid(0, ui->comList->currentText().indexOf('('));
     ui->comList->clear();
     foreach(const QString &info, tmp)
     {
@@ -1000,20 +995,30 @@ void MainWindow::on_refreshCom_clicked()
 
     //恢复刷新前的选择
     ui->comList->setCurrentIndex(0);
-    for(qint32 i = 0; i < ui->comList->count(); i++){
-        if(ui->comList->itemText(i).startsWith(portName)){
+    for(qint32 i = 0; i < ui->comList->count(); i++)
+    {
+        if(ui->comList->itemText(i).startsWith(portName))
+        {
             ui->comList->setCurrentIndex(i);
             break;
         }
     }
 
     delete testSerial;
+}
 
-    if(first_run)
-    {
-        first_run = 0;
+/*
+ * Function:刷新串口按下。不知道为什么打开串口后再调用该函数（不是指点击事件是指人工调用函数）就崩溃
+*/
+void MainWindow::on_refreshCom_clicked()
+{   
+    if(ui->refreshCom->isEnabled() == false){
+        ui->statusBar->showMessage(tr("刷新功能被禁用"), 2000);
         return;
     }
+
+    refreshCom();
+
     ui->comList->showPopup();
 }
 
@@ -1023,16 +1028,23 @@ void MainWindow::on_refreshCom_clicked()
 void MainWindow::tryOpenSerial()
 {
     //只存在一个串口时且串口未被占用时自动打开
-    if(ui->comList->count()==1 && ui->comList->currentText().indexOf(tr("BUSY"))==-1 && ui->comList->currentText()!=tr("未找到可用串口!")){
+    if(ui->comList->count() == 1 &&
+       ui->comList->currentText().indexOf(tr("BUSY")) == -1 &&
+       ui->comList->currentText() != tr("未找到可用串口!点我刷新"))
+    {
         ui->refreshCom->setChecked(false);
         ui->comSwitch->setChecked(true);
         on_comSwitch_clicked(true);
-    }else{
-        //如果有多个串口，则尝试选择上次使用的端口号
-        if(ui->comList->count()>1){
+    }else
+    {
+        //如果有多个串口，则尝试选择（不开启）上次使用的端口号
+        if(ui->comList->count() > 1)
+        {
             QString name = Config::getPortName();
-            for(qint32 i = 0; i < ui->comList->count(); i++){
-                if(ui->comList->itemText(i).startsWith(name)){
+            for(qint32 i = 0; i < ui->comList->count(); i++)
+            {
+                if(ui->comList->itemText(i).startsWith(name))
+                {
                     ui->comList->setCurrentIndex(i);
                     break;
                 }
@@ -1082,6 +1094,8 @@ void MainWindow::on_comSwitch_clicked(bool checked)
         ui->comSwitch->setText(tr("打开串口"));
         ui->comSwitch->setChecked(false);
     }
+
+    refreshCom();
 }
 
 int32_t MainWindow::appendDataToFile(QString path, QByteArray &buff)
@@ -1318,8 +1332,9 @@ void MainWindow::handleSerialError(QSerialPort::SerialPortError errCode)
         //关闭串口
         on_comSwitch_clicked(false);
         //强提醒也争取了时间，如果是短时间松动，则点击确定后可以恢复所选的端口
-        QMessageBox::warning(this,tr("警告"),tr("检测到串口故障，已关闭串口。\n串口是否发生了松动？"));
-        //【还要】再刷新一次
+        QMessageBox::warning(this, tr("警告"),
+                             tr("检测到串口故障，已关闭串口。\n串口是否发生了松动？"));
+        //【还要】再刷新一次并展开下拉列表
         on_refreshCom_clicked();
         //尝试恢复所选端口号
         for(qint32 i = 0; i < ui->comList->count(); i++){

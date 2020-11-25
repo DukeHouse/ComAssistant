@@ -174,6 +174,7 @@ private slots:
 private:
     QString formatTime(int ms);
     bool needSaveConfig = true;
+    void refreshCom();
     void readConfig();
     bool registPopupHotKey(QString keySequence);
     void layoutConfig();
