@@ -106,14 +106,14 @@ bool mySerialPort::portAmountChanged()
 /*
  * Function: 获取发送统计
 */
-unsigned int mySerialPort::getTxCnt()
+int64_t mySerialPort::getTxCnt()
 {
     return TxCnt;
 }
 
 /*
 */
-unsigned int mySerialPort::getRxCnt()
+int64_t mySerialPort::getRxCnt()
 {
     return RxCnt;
 }
@@ -157,14 +157,14 @@ bool mySerialPort::open(QString PortName,int BaudRate)
 /*
  *
 */
-qint64 mySerialPort::write(const QByteArray& data)
+int64_t mySerialPort::write(const QByteArray& data)
 {
-    qint64 tmp;
+    int64_t tmp;
 
     tmp = QSerialPort::write(data);
     if(tmp != -1){
-        TxCnt+=static_cast<uint32_t>(data.size());
-        totalTxCnt+=static_cast<uint32_t>(data.size());
+        TxCnt+=static_cast<int64_t>(data.size());
+        totalTxCnt+=static_cast<int64_t>(data.size());
     }
 
     return tmp;
@@ -179,8 +179,8 @@ QByteArray mySerialPort::readAll()
 
     tmp = QSerialPort::readAll();
     if(!tmp.isEmpty()){
-        RxCnt+=static_cast<uint32_t>(tmp.size());
-        totalRxCnt+=static_cast<uint32_t>(tmp.size());
+        RxCnt+=static_cast<int64_t>(tmp.size());
+        totalRxCnt+=static_cast<int64_t>(tmp.size());
     }
 
     return tmp;

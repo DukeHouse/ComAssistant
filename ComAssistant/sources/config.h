@@ -67,14 +67,15 @@
 //#define KEY_XRANGELENGH         QString("xRangeLength")
 
 //statistic键
-#define KEY_STARTTIME       QString("StartTime")
-#define KEY_LASTRUNTIME     QString("LastRunTime")
-#define KEY_TOTALRUNTIME    QString("TotalRunTime")
-#define KEY_LASTTXCNT       QString("LastTxCnt")
-#define KEY_TOTALTXCNT      QString("TotalTxCnt")
-#define KEY_LASTRXCNT       QString("LastRxCnt")
-#define KEY_TOTALRXCNT      QString("TotalRxCnt")
-#define KEY_TOTALRUNCNT     QString("TotalRunCnt")
+#define KEY_FIRST_STARTTIME     QString("FirstStartTime")
+#define KEY_STARTTIME           QString("StartTime")
+#define KEY_LASTRUNTIME         QString("LastRunTime")
+#define KEY_TOTALRUNTIME        QString("TotalRunTime")
+#define KEY_LASTTXCNT           QString("LastTxCnt")
+#define KEY_TOTALTXCNT          QString("TotalTxCnt")
+#define KEY_LASTRXCNT           QString("LastRxCnt")
+#define KEY_TOTALRXCNT          QString("TotalRxCnt")
+#define KEY_TOTALRUNCNT         QString("TotalRunCnt")
 
 //about键
 #define KEY_VERSION     QString("Version")
@@ -198,11 +199,13 @@ public:
     static qint32 getLineType();
 
     //static
+    static void setFirstStartTime(QString time);
+    static QString getFirstStartTime(void);
     static void setStartTime(QString time);
     static QString getStartTime(void);
     static void setLastRunTime(int sec);
     static QString getLastRunTime(void);
-    static void setTotalRunTime(int sec);
+    static void setTotalRunTime(int64_t sec);
     static QString getTotalRunTime(void);
     static void setLastTxCnt(int64_t cnt);
     static QString getLastTxCnt(void);

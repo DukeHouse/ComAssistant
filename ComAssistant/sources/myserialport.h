@@ -19,15 +19,15 @@ public:
     //保留父类的open函数并重载open函数
     using QSerialPort::open;
     bool open(QString PortName,int BaudRate);
-    qint64 write(const QByteArray& data);
+    int64_t write(const QByteArray& data);
     QByteArray readAll();
     //刷新串口
     QList<QString> refreshSerialPort();
     //端口数量变化检测。应周期性执行
     bool portAmountChanged();
     //获取收发统计值
-    unsigned int getTxCnt();
-    unsigned int getRxCnt();
+    int64_t getTxCnt();
+    int64_t getRxCnt();
     int64_t getTotalTxCnt();
     int64_t getTotalRxCnt();
     QString getTxRxString();
@@ -39,8 +39,8 @@ public:
     bool moreSetting(StopBits stopbits=OneStop, Parity parity=NoParity,
                      FlowControl flowcontrol=NoFlowControl, DataBits databits=Data8);
 private:
-    uint32_t TxCnt;
-    uint32_t RxCnt;
+    int64_t TxCnt;
+    int64_t RxCnt;
     DataBits databits;
     StopBits stopbits;
     FlowControl flowcontrol;

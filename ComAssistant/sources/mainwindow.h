@@ -197,7 +197,7 @@ private:
     bool sendFile = false;
     bool parseFile = false;
     QByteArrayList parseFileBuff;   //解析文件分包缓冲
-    int parseFileBuffIndex = 0;
+    int parseFileBuffIndex = 0;     //即单次处理最多2G的数据
     QByteArrayList SendFileBuff;    //发送文件分包缓冲
     int SendFileBuffIndex = 0;
 
@@ -238,11 +238,11 @@ private:
     Data_Logger *p_logger;
 
     //统计
-    int currentRunTime = 0; //运行时间
+    int64_t currentRunTime = 0; //运行时间
     double rxSpeedKB = 0;
     double txSpeedKB = 0;
-    int statisticRxByteCnt = 0;
-    int statisticTxByteCnt = 0;
+    int64_t statisticRxByteCnt = 0;
+    int64_t statisticTxByteCnt = 0;
 
     //布局
     QSplitter *splitter_output = NULL;

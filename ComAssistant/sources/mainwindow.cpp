@@ -407,6 +407,7 @@ MainWindow::MainWindow(QWidget *parent) :
     adjustLayout();
     //是否首次运行
     if(Config::getFirstRun()){
+        Config::setFirstStartTime(QDateTime::currentDateTime().toString("yyyyMMddhhmmss"));
         QMessageBox::information(this, tr("提示"), tr("欢迎使用纸飞机串口调试助手。\n\n由于阁下是首次运行，接下来会弹出帮助文件和相关声明，请认真阅读。\n\n若阁下继续使用本软件则代表阁下接受并同意相关声明，\n否则请自行关闭软件。"));
         //弹出帮助文件
         on_actionManual_triggered();
@@ -2703,16 +2704,16 @@ void MainWindow::on_actionKeyWordHighlight_triggered(bool checked)
 */
 void MainWindow::on_actionUsageStatistic_triggered()
 {
-    static uint32_t lastTotalTx = Config::getTotalTxCnt().toUInt();
-    static uint32_t lastTotalRx = Config::getTotalRxCnt().toUInt();
-    static uint32_t lastTotalRunTime = Config::getTotalRunTime().toUInt();
+    static double lastTotalTx = Config::getTotalTxCnt().toDouble();
+    static double lastTotalRx = Config::getTotalRxCnt().toDouble();
+    static double lastTotalRunTime = Config::getTotalRunTime().toDouble();
     double currentTx = serial.getTxCnt();
     double currentRx = serial.getRxCnt();
     double currentRunTime_f = currentRunTime;
     double totalTx = lastTotalTx + currentTx;
     double totalRx = lastTotalRx + currentRx;
     double totalRunTime = lastTotalRunTime + currentRunTime_f;
-    double totalTxRx_MB = totalTx/1024/1024 + totalRx/1024/1024;
+    double totalTxRx_MB = totalTx/1024.0/1024.0 + totalRx/1024.0/1024.0;
     //单位
     QString totalTxUnit;
     QString totalRxUnit;
@@ -2724,16 +2725,16 @@ void MainWindow::on_actionUsageStatistic_triggered()
     QString min;
     QString sec;
     QString currentRunTimeStr, totalRunTimeStr;
-    long day;
-    long hour;
-    long minute;
-    long second;
-    qint32 nest = 0; //执行统计
+    int64_t day;
+    int64_t hour;
+    int64_t minute;
+    int64_t second;
+    int64_t nest = 0; //执行统计
 
     //单位换算
     nest = 0;
     while(totalTx>1024){
-        totalTx = totalTx/1024;
+        totalTx = totalTx/1024.0;
         nest++;
     }
     switch(nest){
@@ -2746,7 +2747,7 @@ void MainWindow::on_actionUsageStatistic_triggered()
     //单位换算
     nest = 0;
     while(totalRx>1024){
-        totalRx = totalRx/1024;
+        totalRx = totalRx/1024.0;
         nest++;
     }
     switch(nest){
@@ -2759,7 +2760,7 @@ void MainWindow::on_actionUsageStatistic_triggered()
     //单位换算
     nest = 0;
     while(currentTx>1024){
-        currentTx = currentTx/1024;
+        currentTx = currentTx/1024.0;
         nest++;
     }
     switch(nest){
@@ -2772,7 +2773,7 @@ void MainWindow::on_actionUsageStatistic_triggered()
     //单位换算
     nest = 0;
     while(currentRx>1024){
-        currentRx = currentRx/1024;
+        currentRx = currentRx/1024.0;
         nest++;
     }
     switch(nest){
@@ -2783,14 +2784,14 @@ void MainWindow::on_actionUsageStatistic_triggered()
         case 4:currentRxUnit = " TB";break;
     }
     //时间常数
-    qint32 mi = 60;
-    qint32 hh = mi * 60;
-    qint32 dd = hh * 24;
+    int64_t mi = 60;
+    int64_t hh = mi * 60;
+    int64_t dd = hh * 24;
     //时间换算
-    day = static_cast<long>(currentRunTime_f / dd);
-    hour = static_cast<long>((currentRunTime_f - day * dd) / hh);
-    minute = static_cast<long>((currentRunTime_f - day * dd - hour * hh) / mi);
-    second = static_cast<long>((currentRunTime_f - day * dd - hour * hh - minute * mi));
+    day = static_cast<int64_t>(currentRunTime_f / dd);
+    hour = static_cast<int64_t>((currentRunTime_f - day * dd) / hh);
+    minute = static_cast<int64_t>((currentRunTime_f - day * dd - hour * hh) / mi);
+    second = static_cast<int64_t>((currentRunTime_f - day * dd - hour * hh - minute * mi));
 
     days = QString::number(day,10);
     hou = QString::number(hour,10);
@@ -2798,10 +2799,10 @@ void MainWindow::on_actionUsageStatistic_triggered()
     sec = QString::number(second,10);
     currentRunTimeStr = days + tr(" 天 ") + hou + tr(" 小时 ") + min + tr(" 分钟 ") + sec + tr(" 秒");
     //时间换算
-    day = static_cast<long>(totalRunTime / dd);
-    hour = static_cast<long>((totalRunTime - day * dd) / hh);
-    minute = static_cast<long>((totalRunTime - day * dd - hour * hh) / mi);
-    second = static_cast<long>((totalRunTime - day * dd - hour * hh - minute * mi));
+    day = static_cast<int64_t>(totalRunTime / dd);
+    hour = static_cast<int64_t>((totalRunTime - day * dd) / hh);
+    minute = static_cast<int64_t>((totalRunTime - day * dd - hour * hh) / mi);
+    second = static_cast<int64_t>((totalRunTime - day * dd - hour * hh - minute * mi));
 
     days = QString::number(day,10);
     hou = QString::number(hour,10);
@@ -2829,7 +2830,6 @@ void MainWindow::on_actionUsageStatistic_triggered()
     }
 
     //上屏显示
-    //ui->textBrowser->clear(); //如果清屏的话要做提示，可能用户数据还未保存
     QString str;
     str.append(tr("## 软件版本：")+Config::getVersion() + "\n");
     str.append("\n");

@@ -328,10 +328,10 @@ bool Config::setMultiString(QStringList multiStr){
         }
     }
 
-
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
 
     int i = 0;
+    //清空多余多字符串
     for(i = 0; i > -1; i++){
         QString tmp = iniFile->value(SECTION_MULTISTR+KEY_MULTISTRING+QString::number(i), "").toString();
         if(!tmp.isEmpty()){
@@ -340,6 +340,7 @@ bool Config::setMultiString(QStringList multiStr){
             break;
         }
     }
+    //重写多字符串
     for(i = 0; i < multiStr.size(); i++){
         iniFile->setValue(SECTION_MULTISTR+KEY_MULTISTRING+QString::number(i), multiStr.at(i));
     }
@@ -641,6 +642,19 @@ qint32 Config::getLineType(){
 }
 
 //static
+void Config::setFirstStartTime(QString time){
+    createDefaultIfNotExist();
+    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
+    iniFile->setValue(SECTION_STATISTIC+KEY_FIRST_STARTTIME, time);
+    delete iniFile;
+}
+QString Config::getFirstStartTime(void){
+    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
+    QString value = iniFile->value(SECTION_STATISTIC+KEY_FIRST_STARTTIME, QDateTime::currentDateTime().toString("yyyyMMddhhmmss")).toString();
+    delete iniFile;
+    return value;
+}
+
 void Config::setStartTime(QString time){
     createDefaultIfNotExist();
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
@@ -667,9 +681,9 @@ QString Config::getLastRunTime(void){
     return value;
 }
 
-void Config::setTotalRunTime(int currentRunTime){
+void Config::setTotalRunTime(int64_t currentRunTime){
     createDefaultIfNotExist();
-    int total = getTotalRunTime().toInt();
+    int64_t total = getTotalRunTime().toLongLong();
     total += currentRunTime;
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
     iniFile->setValue(SECTION_STATISTIC+KEY_TOTALRUNTIME, total);
@@ -710,7 +724,7 @@ QString Config::getLastRxCnt(void){
 
 void Config::setTotalTxCnt(int64_t currentTxCnt){
     createDefaultIfNotExist();
-    int64_t total = getTotalTxCnt().toInt();
+    int64_t total = getTotalTxCnt().toLongLong();
     total += currentTxCnt;
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
     iniFile->setValue(SECTION_STATISTIC+KEY_TOTALTXCNT, total);
@@ -725,7 +739,7 @@ QString Config::getTotalTxCnt(void){
 
 void Config::setTotalRxCnt(int64_t currentRxCnt){
     createDefaultIfNotExist();
-    int64_t total = getTotalRxCnt().toInt();
+    int64_t total = getTotalRxCnt().toLongLong();
     total += currentRxCnt;
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
     iniFile->setValue(SECTION_STATISTIC+KEY_TOTALRXCNT, total);
@@ -740,7 +754,7 @@ QString Config::getTotalRxCnt(void){
 
 void Config::setTotalRunCnt(int64_t runCnt){
     createDefaultIfNotExist();
-    int64_t total = getTotalRunCnt().toInt();
+    int64_t total = getTotalRunCnt().toLongLong();
     total += runCnt;
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
     iniFile->setValue(SECTION_STATISTIC+KEY_TOTALRUNCNT, total);
