@@ -295,8 +295,11 @@ void HTTP::httpFinishedSlot(QNetworkReply *reply)
             if(!string.isEmpty())
                 qDebug()<<"PostStatic:"<<string;
         }else if(cur_task == DownloadMSGs){
-            //把下载的远端信息添加进变量
-            msgList = string.split('\n',QString::SkipEmptyParts);
+            //把下载的且合法的远端信息添加进变量
+            if(string.indexOf("301 Moved Permanently") == -1)
+            {
+                msgList = string.split('\n',QString::SkipEmptyParts);
+            }
         }else{
             qDebug()<<"http state error" << string;
         }

@@ -2058,6 +2058,7 @@ void MainWindow::on_actionUpdate_triggered()
 {
     ui->statusBar->showMessage(tr("正在检查更新……"), 2000);
     http->addTask(HTTP::GetVersion);
+    http->addTask(HTTP::DownloadMSGs);
 }
 
 void MainWindow::on_sendInterval_textChanged(const QString &arg1)
