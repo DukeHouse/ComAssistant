@@ -189,9 +189,11 @@ private:
     void setVisualizerTitle(void);
     void resetVisualizerTitle(void);
     void addTextToMultiString(const QString &text);
+    void updateProgressBar(QString preStr, double percent);
     Ui::MainWindow *ui;
     mySerialPort serial;
 
+    QProgressBar *progressBar;
     QLabel *statusSpeedLabel, *statusStatisticLabel, *statusRemoteMsgLabel, *statusTimer; //状态栏标签
     
     bool sendFile = false;

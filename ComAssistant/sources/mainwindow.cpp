@@ -272,6 +272,11 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->refreshCom->setVisible(false);
 
     //状态栏标签
+    progressBar = new QProgressBar(this);
+    progressBar->setRange(0, 100);
+    progressBar->setValue(0);
+    progressBar->setAlignment(Qt::AlignVCenter);
+    progressBar->setVisible(false);
     statusRemoteMsgLabel = new QLabel(this);
     statusSpeedLabel = new QLabel(this);
     statusStatisticLabel = new QLabel(this);
@@ -279,6 +284,7 @@ MainWindow::MainWindow(QWidget *parent) :
     statusTimer->setText("Timer:" + formatTime(0));
     statusRemoteMsgLabel->setOpenExternalLinks(true);//可打开外链
     ui->statusBar->addPermanentWidget(statusRemoteMsgLabel);
+    ui->statusBar->addPermanentWidget(progressBar);
     ui->statusBar->addPermanentWidget(statusTimer);
     ui->statusBar->addPermanentWidget(statusStatisticLabel);//显示永久信息
     ui->statusBar->addPermanentWidget(statusSpeedLabel);
@@ -503,6 +509,23 @@ void MainWindow::closeInteractiveUI()
     ui->clearWindows->setText(tr("中  止"));
 }
 
+void MainWindow::updateProgressBar(QString preStr, double percent)
+{
+    QString percent_str = QString::number(percent, 'f', 1);
+    QString str = preStr + percent_str + "%";
+    progressBar->setValue(static_cast<int32_t>(percent));
+    progressBar->setFormat(str);
+    if(percent_str.startsWith("100"))
+    {
+        progressBar->setValue(0);
+        progressBar->setVisible(false);
+    }
+    else
+    {
+        progressBar->setVisible(true);
+    }
+}
+
 //文件分包函数，所有传入的参数都可能被修改
 int32_t MainWindow::divideDataToPacks(QByteArray &input, QByteArrayList &output, int32_t pack_size, bool &divideFlag)
 {
@@ -510,12 +533,12 @@ int32_t MainWindow::divideDataToPacks(QByteArray &input, QByteArrayList &output,
 
     int32_t pack_num = input.size() / pack_size;
     int32_t pack_cnt = 0;
+    double percent = 0;
     while(input.size() > pack_size && divideFlag){
         output.append(input.mid(0, pack_size));
         input.remove(0, pack_size);
-        ui->statusBar->showMessage(tr("文件分包进度：") +
-                                   QString::number(100 * pack_cnt /pack_num) +
-                                   "%", 2000);
+        percent = 100.0 * pack_cnt / pack_num;
+        updateProgressBar(tr("文件分包进度："), percent);
         pack_cnt++;
         if(pack_cnt % 5 == 0)
             qApp->processEvents();
@@ -1238,10 +1261,9 @@ void MainWindow::parseFileSlot()
     if(ui->actionPlotterSwitch->isChecked()){
         ui->customPlot->replot();
     }
-    if(parseFileBuffIndex!=parseFileBuff.size()){
-        ui->statusBar->showMessage(tr("解析进度：") +
-                                   QString::number(100*(parseFileBuffIndex+1)/parseFileBuff.size()) +
-                                   "% ", 1000);
+    if(parseFileBuffIndex != parseFileBuff.size()){
+        double percent = 100.0 * (parseFileBuffIndex + 1) / parseFileBuff.size();
+        updateProgressBar(tr("解析进度："), percent);
         emit parseFileSignal();
     }else{
         parseFile = false;
@@ -1304,10 +1326,9 @@ void MainWindow::serialBytesWritten(qint64 bytes)
     //发送速度统计
     statisticTxByteCnt += bytes;
 
-    if(SendFileBuff.size()>0 && SendFileBuffIndex!=SendFileBuff.size()){
-        ui->statusBar->showMessage(tr("发送进度：") +
-                                   QString::number(100*(SendFileBuffIndex+1)/SendFileBuff.size()) +
-                                   "%",1000);
+    if(SendFileBuff.size() > 0 && SendFileBuffIndex != SendFileBuff.size()){
+        double percent = 100.0 * (SendFileBuffIndex + 1) / SendFileBuff.size();
+        updateProgressBar(tr("发送进度："), percent);
         serial.write(SendFileBuff.at(SendFileBuffIndex++));
         if(SendFileBuffIndex == SendFileBuff.size()){
             SendFileBuffIndex = 0;
@@ -1577,6 +1598,9 @@ void MainWindow::on_sendButton_clicked()
 void MainWindow::on_clearWindows_clicked()
 {
     ui->clearWindows->setText(tr("清  空"));
+
+    progressBar->setValue(0);
+    progressBar->setVisible(false);
 
     //多字符串序列发送定时器，第二次才清空
     if(multiStrSeqSendTimer.isActive())
