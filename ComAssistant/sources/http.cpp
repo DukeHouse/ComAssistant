@@ -295,10 +295,31 @@ void HTTP::httpFinishedSlot(QNetworkReply *reply)
             if(!string.isEmpty())
                 qDebug()<<"PostStatic:"<<string;
         }else if(cur_task == DownloadMSGs){
+            int32_t hasIllegalStr = 0;
             //把下载的且合法的远端信息添加进变量
-            if(string.indexOf("301 Moved Permanently") == -1)
+            if(string.indexOf("301 Moved Permanently") != -1)
+            {
+                hasIllegalStr++;
+            }
+            if(string.indexOf("<head") != -1 ||
+               string.indexOf("<body") != -1 ||
+               string.indexOf("<html") != -1)
+            {
+                hasIllegalStr++;
+            }
+            if(string.indexOf("<h1") != -1 ||
+               string.indexOf("<h2") != -1 ||
+               string.indexOf("<h3") != -1)
+            {
+                hasIllegalStr++;
+            }
+            if(!hasIllegalStr)
             {
                 msgList = string.split('\n',QString::SkipEmptyParts);
+            }
+            else
+            {
+                qDebug() << "illegal msg string:" << string;
             }
         }else{
             qDebug()<<"http state error" << string;
@@ -336,7 +357,7 @@ void HTTP::httpFinishedSlot(QNetworkReply *reply)
         }else if(cur_task == PostStatic){
 
         }
-        qDebug()<< "reply err" << reply->errorString();
+        qDebug()<< "http reply err" << reply->errorString();
         reply->abort();
     }
 
