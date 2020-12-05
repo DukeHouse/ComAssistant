@@ -650,6 +650,11 @@ bool MyQCustomPlot::saveGraphAsTxt(const QString& filePath, char separate)
 
     //构造数据行
     int dataLen = this->graph(0)->data()->size();
+    if(dataLen == 0)
+    {
+        qDebug() << __FUNCTION__ << "failed due to empty data";
+        return false;
+    }
     for(int i = 0; i < dataLen; i++){
         for(int j = 0; j < this->graphCount(); j++){
             tmpContainer = this->graph(j)->data();

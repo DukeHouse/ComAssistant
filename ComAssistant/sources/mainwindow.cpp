@@ -2658,6 +2658,11 @@ void MainWindow::on_actionManual_triggered()
 
 void MainWindow::on_actionSavePlotData_triggered()
 {
+    if(ui->customPlot->graph(0)->data()->size() == 0)
+    {
+        QMessageBox::information(this, tr("提示"), tr("绘图器数据容器为空，无法保存。"));
+        return;
+    }
     //打开保存文件对话框
     QString savePath = QFileDialog::getSaveFileName(this,
                                                     tr("保存绘图数据-选择文件路径"),

@@ -17,8 +17,21 @@ bool MyXlsx::write(QCustomPlot *customPlot, QString path)
     int rowNumber = 1;
     char columnNumber = 'A';
 
+    if(!customPlot)
+    {
+        return false;
+    }
+
     QSharedPointer<QCPGraphDataContainer> tmpContainer;
     int graphNum = customPlot->graphCount();
+
+    //空数据检查
+    tmpContainer = customPlot->graph(0)->data();
+    if(tmpContainer->size() == 0)
+    {
+        qDebug() << "Write xlsx failed due to empty data";
+        return false;
+    }
 
     //曲线编号遍历
     for(int j = 0; j < graphNum; j++){
