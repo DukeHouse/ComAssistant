@@ -561,11 +561,16 @@ int32_t MainWindow::divideDataToPacks(QByteArray &input, QByteArrayList &output,
 
 int32_t MainWindow::parseDatFile(QString path, bool removeAfterRead)
 {
+    if(parseFile)
+    {
+        QMessageBox::information(this, tr("提示"), tr("请等待上一个文件解析完成后再进行该操作"));
+        return -1;
+    }
     QFile file(path);
     QByteArray buff;
     //读文件
     if(file.open(QFile::ReadOnly)){
-        on_clearWindows_clicked();
+//        on_clearWindows_clicked(); //不清空
         buff.clear();
         buff = file.readAll();
         file.close();
@@ -574,23 +579,32 @@ int32_t MainWindow::parseDatFile(QString path, bool removeAfterRead)
             file.remove();
         }
 
-        //文件分包（分包太大会可能导致绘图解析那边卡顿甚至崩溃，应该是一个包解出来的数据太多了，【更新：又好像没问题了？】）
-        #define PACKSIZE (5*1024)
+        //文件分包（分包太大会可能导致绘图解析那边卡顿甚至崩溃，应该是一个包解出来的数据太多了.
+        //限制包数量，过多了好像会崩溃。5K大小的包好像是只能解析15M
+        #define MIN_PACKSIZE    4096
+        #define PACK_NUM        3000
+        int32_t pack_size = buff.size() / PACK_NUM;
+        if(pack_size < MIN_PACKSIZE)
+        {
+            pack_size = MIN_PACKSIZE;
+        }
         parseFileBuffIndex = 0;
         parseFileBuff.clear();
         parseFile = true;
-        if(divideDataToPacks(buff, parseFileBuff, PACKSIZE, parseFile))
+        if(divideDataToPacks(buff, parseFileBuff, pack_size, parseFile))
             return -1;
-        RxBuff.clear();
+//        RxBuff.clear();
 
-        ui->textBrowser->clear();
+//        ui->textBrowser->clear();
         ui->textBrowser->appendPlainText("File size: " + QString::number(file.size()) + " Byte");
         ui->textBrowser->appendPlainText("Read containt:\n");
-        BrowserBuff.clear();
-        BrowserBuff.append(ui->textBrowser->toPlainText());
+//        BrowserBuff.clear();
+//        BrowserBuff.append(ui->textBrowser->toPlainText());
+        BrowserBuff.append("File size: " + QString::number(file.size()) + " Byte\n");
+        BrowserBuff.append("Read containt:\n");
 
         // 解析读取的数据
-        unshowedRxBuff.clear();
+//        unshowedRxBuff.clear();
         emit parseFileSignal();
     }else{
         QMessageBox::information(this,tr("提示"),tr("文件打开失败。"));
@@ -3375,16 +3389,9 @@ void MainWindow::dropEvent(QDropEvent *e)
         QMessageBox::information(this, tr("提示"), tr("仅支持dat文件解析。"));
         return;
     }
-    QFile file(path);
-    if(file.size() > 15*1024*1024)
-    {
-        QMessageBox::information(this, tr("提示"), tr("暂不支持解析大于15M的文件。"));
-        return;
-    }
     if(QMessageBox::information(this, tr("提示"),
                                 tr("确认解析该文件？") + "\n" +
-                                path + "\n\n" +
-                                tr("该操作会清空当前内容。"),
+                                path,
                                 QMessageBox::Ok, QMessageBox::Cancel) != QMessageBox::Ok)
     {
         return;
