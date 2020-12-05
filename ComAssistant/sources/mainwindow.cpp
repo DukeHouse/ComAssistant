@@ -511,6 +511,10 @@ void MainWindow::closeInteractiveUI()
 
 void MainWindow::updateProgressBar(QString preStr, double percent)
 {
+    if(percent > 100)
+    {
+        percent = 100;
+    }
     QString percent_str = QString::number(percent, 'f', 1);
     QString str = preStr + percent_str + "%";
     progressBar->setValue(static_cast<int32_t>(percent));
@@ -570,8 +574,8 @@ int32_t MainWindow::parseDatFile(QString path, bool removeAfterRead)
             file.remove();
         }
 
-        //文件分包（分包太大会可能导致绘图解析那边卡顿甚至崩溃，应该是一个包解出来的数据太多了）
-        #define PACKSIZE 1024
+        //文件分包（分包太大会可能导致绘图解析那边卡顿甚至崩溃，应该是一个包解出来的数据太多了，【更新：又好像没问题了？】）
+        #define PACKSIZE (5*1024)
         parseFileBuffIndex = 0;
         parseFileBuff.clear();
         parseFile = true;
@@ -1254,14 +1258,15 @@ void MainWindow::readSerialPort()
     RefreshTextBrowser = true;
 }
 
+//好像有一个bug，parseFileSlot执行多了会蹦，也就是文件大的时候就可能蹦？
+//所以增大单文件包就提高可解析最大文件？
 void MainWindow::parseFileSlot()
 {
     readSerialPort();
-    qApp->processEvents();
-    if(ui->actionPlotterSwitch->isChecked()){
-        ui->customPlot->replot();
-    }
-    if(parseFileBuffIndex != parseFileBuff.size()){
+    parseTimer100hzSlot();
+    plotterShowTimerSlot();
+    qApp->processEvents(); //要在emit parseFileSignal()前
+    if(parseFileBuffIndex < parseFileBuff.size()){
         double percent = 100.0 * (parseFileBuffIndex + 1) / parseFileBuff.size();
         updateProgressBar(tr("解析进度："), percent);
         emit parseFileSignal();
@@ -1270,10 +1275,12 @@ void MainWindow::parseFileSlot()
         parseFileBuffIndex = 0;
         parseFileBuff.clear();
         openInteractiveUI();
+        //不知道为啥有概率最后一包数据已加入buffer却未触发解析，这里强制触发一下
+        forceTrigParse = 1;
     }
 }
 
-static qint32 PAGING_SIZE = 8192; //TextBrowser显示大小
+static qint32 PAGING_SIZE = 4096; //TextBrowser显示大小
 void MainWindow::printToTextBrowser()
 {
     //当前窗口显示字符调整
@@ -1448,26 +1455,38 @@ void MainWindow::multiStrSeqSendTimerSlot()
     on_sendButton_clicked();
 }
 
+void MainWindow::parsePlotterAndTee()
+{
+    //触发文本提取引擎解析
+    if(textExtractEnable)
+        emit tee_parseData();
+
+    //触发绘图器解析
+    if(ui->actionPlotterSwitch->isChecked() ||
+       ui->actionValueDisplay->isChecked() ||
+       ui->actionFFTShow->isChecked())
+    {
+        ui->customPlot->startParse(g_enableSumCheck);
+    }
+}
+
 void MainWindow::parseTimer100hzSlot()
 {
     static uint32_t cnt = 0;
+
+    if(forceTrigParse)
+    {
+        forceTrigParse--;
+        parsePlotterAndTee();
+    }
+
     if(cnt % (PLOTTER_SHOW_PERIOD/10) == 0)
     {
         //协议解析控制
         if(RefreshTextBrowser == false)
             return;
 
-        //触发文本提取引擎解析
-        if(textExtractEnable)
-            emit tee_parseData();
-
-        //触发绘图器解析
-        if(ui->actionPlotterSwitch->isChecked() ||
-           ui->actionValueDisplay->isChecked() ||
-           ui->actionFFTShow->isChecked())
-        {
-            ui->customPlot->startParse(g_enableSumCheck);
-        }
+        parsePlotterAndTee();
     }
     cnt++;
 }
@@ -3353,6 +3372,12 @@ void MainWindow::dropEvent(QDropEvent *e)
     if(!path.endsWith("dat"))
     {
         QMessageBox::information(this, tr("提示"), tr("仅支持dat文件解析。"));
+        return;
+    }
+    QFile file(path);
+    if(file.size() > 15*1024*1024)
+    {
+        QMessageBox::information(this, tr("提示"), tr("暂不支持解析大于15M的文件。"));
         return;
     }
     if(QMessageBox::information(this, tr("提示"),

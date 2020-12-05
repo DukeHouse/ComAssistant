@@ -190,6 +190,7 @@ private:
     void resetVisualizerTitle(void);
     void addTextToMultiString(const QString &text);
     void updateProgressBar(QString preStr, double percent);
+    void parsePlotterAndTee();
     Ui::MainWindow *ui;
     mySerialPort serial;
 
@@ -214,6 +215,8 @@ private:
     const int32_t TEXT_SHOW_PERIOD    = 50;  //文本显示频率20FPS（刷新率太高低配机型会卡顿）
 
     bool is_multi_str_double_click = false;
+
+    int32_t forceTrigParse = 0;     //强制触发解析
 
     QTimer cycleSendTimer;  //循环发送定时器
     QTimer debugTimer;      //调试定时器
