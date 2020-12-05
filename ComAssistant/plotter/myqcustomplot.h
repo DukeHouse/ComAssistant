@@ -71,7 +71,7 @@ private slots:
     void keyPressEvent(QKeyEvent *e);
     void keyReleaseEvent(QKeyEvent *e);
     void removeSelectedGraph();
-    void rescaleYAxis();
+    void rescaleXYAxis();
     void removeAllGraphs();
     void reNameSelectedGraph();
     void reColorSelectedGraph();

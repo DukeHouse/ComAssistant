@@ -344,12 +344,24 @@ void MyQCustomPlot::removeSelectedGraph()
     }
 }
 
-void MyQCustomPlot::rescaleYAxis()
+void MyQCustomPlot::rescaleXYAxis()
 {
     this->yAxis->rescale(true);
-    if(xAxisSource && (*xAxisSource != XAxis_Cnt))
+    //XY模式
+    if(xAxisSource && (*xAxisSource != XAxis_Cnt) &&
+       this->plotControl->getEnableTimeStampMode() != true)
     {
         this->xAxis->rescale(true);
+    }
+    else    //YT模式
+    {
+        QCPRange range = this->plotControl->getXRange();
+        int64_t rightEdge = this->plotControl->getRightEdge();
+        //YT模式时间没有负数
+        if(rightEdge > 0)
+        {
+            this->xAxis->setRange(rightEdge, range.upper - range.lower, Qt::AlignRight);
+        }
     }
     this->replot();
 }
@@ -486,7 +498,7 @@ void MyQCustomPlot::contextMenuRequest(QPoint pos)
   // general context menu on graphs requested
   if (this->graphCount() > 0){
       menu->addSeparator();
-      menu->addAction(tr("寻找曲线"), this, SLOT(rescaleYAxis()));
+      menu->addAction(tr("寻找曲线"), this, SLOT(rescaleXYAxis()));
       menu->addSeparator();
       if(setting)
       {

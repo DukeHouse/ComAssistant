@@ -72,6 +72,9 @@ public:
     //读写颜色集
     QVector<QColor> getColorSet();
     void setColorSet(QVector<QColor> colors);
+    int64_t getRightEdge();
+    void resetRightEdge();
+    QCPRange getXRange();
 
 private slots:
 
@@ -84,9 +87,10 @@ private:
     const double zoomScale = 0.2;
     QVector<QCPScatterStyle::ScatterShape> scatterShapeSet;
 //    AxisTag *mTag1;   //动态标签
-    long int xAxisCnt = 0;
+    int64_t xAxisCnt = 0;
     LineType_e lineType = Line; //线型种类
     bool enableTimeStampMode = false;
+    int64_t rightEdge = -1;  //YT模式的右边沿数据
 
     //设置点风格
     void setupScatterStyle(bool enable=false);

@@ -1680,6 +1680,7 @@ void MainWindow::on_clearWindows_clicked()
     }
 
     //绘图器相关
+    ui->customPlot->plotControl->resetRightEdge();
     ui->customPlot->protocol->clearBuff();
     ui->customPlot->plotControl->clearPlotter(-1);
     while(ui->customPlot->graphCount()>1){

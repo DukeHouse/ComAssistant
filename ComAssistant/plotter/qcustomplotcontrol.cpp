@@ -177,6 +177,21 @@ bool QCustomPlotControl::addGraph(int num)
     return true;
 }
 
+int64_t QCustomPlotControl::getRightEdge()
+{
+    return rightEdge;
+}
+
+void QCustomPlotControl::resetRightEdge()
+{
+    rightEdge = -1;
+}
+
+QCPRange QCustomPlotControl::getXRange()
+{
+    return xRange;
+}
+
 /*
  * Function:把数据取出来显示到绘图器上
 */
@@ -213,6 +228,7 @@ bool QCustomPlotControl::addDataToPlotter(QVector<double> rowData, qint32 xSourc
         }
         // make key axis range scroll with the data (at a constant range size of 200):
         customPlot->xAxis->setRange(xAxisCnt, xRange.upper - xRange.lower, Qt::AlignRight);
+        rightEdge = xAxisCnt;
         xAxisCnt++;
         break;
     default:
@@ -222,6 +238,7 @@ bool QCustomPlotControl::addDataToPlotter(QVector<double> rowData, qint32 xSourc
         if(enableTimeStampMode)
         {
             customPlot->xAxis->setRange(rowData.at(xSource - 1), xRange.upper - xRange.lower, Qt::AlignRight);
+            rightEdge = rowData.at(xSource - 1);
         }
         break;
     }
