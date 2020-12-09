@@ -2706,6 +2706,12 @@ void MainWindow::on_actionSavePlotData_triggered()
 
 void MainWindow::on_actionSavePlotAsPicture_triggered()
 {
+    if(!ui->customPlot->isVisible())
+    {
+        QMessageBox::information(this, tr("提示"), tr("绘图器未开启，无法保存图片。"));
+        return;
+    }
+
     //打开保存文件对话框
     QString savePath = QFileDialog::getSaveFileName(this,
                                                     tr("曲线保存图片-选择文件路径"),
