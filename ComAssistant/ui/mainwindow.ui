@@ -524,8 +524,8 @@ p, li { white-space: pre-wrap; }
      <rect>
       <x>10</x>
       <y>240</y>
-      <width>541</width>
-      <height>223</height>
+      <width>571</width>
+      <height>221</height>
      </rect>
     </property>
     <property name="orientation">
@@ -595,6 +595,64 @@ p, li { white-space: pre-wrap; }
           </widget>
          </item>
         </layout>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="regMatch">
+      <attribute name="title">
+       <string>regMatch</string>
+      </attribute>
+      <layout class="QFormLayout" name="formLayout_6">
+       <property name="horizontalSpacing">
+        <number>2</number>
+       </property>
+       <property name="verticalSpacing">
+        <number>2</number>
+       </property>
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <item row="0" column="0" colspan="2">
+        <widget class="QPlainTextEdit" name="regMatchBrowser">
+         <property name="font">
+          <font>
+           <pointsize>10</pointsize>
+          </font>
+         </property>
+         <property name="readOnly">
+          <bool>true</bool>
+         </property>
+         <property name="placeholderText">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0" colspan="2">
+        <widget class="QLineEdit" name="regMatchEdit">
+         <property name="font">
+          <font>
+           <pointsize>10</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="placeholderText">
+          <string>输入要匹配的关键字符</string>
+         </property>
+         <property name="clearButtonEnabled">
+          <bool>false</bool>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>

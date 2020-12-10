@@ -36,6 +36,7 @@
 #include "config.h"
 #include "http.h"
 #include "data_logger.h"
+#include "reg_match_engine.h"
 //界面类
 #include "stm32isp_dialog.h"
 #include "about_me_dialog.h"
@@ -95,6 +96,7 @@ private slots:
     void copySelectedTextBrowser_triggered(void);
     void copyAllTextBrowser_triggered(void);
     void copyAllData_triggered(void);
+    void on_regMatchEdit_textChanged(const QString &arg1);
 
     //file
     void on_actionSaveOriginData_triggered();
@@ -191,6 +193,8 @@ private:
     void addTextToMultiString(const QString &text);
     void updateProgressBar(QString preStr, double percent);
     void parsePlotterAndTee();
+    void updateUIPanelBackground(QString background);
+    void updateUIPanelFont(QFont font);
     Ui::MainWindow *ui;
     mySerialPort serial;
 
@@ -230,6 +234,7 @@ private:
     QString lastFileDialogPath; //上次文件对话框路径
 
     Highlighter *highlighter = nullptr; //高亮器
+    Highlighter *highlighter1 = nullptr;
 
     HTTP *http;
 
@@ -260,9 +265,14 @@ private:
 
     //文本提取引擎
     bool textExtractEnable = true;
-    const QString MAIN_TAB_NAME = "main";
+    const QString MAIN_TAB_NAME     = "main";
     QThread *p_textExtractThread;
     TextExtractEngine *p_textExtract;
+
+    //正则匹配引擎
+    const QString REGMATCH_TAB_NAME = "regMatch";
+    QThread *p_regMatchThread;
+    RegMatchEngine *p_regMatch;
 
     //fft window
     FFT_Dialog *fft_window = nullptr;
@@ -275,10 +285,16 @@ signals:
     void sendKeyToPlotter(QKeyEvent *e, bool isPressAct);
     void logger_append(uint8_t type, const QByteArray &data);
     void logger_flush(uint8_t type);
+    void regM_appendData(const QByteArray &str);
+    void regM_parseData(void);
+    void regM_clearData(void);
+    qint32 regM_saveData(const QString &path);
 
 public slots:
     void tee_textGroupsUpdate(const QString &name, const QByteArray &data);
     void tee_saveDataResult(const qint32& result, const QString &path, const qint32 fileSize);
+    void regM_dataUpdated(const QString &packData);
+    void regM_saveDataResult(const qint32& result, const QString &path, const qint32 fileSize);
 
 protected:
     void resizeEvent(QResizeEvent* event);

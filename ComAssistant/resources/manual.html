@@ -19,45 +19,7 @@
   <li><b>分类解析引擎</b>：分类解析引擎开关，关闭后将无法进行分类显示</li>
   <li><b>提取二级名称</b>：分类文本显示支持二级名称的提取以进行二级分类，规则为进一步将text_data段中的花括号数据提取出来作为二级名称，如{name1:{name2}hello world}\n，注意绘图协议不支持二级名称，只能是形如{name:num1,num2,num3}的结构</li>
   <li><b>记录数据到文件</b>：将收到的数据写入文件保存</li>
-  <li><b>STM32-ISP</b>：实现STM32F1和F4系列的芯片的一键下载功能。该功能最好依赖自动下载电路，或者使用软件方法使单片机进入ISP模式
-  <pre style="background-color: rgb(235, 235, 235);">
-    
-    //以下函数可用于跳转到ISP Bootloader模式
-    void JumpToISP(void)
-    {
-        //根据芯片修改地址,参阅“芯片参考手册——Flash——系统存储区”部分
-        //stm32f10x大中小型芯片均为0x1FFFF000
-        //stm32f1系列的互联型芯片为0x1FFFB000
-        //stm32f40x为0x1FFF0000
-        //stm32f41x为0x1FFF0000
-
-        #define ISPAddress 0x1FFFF000 
-
-        //程序跳转不复位外设，建议对一些可能导致问题的外设进行反初始化DeInit，如SysTick。
-        //看门狗一旦初始化不能被关闭，因此如果使用了看门狗，则在调用该函数前，必须先复位系统，并在初始化看门狗之前调用该函数。
-        uint32_t ispJumpAddr;//ISP程序的跳转地址，既程序入口
-        uint32_t ispSpValue;//ISP程序的SP初值，即栈指针
-        void (*Jump_To_ISP)(void);//定义一个函数指针
-    
-        printf("\r\nJumping to ISP...");
-        SysTick->CTRL=0x00;       //关闭计数器
-        SysTick->VAL =0X00;       //清空计数器	
-    
-        if (((*(__IO uint32_t*)ISPAddress) & 0x2FFE0000 ) == 0x20000000)//SP->RAM,RAM => 0x20000000
-        { 
-            ispSpValue  = *(__IO uint32_t*)ISPAddress;
-            ispJumpAddr = *(__IO uint32_t*)(ISPAddress+4);
-    
-            /* 初始化 Stack Pointer */
-            __set_MSP(ispSpValue);
-    
-            /* Jump to isp */
-            Jump_To_ISP = (void (*)(void))ispJumpAddr;
-            Jump_To_ISP();
-        }
-    }
-    </pre>
-  </li>
+  <li><b>STM32-ISP</b>：实现STM32F1和F4系列的芯片的一键下载功能。</li>
   <li><b>ASCII码表</b>：提供一个ASCII码表格进行查询</li>
   <li><b>HEX转换</b>：提供了一个ASCII和HEX相互转换的小工具</li>
 </ul>
@@ -69,7 +31,7 @@
   <li><b>回车样式</b>：选择win风格回车"\r\n"还是unix风格回车"\n"。这会影响回车效果</li>
   <li><b>个性化</b>：
     <ul>
-        <li><b>关键字高亮</b>：开启/关闭数据显示区的关键字高亮功能，方便阅读。时间戳信息、字符串、注释等以及如下字符会被高亮: , ; { } = ( ) [ ] &lt; &gt;</li>
+        <!--<li><b>关键字高亮</b>：开启/关闭数据显示区的关键字高亮功能，方便阅读。时间戳信息、字符串、注释等以及如下字符会被高亮: , ; { } = ( ) [ ] &lt; &gt;</li>-->
         <li><b>全局弹出热键</b>：弹出主窗口，最小化后方便快速打开查看数据，默认值为Shift+Alt+C，点击后进行修改</li>
         <li><b>字体设置</b>：设置字体</li>
         <li><b>背景色设置</b>：设置背景色</li>
@@ -122,6 +84,13 @@
     </pre>
 </ul>
 
+<h2>regMatch正则匹配</h2>
+<ul>
+对于包含\n的字符串数据流而言，相当于一行一行的字符串。
+因此输入关键字符可以提取包含关键字符的字符串显示在窗口中。
+其效果类似于linux中的grep命令。一行字符串长度需要小于512。
+</ul>
+
 <h2>数据可视化</h2>
 <ul>
   <li><b>线型</b>：支持线图、点线图、点图三种风格</li>
@@ -156,7 +125,7 @@
         //发送函数
         void SendCurve(float data1, float data2)
         {
-          u8 dataBuff[4+4+4];
+          u8 dataBuff[4+4+4];           //3个float型变量
           u8 cnt = 0;
           dataBuff[cnt++]=BYTE0(data1); //第一个变量
           dataBuff[cnt++]=BYTE1(data1);
@@ -166,7 +135,7 @@
           dataBuff[cnt++]=BYTE1(data2);
           dataBuff[cnt++]=BYTE2(data2);
           dataBuff[cnt++]=BYTE3(data2);
-          dataBuff[cnt++]=0x00; //结束标志
+          dataBuff[cnt++]=0x00;         //结束标志
           dataBuff[cnt++]=0x00;
           dataBuff[cnt++]=0x80;
           dataBuff[cnt++]=0x7F;
@@ -190,22 +159,22 @@
         //发送函数
         void SendCurve(float data1, float data2)
         {
-          u8 dataBuff[4+4+4+4];
+          u8 dataBuff[4+4+4+4];             //4个float型变量
           u8 cnt = 0;
           float sumCheck = data1 + data2;
-          dataBuff[cnt++]=BYTE0(data1); //第一个变量
+          dataBuff[cnt++]=BYTE0(data1);     //第一个变量
           dataBuff[cnt++]=BYTE1(data1);
           dataBuff[cnt++]=BYTE2(data1);
           dataBuff[cnt++]=BYTE3(data1);
-          dataBuff[cnt++]=BYTE0(data2); //第二个变量
+          dataBuff[cnt++]=BYTE0(data2);     //第二个变量
           dataBuff[cnt++]=BYTE1(data2);
           dataBuff[cnt++]=BYTE2(data2);
           dataBuff[cnt++]=BYTE3(data2);
-          dataBuff[cnt++]=BYTE0(sumCheck); //和校验
+          dataBuff[cnt++]=BYTE0(sumCheck);  //和校验
           dataBuff[cnt++]=BYTE1(sumCheck);
           dataBuff[cnt++]=BYTE2(sumCheck);
           dataBuff[cnt++]=BYTE3(sumCheck);
-          dataBuff[cnt++]=0x00; //结束标志
+          dataBuff[cnt++]=0x00;             //结束标志
           dataBuff[cnt++]=0x00;
           dataBuff[cnt++]=0x80;
           dataBuff[cnt++]=0x7F;
@@ -218,7 +187,7 @@
         </pre>
       </li>
     </ul>
-  <li><b>绘图测试</b>：勾选后软件会生成不同波形数据并发送到串口，将TX和RX短接后，软件可以显示收到的数据</li>
+  <!--<li><b>绘图测试</b>：勾选后软件会生成不同波形数据并发送到串口，将TX和RX短接后，软件可以显示收到的数据</li>-->
 </ul><br>
 <ul>
   <b>注意</b>：

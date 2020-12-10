@@ -90,6 +90,7 @@ SOURCES += \
     sources/mainwindow.cpp \
     sources/my_combo_box.cpp \
     sources/myserialport.cpp\
+    sources/reg_match_engine.cpp \
     sources/text_extract_engine.cpp \
     sources/fft.cpp
     
@@ -166,6 +167,7 @@ HEADERS += \
     sources/mainwindow.h \
     sources/my_combo_box.h \
     sources/myserialport.h \
+    sources/reg_match_engine.h \
     sources/text_extract_engine.h
 
 FORMS += \

@@ -97,9 +97,12 @@ void MainWindow::readConfig()
 
     //文件对话框路径
     lastFileDialogPath = Config::getLastFileDialogPath();
-    //加载高亮规则
-    ui->actionKeyWordHighlight->setChecked(Config::getKeyWordHighlightState());
-    on_actionKeyWordHighlight_triggered(Config::getKeyWordHighlightState());
+
+    //加载高亮规则（因为关闭高亮功能比较麻烦，所以隐藏高亮控制开关入口，并强制高亮）
+//    ui->actionKeyWordHighlight->setChecked(Config::getKeyWordHighlightState());
+//    on_actionKeyWordHighlight_triggered(Config::getKeyWordHighlightState());
+    ui->actionKeyWordHighlight->setVisible(false);
+    on_actionKeyWordHighlight_triggered(true);
 
     //时间戳
     ui->timeStampCheckBox->setChecked(Config::getTimeStampState());
@@ -129,11 +132,11 @@ void MainWindow::readConfig()
         g_background_color.setGreen(g);
         g_background_color.setBlue(b);
     }
-    QString str = "QPlainTextEdit{ background-color: rgb(RGBR,RGBG,RGBB);}";
+    QString str = "{ background-color: rgb(RGBR,RGBG,RGBB);}";
     str.replace("RGBR", QString::number(r));
     str.replace("RGBG", QString::number(g));
     str.replace("RGBB", QString::number(b));
-    ui->textBrowser->setStyleSheet(str);
+    updateUIPanelBackground(str);
 
     //绘图器开关
     ui->actionPlotterSwitch->setChecked(Config::getPlotterState());
@@ -294,9 +297,6 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->sendInterval->setValidator(new QIntValidator(0,99999,this));
     ui->timeStampTimeOut->setValidator(new QIntValidator(0,99999,this));
 
-    //加载高亮规则
-    on_actionKeyWordHighlight_triggered(ui->actionKeyWordHighlight->isChecked());
-
     //fft
     fft_window = new FFT_Dialog(ui->actionFFTShow, this);
 
@@ -322,6 +322,22 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(p_textExtract, SIGNAL(saveDataResult(const qint32&, const QString &, const qint32 )),
             this, SLOT(tee_saveDataResult(const qint32&, const QString &, const qint32 )));
     p_textExtractThread->start();
+
+    //正则匹配引擎初始化
+    p_regMatchThread = new QThread(this);
+    p_regMatch       = new RegMatchEngine(nullptr);
+    p_regMatch->moveToThread(p_regMatchThread);
+    connect(p_regMatchThread, SIGNAL(finished()), p_regMatch, SLOT(deleteLater()));
+    connect(this, SIGNAL(regM_appendData(const QByteArray &)), p_regMatch, SLOT(appendData(const QByteArray &)));
+    connect(this, SIGNAL(regM_parseData()), p_regMatch, SLOT(parseData()));
+    connect(this, SIGNAL(regM_clearData()), p_regMatch, SLOT(clearData()));
+    connect(this, SIGNAL(regM_saveData(const QString &)),
+            p_regMatch, SLOT(saveData(const QString &)));
+    connect(p_regMatch, SIGNAL(dataUpdated(const QString &)),
+            this, SLOT(regM_dataUpdated(const QString &)));
+    connect(p_regMatch, SIGNAL(saveDataResult(const qint32&, const QString &, const qint32 )),
+            this, SLOT(regM_saveDataResult(const qint32&, const QString &, const qint32 )));
+    p_regMatchThread->start();
 
     //数据记录器(设计成线程模式为了做一个缓冲收集一段时间数据批量写入以缓解高频接收时的硬盘写入压力
     //（虽然直接写好像硬盘也没看出使用率很高）)
@@ -369,11 +385,7 @@ MainWindow::MainWindow(QWidget *parent) :
     styleFile.close();
     this->setStyleSheet(style);
     g_font = Config::getGUIFont();
-    ui->textBrowser->document()->setDefaultFont(g_font);
-    ui->textEdit->document()->setDefaultFont(g_font);
-    ui->multiString->setFont(g_font);
-    ui->customPlot->plotControl->setupFont(g_font);
-    fft_window->setupPlotterFont(g_font);
+    updateUIPanelFont(g_font);
 
     this->setWindowTitle(tr("纸飞机串口助手") + " - V"+Config::getVersion());
 
@@ -446,6 +458,12 @@ void MainWindow::quickHelp()
                 "  3.To classify text, use it like this: \n"
                 "    PRINT(name, \"one year has %d days\", var); It means text associate with name\n";
         ui->textBrowser->setPlaceholderText(helpText);
+        helpText = "Show the string contained the key word"
+                "\n\n"
+                "(only support string which has LF character)";
+        ui->regMatchBrowser->setPlaceholderText(helpText);
+        helpText = "input key word";
+        ui->regMatchEdit->setPlaceholderText(helpText);
         return;
     }
     helpText = "数据显示区"
@@ -464,6 +482,12 @@ void MainWindow::quickHelp()
             "  3.若要分类显示可这样使用：\n"
             "    PRINT(name, \"one year has %d days\", var);即可，表示跟name有关的数据\n";
     ui->textBrowser->setPlaceholderText(helpText);
+    helpText = "该窗口显示包含关键字符的字符串"
+            "\n\n"
+            "（仅支持匹配带换行符\\n的字符串）";
+    ui->regMatchBrowser->setPlaceholderText(helpText);
+    helpText = "输入要匹配的关键字符";
+    ui->regMatchEdit->setPlaceholderText(helpText);
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
@@ -679,6 +703,17 @@ void MainWindow::tee_saveDataResult(const qint32& result, const QString &path, c
     }
 }
 
+void MainWindow::regM_dataUpdated(const QString &packData)
+{
+    ui->regMatchBrowser->appendPlainText(packData);
+    ui->regMatchBrowser->moveCursor(QTextCursor::End);
+}
+
+void MainWindow::regM_saveDataResult(const qint32& result, const QString &path, const qint32 fileSize)
+{
+    tee_saveDataResult(result, path, fileSize);
+}
+
 void MainWindow::tee_textGroupsUpdate(const QString &name, const QByteArray &data)
 {
 //    qDebug()<<"tee_textGroupsUpdate";
@@ -703,11 +738,11 @@ void MainWindow::tee_textGroupsUpdate(const QString &name, const QByteArray &dat
 
         qint32 r,g,b;
         g_background_color.getRgb(&r,&g,&b);
-        QString str = "QPlainTextEdit{ background-color: rgb(RGBR,RGBG,RGBB);}";
+        QString str = "{ background-color: rgb(RGBR,RGBG,RGBB);}";
         str.replace("RGBR", QString::number(r));
         str.replace("RGBG", QString::number(g));
         str.replace("RGBB", QString::number(b));
-        textEdit->setStyleSheet(str);
+        textEdit->setStyleSheet("QPlainTextEdit" + str);
 
         new Highlighter(textEdit->document());
 
@@ -996,6 +1031,11 @@ MainWindow::~MainWindow()
 //    delete p_textExtract; //deleteLater自动删除？
     delete p_textExtractThread;
 
+    p_regMatchThread->quit();
+    p_regMatchThread->wait();
+//    delete p_textExtract; //deleteLater自动删除？
+    delete p_regMatchThread;
+
     p_logger_thread->quit();
     p_logger_thread->wait();
 //    delete p_logger_thread; //deleteLater自动删除？
@@ -1005,6 +1045,7 @@ MainWindow::~MainWindow()
     fft_window = nullptr;
 
     delete highlighter;
+    delete highlighter1;
     delete ui;
     delete http;
     delete g_popupHotkey;
@@ -1224,6 +1265,9 @@ void MainWindow::readSerialPort()
     //数据交付给文本解析引擎(追加数据和解析分开防止高频解析带来的CPU压力)
     if(textExtractEnable)
         emit tee_appendData(tmpReadBuff);
+
+    //数据交付正则匹配引擎
+    emit regM_appendData(tmpReadBuff);
 
     if(ui->actionPlotterSwitch->isChecked() ||
        ui->actionValueDisplay->isChecked() ||
@@ -1475,6 +1519,9 @@ void MainWindow::parsePlotterAndTee()
     if(textExtractEnable)
         emit tee_parseData();
 
+    //触发正则匹配引擎解析
+    emit regM_parseData();
+
     //触发绘图器解析
     if(ui->actionPlotterSwitch->isChecked() ||
        ui->actionValueDisplay->isChecked() ||
@@ -1680,9 +1727,16 @@ void MainWindow::on_clearWindows_clicked()
     BrowserBuff.clear();
     BrowserBuffIndex = 0;
     unshowedRxBuff.clear();
+    //正则匹配区
+    emit regM_clearData();
+    ui->regMatchBrowser->clear();
+    //文本提取区
     emit tee_clearData("");//clear temp buff
-    for(qint32 i = 0; i < ui->tabWidget->count(); i++){
-        if(ui->tabWidget->tabText(i) != MAIN_TAB_NAME){
+    for(qint32 i = 0; i < ui->tabWidget->count(); i++)
+    {
+        if(ui->tabWidget->tabText(i) != MAIN_TAB_NAME &&
+           ui->tabWidget->tabText(i) != REGMATCH_TAB_NAME )
+        {
             emit tee_clearData(ui->tabWidget->tabText(i));
             if(ui->tabWidget->widget(i) != nullptr)
             {
@@ -1904,8 +1958,13 @@ void MainWindow::on_actionSaveOriginData_triggered()
     }
 
     //子窗口数据由其线程负责存储
-    if(tabName != MAIN_TAB_NAME){
+    if(tabName != MAIN_TAB_NAME && tabName != REGMATCH_TAB_NAME){
         emit tee_saveData(savePath, tabName, true);
+        return;
+    }
+    if(tabName == REGMATCH_TAB_NAME)
+    {
+        emit regM_saveData(savePath);
         return;
     }
 
@@ -2082,8 +2141,13 @@ void MainWindow::on_actionSaveShowedData_triggered()
     }
 
     //标签页的数据保存由其线程自己负责
-    if(tabName != MAIN_TAB_NAME){
+    if(tabName != MAIN_TAB_NAME && tabName != REGMATCH_TAB_NAME){
         emit tee_saveData(savePath, tabName, false);
+        return;
+    }
+    if(tabName == REGMATCH_TAB_NAME)
+    {
+        emit regM_saveData(savePath);
         return;
     }
 
@@ -2762,11 +2826,19 @@ void MainWindow::on_actionSavePlotAsPicture_triggered()
 void MainWindow::on_actionKeyWordHighlight_triggered(bool checked)
 {
     if(checked){
-        if(highlighter==nullptr)
+        if(highlighter == nullptr)
+        {
             highlighter = new Highlighter(ui->textBrowser->document());
+        }
+        if(highlighter1 == nullptr)
+        {
+            highlighter1 = new Highlighter(ui->regMatchBrowser->document());
+        }
     }else{
         delete highlighter;
+        delete highlighter1;
         highlighter = nullptr;
+        highlighter1 = nullptr;
     }
 }
 /*
@@ -3200,29 +3272,55 @@ void MainWindow::on_actionFontSetting_triggered()
 {
     bool ok;
     QFont font;
-    font = QFontDialog::getFont(&ok, font, this, tr("选择字体"));
-    if(ok){
+    font = QFontDialog::getFont(&ok, g_font, this, tr("选择字体"));
+    if(ok)
+    {
         g_font = font;
-        ui->textBrowser->document()->setDefaultFont(g_font);
-        ui->textEdit->document()->setDefaultFont(g_font);
-        ui->multiString->setFont(g_font);
-        ui->customPlot->plotControl->setupFont(g_font);
-        fft_window->setupPlotterFont(g_font);
+        updateUIPanelFont(g_font);
 
         QPlainTextEdit *textEdit = nullptr;
-        for(qint32 i = 0; i < ui->tabWidget->count(); i++){
+        for(qint32 i = 0; i < ui->tabWidget->count(); i++)
+        {
             textEdit = dynamic_cast<QPlainTextEdit *>(ui->tabWidget->widget(i));
-            if(textEdit){
+            if(textEdit)
+            {
                 textEdit->setFont(g_font);
             }
         }
     }
 }
 
+void MainWindow::updateUIPanelBackground(QString background)
+{
+    ui->textBrowser->setStyleSheet("QPlainTextEdit" + background);
+    ui->regMatchBrowser->setStyleSheet("QPlainTextEdit" + background);
+    ui->textEdit->setStyleSheet("QTextEdit" + background);
+    ui->regMatchEdit->setStyleSheet("QLineEdit" + background);
+    ui->valueDisplay->setStyleSheet("QTableWidget" + background);
+    ui->multiString->setStyleSheet("QListWidget" + background);
+//    ui->tabWidget->setStyleSheet("QTabWidget" + background);
+//    this->setStyleSheet("QMainWindow" + background);
+    //菜单栏写死咯
+    ui->menuBar->setStyleSheet("QMenuBar{ background-color: rgb(240,240,240);}");
+}
+
+void MainWindow::updateUIPanelFont(QFont font)
+{
+    ui->textBrowser->document()->setDefaultFont(font);
+    ui->textEdit->document()->setDefaultFont(font);
+    ui->customPlot->plotControl->setupFont(font);
+    fft_window->setupPlotterFont(font);
+    ui->regMatchBrowser->document()->setDefaultFont(font);
+//    ui->multiString->setFont(font);
+//    ui->regMatchEdit->setFont(font);
+//    ui->valueDisplay->setFont(font);
+//    ui->multiString->setFont(font);
+}
+
 void MainWindow::on_actionBackGroundColorSetting_triggered()
 {
     QColor color;
-    color = QColorDialog::getColor(Qt::white, this,
+    color = QColorDialog::getColor(g_background_color, this,
                                           tr("选择背景色"),
                                           QColorDialog::ShowAlphaChannel);
     if(!color.isValid())
@@ -3231,17 +3329,17 @@ void MainWindow::on_actionBackGroundColorSetting_triggered()
     qint32 r,g,b;
     g_background_color = color;
     g_background_color.getRgb(&r,&g,&b);
-    QString str = "QPlainTextEdit{ background-color: rgb(RGBR,RGBG,RGBB);}";
+    QString str = "{ background-color: rgb(RGBR,RGBG,RGBB);}";
     str.replace("RGBR", QString::number(r));
     str.replace("RGBG", QString::number(g));
     str.replace("RGBB", QString::number(b));
-    ui->textBrowser->setStyleSheet(str);
+    updateUIPanelBackground(str);
 
     QPlainTextEdit *textEdit = nullptr;
     for(qint32 i = 0; i < ui->tabWidget->count(); i++){
         textEdit = dynamic_cast<QPlainTextEdit *>(ui->tabWidget->widget(i));
         if(textEdit){
-            textEdit->setStyleSheet(str);
+            textEdit->setStyleSheet("QPlainTextEdit" + str);
         }
     }
 }
@@ -3343,6 +3441,11 @@ void MainWindow::on_tabWidget_tabCloseRequested(int index)
         ui->statusBar->showMessage(tr("不允许删除主窗口"), 2000);
         return;
     }
+    //禁止删除匹配窗口
+    if(ui->tabWidget->tabText(index) == REGMATCH_TAB_NAME){
+        ui->statusBar->showMessage(tr("不允许删除匹配窗口"), 2000);
+        return;
+    }
     emit tee_clearData(ui->tabWidget->tabText(index));
     if(ui->tabWidget->widget(index) != nullptr)
     {
@@ -3354,7 +3457,9 @@ void MainWindow::on_tabWidget_tabCloseRequested(int index)
 void MainWindow::on_tabWidget_tabBarClicked(int index)
 {
     ui->tabWidget->setCurrentIndex(index);
-    if(ui->tabWidget->tabText(index) == MAIN_TAB_NAME){
+    if(ui->tabWidget->tabText(index) == MAIN_TAB_NAME ||
+       ui->tabWidget->tabText(index) == REGMATCH_TAB_NAME )
+    {
         resizeEvent(nullptr);
         RefreshTextBrowser = true;
     }
@@ -3616,4 +3721,15 @@ void MainWindow::on_actionHexConverter_triggered(bool checked)
     }
     p = new Hex_Tool_Dialog(this);
     p->show();
+}
+
+void MainWindow::on_regMatchEdit_textChanged(const QString &arg1)
+{
+    if(!p_regMatch)
+    {
+        return;
+    }
+    emit regM_clearData();
+    ui->regMatchBrowser->clear();
+    p_regMatch->updateRegMatch(arg1);
 }
