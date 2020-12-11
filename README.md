@@ -64,6 +64,7 @@ text_data为自定义文本内容
 
 输入要被匹配的关键字符即可提取包含指定字符的字符串。字符串末尾需要包含换行符\n，最长为512字节。匹配语法参考QT5正则语法。
 
+# 动图展示
 ![demo1](screenshoot/demo1.gif)
 ![mainwindow](screenshoot/mainwindow.png)
 ![mainwindow](screenshoot/mainwindow2.jpg)
