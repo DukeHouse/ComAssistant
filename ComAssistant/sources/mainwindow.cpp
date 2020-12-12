@@ -47,7 +47,9 @@ bool MainWindow::registPopupHotKey(QString keySequence)
     else
     {
         g_popupHotKeySequence.clear();
-        QMessageBox::information(this, tr("提示"), tr("全局弹出热键已被占用")+ "[" + keySequence +"]");
+        QMessageBox::information(this, tr("提示"),
+                                 tr("全局弹出热键注册失败") +
+                                 "\n[" + keySequence + "]");
         return false;
     }
 }

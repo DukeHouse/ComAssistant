@@ -205,8 +205,8 @@ int32_t HTTP::parseReleaseInfo(QString &inputStr, QString &remoteVersion, QStrin
     QJsonParseError jsonError;
     QJsonDocument document = QJsonDocument::fromJson(inputStr.toUtf8(), &jsonError); //转化为JSON文档
     if(document.isNull() || jsonError.error != QJsonParseError::NoError || !document.isObject()){
-        QMessageBox::information(nullptr, "提示", "版本数据解析异常");
-        qDebug()<<"解析异常";
+//        QMessageBox::information(nullptr, "提示", "版本数据解析异常");
+        qDebug() << "版本数据解析异常";
         return -1;
     }
     QJsonObject object = document.object();
