@@ -100,11 +100,11 @@ void MainWindow::readConfig()
     //文件对话框路径
     lastFileDialogPath = Config::getLastFileDialogPath();
 
-    //加载高亮规则（因为关闭高亮功能比较麻烦，所以隐藏高亮控制开关入口，并强制高亮）
-//    ui->actionKeyWordHighlight->setChecked(Config::getKeyWordHighlightState());
-//    on_actionKeyWordHighlight_triggered(Config::getKeyWordHighlightState());
-    ui->actionKeyWordHighlight->setVisible(false);
-    on_actionKeyWordHighlight_triggered(true);
+    //加载高亮规则
+    ui->actionKeyWordHighlight->setChecked(Config::getKeyWordHighlightState());
+    on_actionKeyWordHighlight_triggered(Config::getKeyWordHighlightState());
+//    ui->actionKeyWordHighlight->setVisible(false);
+//    on_actionKeyWordHighlight_triggered(true);
 
     //时间戳
     ui->timeStampCheckBox->setChecked(Config::getTimeStampState());
@@ -746,7 +746,8 @@ void MainWindow::tee_textGroupsUpdate(const QString &name, const QByteArray &dat
         str.replace("RGBB", QString::number(b));
         textEdit->setStyleSheet("QPlainTextEdit" + str);
 
-        new Highlighter(textEdit->document());
+        if(ui->actionKeyWordHighlight->isChecked())
+            new Highlighter(textEdit->document());
 
         textEdit->setReadOnly(true);
 
@@ -1758,7 +1759,11 @@ void MainWindow::on_clearWindows_clicked()
     }
     if(g_xAxisSource == XAxis_Cnt)
     {
-        ui->customPlot->yAxis->setRange(0, 5);
+        //关闭自动刷新Y轴时不重置Y轴
+        if(autoRefreshYAxisFlag)
+        {
+            ui->customPlot->yAxis->setRange(0, 5);
+        }
         ui->customPlot->xAxis->setRange(0, ui->customPlot->plotControl->getXAxisLength(), Qt::AlignRight);
     }
     else
@@ -2827,6 +2832,7 @@ void MainWindow::on_actionSavePlotAsPicture_triggered()
 
 void MainWindow::on_actionKeyWordHighlight_triggered(bool checked)
 {
+    static int32_t first_run = 1;
     if(checked){
         if(highlighter == nullptr)
         {
@@ -2842,6 +2848,13 @@ void MainWindow::on_actionKeyWordHighlight_triggered(bool checked)
         highlighter = nullptr;
         highlighter1 = nullptr;
     }
+
+    if(first_run)
+    {
+        first_run = 0;
+        return;
+    }
+    QMessageBox::information(this, tr("提示"), tr("高亮设置将应用于新的显示窗口。"));
 }
 /*
  * Funciont:显示使用统计
