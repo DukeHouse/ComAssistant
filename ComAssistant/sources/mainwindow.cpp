@@ -989,7 +989,7 @@ MainWindow::~MainWindow()
                 Config::setPlotterType(ProtocolType_e::Float);
         }
 
-        Config::setPlotterGraphNames(ui->customPlot->plotControl->getNameSetsFromPlot());
+        Config::setPlotterGraphNames(ui->customPlot->plotControl->getNameSets());
         if(g_xAxisSource == XAxis_Cnt)  //暂时不支持存储XY图模式的X轴名字
             Config::setXAxisName(ui->customPlot->xAxis->label());
         Config::setYAxisName(ui->customPlot->yAxis->label());
@@ -2540,10 +2540,10 @@ void MainWindow::plotterShowTimerSlot()
             ui->valueDisplay->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
         }
         //添加数据
-        qint32 min = oneRowData.size() < ui->customPlot->plotControl->getNameSetsFromPlot().size() ? oneRowData.size() : ui->customPlot->plotControl->getNameSetsFromPlot().size();
+        qint32 min = oneRowData.size() < ui->customPlot->plotControl->getNameSets().size() ? oneRowData.size() : ui->customPlot->plotControl->getNameSets().size();
         for(qint32 i=0; i < min; i++){
             //这里会重复new对象导致内存溢出吗
-            ui->valueDisplay->setItem(i, 0, new QTableWidgetItem(ui->customPlot->plotControl->getNameSetsFromPlot().at(i)));
+            ui->valueDisplay->setItem(i, 0, new QTableWidgetItem(ui->customPlot->plotControl->getNameSets().at(i)));
             ui->valueDisplay->setItem(i, 1, new QTableWidgetItem(QString::number(oneRowData.at(i),'g')));
             //不可编辑
             ui->valueDisplay->item(i,0)->setFlags(ui->valueDisplay->item(i,0)->flags() & (~Qt::ItemIsEditable));
@@ -3537,7 +3537,7 @@ void MainWindow::on_actionSelectXAxis_triggered(bool checked)
     static QString defaultXAxisLabel = ui->customPlot->xAxis->label();
     bool ok;
     QString name;
-    QVector<QString> nameSets = ui->customPlot->plotControl->getNameSetsFromPlot();
+    QVector<QString> nameSets = ui->customPlot->plotControl->getNameSets();
     QStringList list;
     list.append(tr("递增计数值"));
     for (qint32 i = 0;i < ui->customPlot->graphCount(); i++) {

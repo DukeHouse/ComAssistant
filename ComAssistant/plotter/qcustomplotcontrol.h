@@ -63,6 +63,7 @@ public:
     void setupPlotter(MyQCustomPlot* plot, FFT_Dialog *window);
     //读写名字集
     QVector<QString> getNameSetsFromPlot();
+    QVector<QString> getNameSets();
     void setNameSet(QVector<QString> names);
     //最大图像数量
     int getMaxValidGraphNumber();

@@ -132,6 +132,11 @@ QVector<QString> QCustomPlotControl::getNameSetsFromPlot()
     return nameSet;
 }
 
+QVector<QString> QCustomPlotControl::getNameSets()
+{
+    return nameSet;
+}
+
 void QCustomPlotControl::setNameSet(QVector<QString> names)
 {
     int min = (names.size() - colorSet.size()) > 0 ? colorSet.size() : names.size();
