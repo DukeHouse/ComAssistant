@@ -5,6 +5,8 @@
 #define RECOVERY_FILE_PATH           "ComAssistantRecovery.dat"
 #define BACKUP_RECOVERY_FILE_PATH    "ComAssistantRecovery_back.dat"
 
+bool    g_agree_statement = false;  //同意相关声明标志
+
 static qint32   g_xAxisSource = XAxis_Cnt;
 static qint32   g_multiStr_cur_index = -1;  // -1 means closed this function
 static QColor   g_background_color;
@@ -250,6 +252,44 @@ void MainWindow::layoutConfig()
     ui->centralWidget->setLayout(central);
 }
 
+int32_t MainWindow::firstRunNotify()
+{
+    if(Config::getFirstRun()){
+        Config::setFirstStartTime(QDateTime::currentDateTime().toString("yyyyMMddhhmmss"));
+        QMessageBox::information(this, tr("提示"),
+                                 tr("欢迎使用纸飞机串口调试助手。") + "\n\n" +
+                                 tr("由于阁下是首次运行，接下来会弹出帮助文件和相关声明，请认真阅读。") + "\n\n" +
+                                 tr("若阁下继续使用本软件则代表阁下接受并同意相关声明，\n否则请关闭软件。"));
+        //弹出声明
+        //创建关于我对话框资源
+        About_Me_Dialog* p = new About_Me_Dialog(this);
+        p->getVersionString(Config::getVersion());
+        //设置close后自动销毁
+        p->setAttribute(Qt::WA_DeleteOnClose);
+        //阻塞式显示
+        p->exec();
+        QMessageBox::StandardButton button;
+        button = QMessageBox::information(this, tr("提示"),
+                                            tr("我已知悉并同意相关声明。"),
+                                            QMessageBox::Ok, QMessageBox::Cancel);
+        if(button == QMessageBox::Cancel)
+        {
+            g_agree_statement = false;
+        }
+        else
+        {
+            g_agree_statement = true;
+            //弹出帮助文件
+            on_actionManual_triggered();
+        }
+    }
+    else
+    {
+        g_agree_statement = true;
+    }
+    return 0;
+}
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -353,9 +393,6 @@ MainWindow::MainWindow(QWidget *parent) :
     p_logger_thread->start();
     p_logger->init_logger(RECOVERY_LOG, RECOVERY_FILE_PATH);
 
-    //http
-    http = new HTTP(this);
-
     //设置窗体布局
     layoutConfig();
 
@@ -426,14 +463,11 @@ MainWindow::MainWindow(QWidget *parent) :
     //调整窗体布局
     adjustLayout();
     //是否首次运行
-    if(Config::getFirstRun()){
-        Config::setFirstStartTime(QDateTime::currentDateTime().toString("yyyyMMddhhmmss"));
-        QMessageBox::information(this, tr("提示"), tr("欢迎使用纸飞机串口调试助手。\n\n由于阁下是首次运行，接下来会弹出帮助文件和相关声明，请认真阅读。\n\n若阁下继续使用本软件则代表阁下接受并同意相关声明，\n否则请自行关闭软件。"));
-        //弹出帮助文件
-        on_actionManual_triggered();
-        //弹出声明
-        on_actionAbout_triggered();        
-    }
+    firstRunNotify();
+
+    //http
+    if(g_agree_statement)
+        http = new HTTP(this);
 
     readRecoveryFile();
 
@@ -854,10 +888,13 @@ void MainWindow::secTimerSlot()
     statusSpeedLabel->setText(txSpeedStr + rxSpeedStr);
 
     //显示远端下载的信息
-    if(http->getMsgList().size() > 0 && secCnt % 10 == 0){
-        statusRemoteMsgLabel->setText(http->getMsgList().at(msgIndex++));
-        if(msgIndex == http->getMsgList().size())
-            msgIndex = 0;
+    if(http)
+    {
+        if(http->getMsgList().size() > 0 && secCnt % 10 == 0){
+            statusRemoteMsgLabel->setText(http->getMsgList().at(msgIndex++));
+            if(msgIndex == http->getMsgList().size())
+                msgIndex = 0;
+        }
     }
 
     if(ui->comSwitch->isChecked()){
@@ -931,7 +968,7 @@ void MainWindow::debugTimerSlot()
 
 MainWindow::~MainWindow()
 {
-    if(needSaveConfig){
+    if(needSaveConfig && g_agree_statement){
         Config::setFirstRun(false);
         if(ui->actionUTF8->isChecked()){
             Config::setCodeRule(CodeRule_e::UTF8);
@@ -1019,7 +1056,10 @@ MainWindow::~MainWindow()
         Config::setTotalRxCnt(serial.getTotalRxCnt());
         Config::setTotalRunCnt(1);
     }else{
-        Config::writeDefault();
+        if(g_agree_statement)
+        {
+            Config::writeDefault();
+        }
     }
 
     //退出时做一次flush操作
@@ -1113,15 +1153,22 @@ void MainWindow::on_refreshCom_clicked()
 */
 void MainWindow::tryOpenSerial()
 {
-    //只存在一个串口时且串口未被占用时自动打开
+    //只存在一个串口时且串口未被占用自动打开
     if(ui->comList->count() == 1 &&
        ui->comList->currentText().indexOf(tr("BUSY")) == -1 &&
        ui->comList->currentText() != tr("未找到可用串口!点我刷新"))
     {
+        //同时还要没检测到恢复文件
+        QFile recoveryFile(RECOVERY_FILE_PATH);
+        if(recoveryFile.exists())
+        {
+            return;
+        }
         ui->refreshCom->setChecked(false);
         ui->comSwitch->setChecked(true);
         on_comSwitch_clicked(true);
-    }else
+    }
+    else
     {
         //如果有多个串口，则尝试选择（不开启）上次使用的端口号
         if(ui->comList->count() > 1)
@@ -2185,9 +2232,12 @@ void MainWindow::on_actionSaveShowedData_triggered()
 
 void MainWindow::on_actionUpdate_triggered()
 {
-    ui->statusBar->showMessage(tr("正在检查更新……"), 2000);
-    http->addTask(HTTP::GetVersion);
-    http->addTask(HTTP::DownloadMSGs);
+    if(http)
+    {
+        ui->statusBar->showMessage(tr("正在检查更新……"), 2000);
+        http->addTask(HTTP::GetVersion);
+        http->addTask(HTTP::DownloadMSGs);
+    }
 }
 
 void MainWindow::on_sendInterval_textChanged(const QString &arg1)

@@ -99,8 +99,13 @@ int main(int argc, char *argv[])
     }
 
     MainWindow w;
-
 //    w.show(); //在构造函数中调用
+
+    // 不同意相关声明则退出(为啥qApp->quit()没效果?)
+    if(!g_agree_statement)
+    {
+        return 0;
+    }
 
     return a.exec();
 }

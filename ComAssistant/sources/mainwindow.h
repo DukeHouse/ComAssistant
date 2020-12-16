@@ -53,6 +53,8 @@ namespace Ui {
 class MainWindow;
 }
 
+extern bool g_agree_statement;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -195,6 +197,7 @@ private:
     void parsePlotterAndTee();
     void updateUIPanelBackground(QString background);
     void updateUIPanelFont(QFont font);
+    int32_t firstRunNotify();
     Ui::MainWindow *ui;
     mySerialPort serial;
 
@@ -236,7 +239,7 @@ private:
     Highlighter *highlighter = nullptr; //高亮器
     Highlighter *highlighter1 = nullptr;
 
-    HTTP *http;
+    HTTP *http = nullptr;
 
     bool RefreshTextBrowser = true; //数据显示区刷新标记
     bool autoRefreshYAxisFlag;

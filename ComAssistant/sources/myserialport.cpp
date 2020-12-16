@@ -49,17 +49,15 @@ QList<QString> mySerialPort::refreshSerialPort()
     //搜索串口
     foreach (const QSerialPortInfo &info,QSerialPortInfo::availablePorts())
     {
-        TmpSerial.setPort(info);
-        if(TmpSerial.open(QSerialPort::ReadWrite))
-        {
-            TmpSerial.close();
-            tmp.append(TmpSerial.portName()+"("+QObject::tr("IDLE:")+info.description()+")");
-        }
-        else
-        {
-            TmpSerial.close();
-            tmp.append(TmpSerial.portName()+"("+QObject::tr("BUSY:")+info.description()+")");
-        }
+        QString status;
+        QString msg;
+        status = info.isBusy() ? "BUSY  " : "IDLE  ";
+        msg = info.portName() +
+              "(" +
+              status + info.description() +
+              ")" +
+              " " + info.manufacturer();
+        tmp.append(msg);
     }
 
     //排序
@@ -69,10 +67,10 @@ QList<QString> mySerialPort::refreshSerialPort()
         QList<QString> tmp3;//用于存放COM10-COM99的条目
         for(int i = 0; i < tmp.size(); i++){
             //COM号在0-9
-            if(tmp.at(i).indexOf("(")==4){
+            if(tmp.at(i).indexOf("(") == 4){
                 tmp2.append(tmp.at(i));
             }
-            else if(tmp.at(i).indexOf("(")==5){
+            else if(tmp.at(i).indexOf("(") == 5){
                 tmp3.append(tmp.at(i));
             }
 
