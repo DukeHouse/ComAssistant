@@ -277,7 +277,7 @@ private:
     TextExtractEngine *p_textExtract;
 
     //正则匹配引擎
-    const QString REGMATCH_TAB_NAME = "regMatch";
+    const QString REGMATCH_TAB_NAME = "asciiMatch";
     QThread *p_regMatchThread;
     RegMatchEngine *p_regMatch;
 

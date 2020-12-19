@@ -598,9 +598,9 @@ p, li { white-space: pre-wrap; }
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="regMatch">
+     <widget class="QWidget" name="asciiMatch">
       <attribute name="title">
-       <string>regMatch</string>
+       <string>asciiMatch</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout_6">
        <property name="horizontalSpacing">
