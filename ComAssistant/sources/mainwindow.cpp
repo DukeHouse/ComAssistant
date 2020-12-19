@@ -382,7 +382,7 @@ MainWindow::MainWindow(QWidget *parent) :
     p_regMatchThread->start();
 
     //数据记录器(设计成线程模式为了做一个缓冲收集一段时间数据批量写入以缓解高频接收时的硬盘写入压力
-    //（虽然直接写好像硬盘也没看出使用率很高）)
+    //（虽然直接写好像硬盘也没看出使用率很高）
     p_logger_thread = new QThread(this);
     p_logger        = new Data_Logger();
     p_logger->moveToThread(p_logger_thread);
@@ -391,7 +391,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, SIGNAL(logger_append(uint8_t , const QByteArray &)), p_logger, SLOT(append_data_logger_buff(uint8_t , const QByteArray &)));
     connect(this, SIGNAL(logger_flush(uint8_t)), p_logger, SLOT(logger_buff_flush(uint8_t)));
     p_logger_thread->start();
-    p_logger->init_logger(RECOVERY_LOG, RECOVERY_FILE_PATH);
+    p_logger->init_logger(RECOVERY_LOG, RECOVERY_FILE_PATH);    //恢复log必须开启，其他log按需开启
 
     //设置窗体布局
     layoutConfig();
@@ -906,11 +906,14 @@ void MainWindow::secTimerSlot()
 
     //数据记录器定时保存数据
     emit logger_flush(RECOVERY_LOG);
-    if(!recorderFilePath.isEmpty())
+    if(!rawDataRecordPath.isEmpty())
     {
-        emit logger_flush(RECORDER_LOG);
+        emit logger_flush(RAW_DATA_LOG);
     }
-
+    if(!graphDataRecordPath.isEmpty())
+    {
+        emit logger_flush(GRAPH_DATA_LOG);
+    }
     secCnt++;
     currentRunTime++;
 }
@@ -1064,9 +1067,13 @@ MainWindow::~MainWindow()
 
     //退出时做一次flush操作
     p_logger->logger_buff_flush(RECOVERY_LOG);
-    if(!recorderFilePath.isEmpty())
+    if(!rawDataRecordPath.isEmpty())
     {
-        p_logger->logger_buff_flush(RECORDER_LOG);
+        p_logger->logger_buff_flush(RAW_DATA_LOG);
+    }
+    if(!graphDataRecordPath.isEmpty())
+    {
+        p_logger->logger_buff_flush(GRAPH_DATA_LOG);
     }
 
     p_textExtractThread->quit();
@@ -1327,9 +1334,9 @@ void MainWindow::readSerialPort()
     }
 
     emit logger_append(RECOVERY_LOG, tmpReadBuff);
-    if(!recorderFilePath.isEmpty())
+    if(!rawDataRecordPath.isEmpty())
     {
-        emit logger_append(RECORDER_LOG, tmpReadBuff);
+        emit logger_append(RAW_DATA_LOG, tmpReadBuff);
     }
 
     //时间戳选项
@@ -2550,13 +2557,41 @@ void MainWindow::plotterShowTimerSlot()
     //数据填充
     while(ui->customPlot->protocol->parsedBuffSize()>0){
         oneRowData = ui->customPlot->protocol->popOneRowData();
+        //数据记录
+        if(!graphDataRecordPath.isEmpty())
+        {
+            //添加表头
+            if(graphDataNeedHead)
+            {
+                graphDataNeedHead = false;
+                QString head;
+                QVector<QString> nameSet = ui->customPlot->plotControl->getNameSets();
+                for(int32_t i = 0; i < oneRowData.size(); i++)
+                {
+                    head.append(nameSet.at(i));
+                    head.append(",");
+                }
+                head.replace(head.lastIndexOf(','), 1, '\n');//把最后一个逗号换成换行符
+                emit logger_append(GRAPH_DATA_LOG, head.toLocal8Bit());
+            }
+            //添加数据
+            QString dataLine;
+            foreach(double num, oneRowData)
+            {
+                dataLine.append(QString::number(num, 'f'));
+                dataLine.append(",");
+            }
+            dataLine.replace(dataLine.lastIndexOf(','), 1, '\n');//把最后一个逗号换成换行符
+            emit logger_append(GRAPH_DATA_LOG, dataLine.toLocal8Bit());
+        }
+        //FFT处理
         if(fft_window->isVisible())
         {
             fft_window->appendData(oneRowData);
         }
         //绘图显示器
         if(ui->actionPlotterSwitch->isChecked()){
-            //关闭刷新，数据全部填充完后统一刷新
+            //关闭刷新，数据全部填充完后统一刷新，提高效率
             if(false == ui->customPlot->plotControl->addDataToPlotter(oneRowData, g_xAxisSource))
                 ui->statusBar->showMessage(tr("出现一组异常绘图数据，已丢弃。"), 2000);
         }
@@ -3728,18 +3763,18 @@ void MainWindow::on_actionASCIITable_triggered()
     p->show();
 }
 
-void MainWindow::on_actionRecorder_triggered(bool checked)
+void MainWindow::on_actionRecordRawData_triggered(bool checked)
 {
-    ui->actionRecorder->setChecked(checked);
+    ui->actionRecordRawData->setChecked(checked);
     if(checked)
     {
         QString savePath;
         //串口开启状态下则默认保存到程序所在目录，因为选择文件路径的对话框是阻塞型的，串口开启下会影响接收
         if(serial.isOpen())
         {
-            savePath = "Recorder-" + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".dat";
-            recorderFilePath = QCoreApplication::applicationDirPath() + "/" + savePath;
-            p_logger->init_logger(RECORDER_LOG, recorderFilePath);
+            savePath = "Recorder[Raw]-" + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".dat";
+            rawDataRecordPath = QCoreApplication::applicationDirPath() + "/" + savePath;
+            p_logger->init_logger(RAW_DATA_LOG, rawDataRecordPath);
             QMessageBox::information(this,
                                      tr("提示"),
                                      tr("接下来的数据将被记录到程序所在目录下的") + savePath + tr("文件中") + "\n" +
@@ -3748,31 +3783,32 @@ void MainWindow::on_actionRecorder_triggered(bool checked)
         else
         {
             //如果上次文件记录路径是空则用保存数据的上次路径
-            if(lastRecorderFilePath.isEmpty())
+            if(lastRawDataRecordPath.isEmpty())
             {
-                lastRecorderFilePath = lastFileDialogPath;
+                lastRawDataRecordPath = lastFileDialogPath;
             }
             //打开保存文件对话框
             savePath = QFileDialog::getSaveFileName(this,
-                                                    tr("记录数据到文件-选择文件路径"),
-                                                    lastRecorderFilePath + "Recorder-" + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".dat",
-                                                    "Dat File(*.dat);;All File(*.*)");
+                                                    tr("记录原始数据到文件-选择文件路径"),
+                                                    lastRawDataRecordPath + "Recorder[Raw]-" + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".dat",
+                                                    "DAT File(*.dat);;All File(*.*)");
             //检查路径格式
             if(!savePath.endsWith(".dat")){
                 if(!savePath.isEmpty())
-                    QMessageBox::information(this,tr("提示"),"尚未支持的文件格式，请选择dat文件。");
-                ui->actionRecorder->setChecked(false);
+                    QMessageBox::information(this, tr("提示"),
+                                             tr("尚未支持的文件格式，请选择dat格式文件。"));
+                ui->actionRecordRawData->setChecked(false);
                 return;
             }
-            recorderFilePath = savePath;
-            p_logger->init_logger(RECORDER_LOG, recorderFilePath);
+            rawDataRecordPath = savePath;
+            p_logger->init_logger(RAW_DATA_LOG, rawDataRecordPath);
         }
         return;
     }
-    lastRecorderFilePath = recorderFilePath;
-    lastRecorderFilePath = lastRecorderFilePath.mid(0, lastRecorderFilePath.lastIndexOf('/')+1);
-    recorderFilePath.clear();
-    p_logger->logger_buff_flush(RECORDER_LOG);
+    lastRawDataRecordPath = rawDataRecordPath;
+    lastRawDataRecordPath = lastRawDataRecordPath.mid(0, lastRawDataRecordPath.lastIndexOf('/')+1);
+    rawDataRecordPath.clear();
+    p_logger->logger_buff_flush(RAW_DATA_LOG);
 }
 
 void MainWindow::on_actionHexConverter_triggered(bool checked)
@@ -3797,4 +3833,53 @@ void MainWindow::on_regMatchEdit_textChanged(const QString &arg1)
     emit regM_clearData();
     ui->regMatchBrowser->clear();
     p_regMatch->updateRegMatch(arg1);
+}
+
+void MainWindow::on_actionRecordGraphData_triggered(bool checked)
+{
+    ui->actionRecordGraphData->setChecked(checked);
+    if(checked)
+    {
+        QString savePath;
+        //串口开启状态下则默认保存到程序所在目录，因为选择文件路径的对话框是阻塞型的，串口开启下会影响接收
+        if(serial.isOpen())
+        {
+            savePath = "Recorder[Graph]-" + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".csv";
+            graphDataRecordPath = QCoreApplication::applicationDirPath() + "/" + savePath;
+            p_logger->init_logger(GRAPH_DATA_LOG, graphDataRecordPath);
+            QMessageBox::information(this,
+                                     tr("提示"),
+                                     tr("接下来的数据将被记录到程序所在目录下的") + savePath + tr("文件中") + "\n" +
+                                     tr("如需更改数据记录位置，请先关闭串口再使用本功能。"));
+        }
+        else
+        {
+            //如果上次文件记录路径是空则用保存数据的上次路径
+            if(lastGraphDataRecordPath.isEmpty())
+            {
+                lastGraphDataRecordPath = lastFileDialogPath;
+            }
+            //打开保存文件对话框
+            savePath = QFileDialog::getSaveFileName(this,
+                                                    tr("记录曲线数据到文件-选择文件路径"),
+                                                    lastGraphDataRecordPath + "Recorder[Graph]-" + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".csv",
+                                                    "CSV File(*.csv);;TXT File(*.txt);;All File(*.*)");
+            //检查路径格式
+            if(!savePath.endsWith(".csv") && !savePath.endsWith(".txt")){
+                if(!savePath.isEmpty())
+                    QMessageBox::information(this, tr("提示"),
+                                             tr("尚未支持的文件格式，请选择csv或者txt格式文件。"));
+                ui->actionRecordGraphData->setChecked(false);
+                return;
+            }
+            graphDataRecordPath = savePath;
+            graphDataNeedHead = true;
+            p_logger->init_logger(GRAPH_DATA_LOG, graphDataRecordPath);
+        }
+        return;
+    }
+    lastGraphDataRecordPath = graphDataRecordPath;
+    lastGraphDataRecordPath = lastGraphDataRecordPath.mid(0, lastGraphDataRecordPath.lastIndexOf('/')+1);
+    graphDataRecordPath.clear();
+    p_logger->logger_buff_flush(GRAPH_DATA_LOG);
 }

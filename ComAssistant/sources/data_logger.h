@@ -10,7 +10,8 @@
 
 //type
 #define     RECOVERY_LOG    0
-#define     RECORDER_LOG    1
+#define     RAW_DATA_LOG    1
+#define     GRAPH_DATA_LOG  2
 
 typedef struct file_unit_s
 {

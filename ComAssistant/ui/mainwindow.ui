@@ -758,7 +758,8 @@ p, li { white-space: pre-wrap; }
     <addaction name="actionTeeSupport"/>
     <addaction name="actionTeeLevel2NameSupport"/>
     <addaction name="separator"/>
-    <addaction name="actionRecorder"/>
+    <addaction name="actionRecordRawData"/>
+    <addaction name="actionRecordGraphData"/>
     <addaction name="separator"/>
     <addaction name="actionSTM32_ISP"/>
     <addaction name="actionASCIITable"/>
@@ -1179,17 +1180,25 @@ p, li { white-space: pre-wrap; }
     <string>ASCII码表</string>
    </property>
   </action>
-  <action name="actionRecorder">
+  <action name="actionRecordRawData">
    <property name="checkable">
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>记录数据到文件</string>
+    <string>记录原始数据到文件</string>
    </property>
   </action>
   <action name="actionHexConverter">
    <property name="text">
     <string>HEX转换</string>
+   </property>
+  </action>
+  <action name="actionRecordGraphData">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>记录曲线数据到文件</string>
    </property>
   </action>
  </widget>

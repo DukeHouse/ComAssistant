@@ -115,7 +115,8 @@ private slots:
     void on_actionTeeSupport_triggered(bool checked);
     void on_actionTeeLevel2NameSupport_triggered(bool checked);
     void on_actionASCIITable_triggered();
-    void on_actionRecorder_triggered(bool checked);
+    void on_actionRecordRawData_triggered(bool checked);
+    void on_actionRecordGraphData_triggered(bool checked);
     void on_actionHexConverter_triggered(bool checked);
 
     //setting
@@ -245,8 +246,11 @@ private:
     bool autoRefreshYAxisFlag;
 
     //数据记录
-    QString recorderFilePath = "";
-    QString lastRecorderFilePath = "";
+    QString rawDataRecordPath       = "";
+    QString lastRawDataRecordPath   = "";
+    bool    graphDataNeedHead       = true;
+    QString graphDataRecordPath     = "";
+    QString lastGraphDataRecordPath = "";
     QThread *p_logger_thread;
     Data_Logger *p_logger;
 
