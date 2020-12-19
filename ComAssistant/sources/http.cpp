@@ -251,8 +251,10 @@ void HTTP::httpFinishedSlot(QNetworkReply *reply)
         QByteArray bytes = reply->readAll();
         QString string = QString::fromUtf8(bytes);
 
-        if(cur_task == GetVersion || cur_task == BackStageGetVersion || cur_task == BackStageGetVersion_MyServer ){
-
+        if(cur_task == GetVersion ||
+           cur_task == BackStageGetVersion ||
+           cur_task == BackStageGetVersion_MyServer )
+        {
             QString remoteVersion;
             QString remoteNote;
             QString publishedTime;
@@ -266,24 +268,30 @@ void HTTP::httpFinishedSlot(QNetworkReply *reply)
             localVersion = Config::getVersion();
 
             //版本号比较
-            if(version_to_number(remoteVersion) > version_to_number(localVersion)){
-                QMessageBox::Button button;
-                if(cur_task == GetVersion || GetVersion_failed>0){
+            if(version_to_number(remoteVersion) > version_to_number(localVersion))
+            {
+                if(cur_task == GetVersion || GetVersion_failed > 0)
+                {
                     GetVersion_failed = 0;
+                    QMessageBox::Button button;
                     button = QMessageBox::information(nullptr, tr("提示"),
-                                                      tr("当前版本号：") + localVersion + "\n" +
-                                                      tr("远端版本号：") + remoteVersion + "\n" +
-                                                      tr("发布时间：") + publishedTime + "\n" +
-                                                      tr("更新内容：") + "\n" + remoteNote + "\n\n" +
-                                                      tr("点击ok将打开外链进行下载（若下载缓慢可通过底部状态栏的下载链接进行更新）。"),
-                                                      QMessageBox::Ok | QMessageBox::No);
-                    if(button == QMessageBox::Ok){
+                                                      tr("当前版本号：") + localVersion + "\n"
+                                                      + tr("远端版本号：") + remoteVersion + "\n"
+                                                      + tr("发布时间：") + publishedTime + "\n"
+                                                      + tr("更新内容：") + "\n" + remoteNote + "\n\n"
+                                                      + tr("点击ok将打开外链进行下载（若下载缓慢或32位系统请通过底部状态栏的下载链接进行更新）。")
+                                                      , QMessageBox::Ok | QMessageBox::No);
+                    if(button == QMessageBox::Ok)
+                    {
                         QDesktopServices::openUrl(QUrl("https://github.com/inhowe/ComAssistant/releases/latest/download/ComAssistant_x64.zip"));
                     }
                 }
                 parent->setWindowTitle(tr("纸飞机串口助手") + " " + tr("当前版本：V") + localVersion + " " + tr("发现新版本：V") + remoteVersion);
-            }else{
-                if(cur_task == GetVersion || GetVersion_failed>0){
+            }
+            else
+            {
+                if(cur_task == GetVersion || GetVersion_failed > 0)
+                {
                     GetVersion_failed = 0;
                     QMessageBox::information(nullptr, tr("提示"),
                                              tr("当前版本号：") + localVersion + "\n" +
@@ -291,10 +299,14 @@ void HTTP::httpFinishedSlot(QNetworkReply *reply)
                                              tr("已经是最新版本。"));
                 }
             }
-        }else if(cur_task == PostStatic){
+        }
+        else if(cur_task == PostStatic)
+        {
             if(!string.isEmpty())
                 qDebug()<<"PostStatic:"<<string;
-        }else if(cur_task == DownloadMSGs){
+        }
+        else if(cur_task == DownloadMSGs)
+        {
             int32_t hasIllegalStr = 0;
             //把下载的且合法的远端信息添加进变量
             if(string.indexOf("301 Moved Permanently") != -1)
@@ -321,7 +333,8 @@ void HTTP::httpFinishedSlot(QNetworkReply *reply)
             {
                 qDebug() << "illegal msg string:" << string;
             }
-        }else{
+        }else
+        {
             qDebug()<<"http state error" << string;
         }
     }

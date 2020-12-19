@@ -69,7 +69,6 @@ void Config::writeDefault(){
 //    iniFile->setValue(SECTION_STATIC+KEY_TOTALRUNCNT, 0);
 
     iniFile->setValue(SECTION_ABOUT+KEY_VERSION, VERSION_STRING);
-    iniFile->setValue(SECTION_ABOUT+KEY_SOURCE_CODE, "www.github.com/inhowe/ComAssistant");
     iniFile->setValue(SECTION_ABOUT+KEY_AUTHER, "INHOWE");
     iniFile->setValue(SECTION_ABOUT+KEY_EMAIL, "inhowe@qq.com");
 

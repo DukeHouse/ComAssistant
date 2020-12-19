@@ -438,6 +438,7 @@ uint8_t FFT_Dialog::startFFTCal()
     {
         emit start_fft_cal(i, fft_sample_frq, graphsData.at(i));
     }
+    return 0;
 }
 
 //寻找最接近的2的幂

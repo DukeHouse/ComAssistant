@@ -79,11 +79,9 @@
 
 //about键
 #define KEY_VERSION     QString("Version")
-#define KEY_SOURCE_CODE QString("SourceCode")
 #define KEY_AUTHER      QString("Auther")
 #define KEY_EMAIL       QString("Email")
 
-//
 //值
 enum CodeRule_e{
     GBK,

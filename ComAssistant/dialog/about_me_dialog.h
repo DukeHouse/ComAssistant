@@ -28,8 +28,6 @@ public:
 private slots:
     void on_okButton_clicked();
 
-    void on_githubUrl_linkActivated(const QString &link);
-
     void on_email_linkActivated(const QString &link);
 
     void on_QtUrl_linkActivated(const QString &link);

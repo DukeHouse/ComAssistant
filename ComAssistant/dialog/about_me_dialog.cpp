@@ -6,9 +6,6 @@ About_Me_Dialog::About_Me_Dialog(QWidget *parent) :
     ui(new Ui::About_Me_Dialog)
 {
     ui->setupUi(this);
-    //可见性设置
-    ui->label_github->setVisible(false);
-    ui->githubUrl->setVisible(false);
     //使用了高亮器html显示会出问题
 }
 
@@ -57,11 +54,6 @@ void About_Me_Dialog::showMarkdown(QString &markdown)
 void About_Me_Dialog::on_okButton_clicked()
 {
     this->close();
-}
-
-void About_Me_Dialog::on_githubUrl_linkActivated(const QString &link)
-{
-    QDesktopServices::openUrl(QUrl(link));
 }
 
 void About_Me_Dialog::on_email_linkActivated(const QString &link)

@@ -58,7 +58,7 @@
        <item row="1" column="1">
         <widget class="QLabel" name="name">
          <property name="text">
-          <string>&lt;a href=&quot;www.github.com/inhowe/&quot;&gt;INHOWE&lt;/a&gt;</string>
+          <string>INHOWE</string>
          </property>
          <property name="openExternalLinks">
           <bool>true</bool>
@@ -76,23 +76,6 @@
         <widget class="QLabel" name="email">
          <property name="text">
           <string>&lt;a href=&quot;mailto:inhowe@qq.com?subject=ComAssistant的改进建议或BUG反馈&quot;&gt;inhowe@qq.com&lt;/a&gt;</string>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="0">
-        <widget class="QLabel" name="label_github">
-         <property name="enabled">
-          <bool>true</bool>
-         </property>
-         <property name="text">
-          <string>开源许可：</string>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="1">
-        <widget class="QLabel" name="githubUrl">
-         <property name="text">
-          <string>ComAssistant</string>
          </property>
         </widget>
        </item>
