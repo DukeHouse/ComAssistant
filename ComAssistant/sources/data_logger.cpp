@@ -58,6 +58,39 @@ void Data_Logger::append_data_logger_buff(uint8_t type, const QByteArray &data)
     }
 }
 
+// 只支持逗号分隔符且buff里的包必须是完整的，
+bool Data_Logger::appendToXlsx(const QByteArray &buff, QString path)
+{
+    QXlsx::Document xlsx(path);
+    QString buffStr = buff;
+    QStringList buffList = buffStr.split('\n');
+    int32_t rowCnt = xlsx.dimension().lastRow();
+    //空xlsx文件判断
+    if(rowCnt == -2)
+        rowCnt = 0;
+    for(int32_t i = 0; i < buffList.size(); i++)
+    {
+        if(buffList.at(i).isEmpty())
+        {
+            continue;
+        }
+        QStringList dataList = buffList.at(i).split(',');
+        for(int32_t col = 0; col < dataList.size(); col++)
+        {
+            if(rowCnt == 0)//表头
+            {
+                xlsx.write(rowCnt + 1, col + 1, dataList.at(col));
+            }
+            else//数据
+            {
+                xlsx.write(rowCnt + 1, col + 1, dataList.at(col).toDouble());
+            }
+        }
+        rowCnt++;
+    }
+    return xlsx.save();
+}
+
 //存储数据
 void Data_Logger::logger_buff_flush(uint8_t type)
 {
@@ -69,6 +102,15 @@ void Data_Logger::logger_buff_flush(uint8_t type)
         }
         if(it->buff.size() == 0)
         {
+            return;
+        }
+        if(it->file->fileName().endsWith("xlsx"))
+        {
+            if(!appendToXlsx(it->buff, it->file->fileName()))
+            {
+                qDebug() << it->file->fileName() << " saved failed.";
+            }
+            it->buff.clear();
             return;
         }
         if(!it->file->open(QFile::WriteOnly|QFile::Append))

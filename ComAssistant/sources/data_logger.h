@@ -8,6 +8,8 @@
 #include <QFile>
 #include <QMap>
 
+#include "xlsxdocument.h"
+
 //type
 #define     RECOVERY_LOG    0
 #define     RAW_DATA_LOG    1
@@ -33,6 +35,7 @@ public slots:
     void clear_logger(uint8_t type);
 private:
     QVector<file_unit_t> file_group;
+    bool appendToXlsx(const QByteArray &buff, QString path);
 signals:
 };
 

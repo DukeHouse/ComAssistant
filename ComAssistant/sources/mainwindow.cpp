@@ -3859,16 +3859,16 @@ void MainWindow::on_actionRecordGraphData_triggered(bool checked)
             {
                 lastGraphDataRecordPath = lastFileDialogPath;
             }
-            //打开保存文件对话框
+            //打开保存文件对话框(由于xlsx文件被office打开后导致纸飞机无法写入数据造成数据漏存等因素，因此不推荐用于流式保存)
             savePath = QFileDialog::getSaveFileName(this,
                                                     tr("记录曲线数据到文件-选择文件路径"),
                                                     lastGraphDataRecordPath + "Recorder[Graph]-" + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".csv",
-                                                    "CSV File(*.csv);;TXT File(*.txt);;All File(*.*)");
+                                                    "CSV File(*.csv);;TXT File(*.txt);;XLSX File[NOT Recommended](*.xlsx);;All File(*.*)");
             //检查路径格式
-            if(!savePath.endsWith(".csv") && !savePath.endsWith(".txt")){
+            if(!savePath.endsWith(".xlsx") && !savePath.endsWith(".csv") && !savePath.endsWith(".txt")){
                 if(!savePath.isEmpty())
                     QMessageBox::information(this, tr("提示"),
-                                             tr("尚未支持的文件格式，请选择csv或者txt格式文件。"));
+                                             tr("尚未支持的文件格式，请选择csv/txt/xlsx格式文件。"));
                 ui->actionRecordGraphData->setChecked(false);
                 return;
             }
