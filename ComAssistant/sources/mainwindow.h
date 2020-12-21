@@ -54,6 +54,7 @@ class MainWindow;
 }
 
 extern bool g_agree_statement;
+extern bool g_log_record;
 
 class MainWindow : public QMainWindow
 {
@@ -151,6 +152,7 @@ private slots:
     void on_actionUsageStatistic_triggered();
     void on_actionUpdate_triggered();
     void on_actionAbout_triggered();
+    void on_actionLogRecord_triggered(bool checked);
 
     //timer
     void secTimerSlot();

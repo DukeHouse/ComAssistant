@@ -39,6 +39,7 @@ void Config::writeDefault(){
     iniFile->setValue(SECTION_GLOBAL+KEY_POPUPHOTKEY, "Shift+Alt+C");
     iniFile->setValue(SECTION_GLOBAL+KEY_TEE_Support, true);
     iniFile->setValue(SECTION_GLOBAL+KEY_TEE_LEVEL2_NAME, false);
+    iniFile->setValue(SECTION_GLOBAL+KEY_LOG_RECORD, false);
 
     iniFile->setValue(SECTION_SERIAL+KEY_PORTNAME, "");
     iniFile->setValue(SECTION_SERIAL+KEY_BAUDRATE, QSerialPort::Baud115200);
@@ -495,6 +496,20 @@ bool Config::getTeeLevel2NameSupport()
 {
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
     bool value = iniFile->value(SECTION_GLOBAL+KEY_TEE_LEVEL2_NAME, false).toBool();
+    delete iniFile;
+    return value;
+}
+void Config::setLogRecord(bool enable)
+{
+    createDefaultIfNotExist();
+    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
+    iniFile->setValue(SECTION_GLOBAL+KEY_LOG_RECORD, enable);
+    delete iniFile;
+}
+bool Config::getLogRecord()
+{
+    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
+    bool value = iniFile->value(SECTION_GLOBAL+KEY_LOG_RECORD, false).toBool();
     delete iniFile;
     return value;
 }

@@ -98,7 +98,7 @@ void MyQCustomPlot::axisLabelDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart 
       if(axis == this->yAxis || axis == this->yAxis2){
           if(autoRescaleYAxis && *autoRescaleYAxis == true)
           {
-              QMessageBox::information(this, tr("提示"), tr("请先关闭自动刷新Y轴功能"));
+              QMessageBox::information(this, tr("提示"), tr("若要精确设置Y轴，请先关闭自动刷新Y轴功能"));
               return;
           }
           bool ok;

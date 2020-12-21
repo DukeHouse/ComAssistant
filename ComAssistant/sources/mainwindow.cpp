@@ -6,6 +6,7 @@
 #define BACKUP_RECOVERY_FILE_PATH    "ComAssistantRecovery_back.dat"
 
 bool    g_agree_statement = false;  //同意相关声明标志
+bool    g_log_record      = false;  //日志记录开关
 
 static qint32   g_xAxisSource = XAxis_Cnt;
 static qint32   g_multiStr_cur_index = -1;  // -1 means closed this function
@@ -296,6 +297,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
 {
     ui->setupUi(this);
+
+    //日志记录开关
+    on_actionLogRecord_triggered(Config::getLogRecord());
 
     //槽
     connect(this, SIGNAL(parseFileSignal()),this,SLOT(parseFileSlot()));
@@ -973,6 +977,7 @@ MainWindow::~MainWindow()
 {
     if(needSaveConfig && g_agree_statement){
         Config::setFirstRun(false);
+        Config::setLogRecord(g_log_record);
         if(ui->actionUTF8->isChecked()){
             Config::setCodeRule(CodeRule_e::UTF8);
         }else if(ui->actionGBK->isChecked()){
@@ -1150,9 +1155,16 @@ void MainWindow::on_refreshCom_clicked()
         return;
     }
 
+    //扫描提示
+    ui->statusBar->showMessage(tr("正在扫描可用串口……"), 2000);
+    qApp->processEvents();
+
     refreshCom();
 
     ui->comList->showPopup();
+
+    //扫描提示
+    ui->statusBar->showMessage(tr("串口扫描完毕"), 1000);
 }
 
 /*
@@ -3882,4 +3894,20 @@ void MainWindow::on_actionRecordGraphData_triggered(bool checked)
     lastGraphDataRecordPath = lastGraphDataRecordPath.mid(0, lastGraphDataRecordPath.lastIndexOf('/')+1);
     graphDataRecordPath.clear();
     p_logger->logger_buff_flush(GRAPH_DATA_LOG);
+}
+
+void MainWindow::on_actionLogRecord_triggered(bool checked)
+{
+    if(!checked)
+    {
+        qDebug() << "close log record";
+    }
+
+    g_log_record = checked;
+    ui->actionLogRecord->setChecked(checked);
+
+    if(checked)
+    {
+        qDebug() << "open log record";
+    }
 }

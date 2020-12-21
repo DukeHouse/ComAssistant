@@ -734,6 +734,8 @@ p, li { white-space: pre-wrap; }
     <addaction name="actionUsageStatistic"/>
     <addaction name="actionUpdate"/>
     <addaction name="actionAbout"/>
+    <addaction name="separator"/>
+    <addaction name="actionLogRecord"/>
    </widget>
    <widget class="QMenu" name="file">
     <property name="title">
@@ -1199,6 +1201,17 @@ p, li { white-space: pre-wrap; }
    </property>
    <property name="text">
     <string>记录曲线数据到文件</string>
+   </property>
+  </action>
+  <action name="actionLogRecord">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>日志记录</string>
+   </property>
+   <property name="statusTip">
+    <string>调试信息记录开关</string>
    </property>
   </action>
  </widget>

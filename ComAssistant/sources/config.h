@@ -41,6 +41,7 @@
 #define KEY_POPUPHOTKEY         QString("PopUpHotKey")
 #define KEY_TEE_Support         QString("TeeEnable")
 #define KEY_TEE_LEVEL2_NAME     QString("TeeLevel2NameEnable")
+#define KEY_LOG_RECORD          QString("LogRecord")
 
 //serial键
 #define KEY_PORTNAME        QString("PortName")
@@ -175,6 +176,8 @@ public:
     static bool getTeeSupport();
     static void setTeeLevel2NameSupport(bool enable);
     static bool getTeeLevel2NameSupport();
+    static void setLogRecord(bool enable);
+    static bool getLogRecord();
 
     //plotter
     static void setPlotterState(bool checked);

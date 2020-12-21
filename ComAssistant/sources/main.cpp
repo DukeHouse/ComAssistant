@@ -2,10 +2,16 @@
 #include <QApplication>
 #include <QTranslator>
 #include <QDebug>
+#include "config.h"
 
 void outputMessage(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
     Q_UNUSED(context)
+
+    if(!g_log_record)
+    {
+        return;
+    }
 
     static QMutex mutex;
     static int8_t first_run = 0;
@@ -34,7 +40,7 @@ void outputMessage(QtMsgType type, const QMessageLogContext &context, const QStr
     QString current_date_time;
     QString current_date;
 //    context_info = QString("File:(%1) Line:(%2)").arg(QString(context.file)).arg(context.line);
-    current_date_time = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
+    current_date_time = QDateTime::currentDateTime().toString("hh:mm:ss");
     current_date = QString("%1").arg(current_date_time);
     QString message = QString("[%1][%2] %3").arg(text).arg(current_date).arg(msg);
 
@@ -87,6 +93,7 @@ int main(int argc, char *argv[])
 
     //重定向qDebug到文件
 #ifdef QT_NO_DEBUG
+    g_log_record = Config::getLogRecord();
     qInstallMessageHandler(outputMessage);
 #endif
 
