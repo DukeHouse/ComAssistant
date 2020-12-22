@@ -201,6 +201,7 @@ private:
     void updateUIPanelBackground(QString background);
     void updateUIPanelFont(QFont font);
     int32_t firstRunNotify();
+    void updateFunctionButtonTitle();
     Ui::MainWindow *ui;
     mySerialPort serial;
 

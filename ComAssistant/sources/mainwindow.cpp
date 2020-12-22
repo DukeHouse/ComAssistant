@@ -3775,6 +3775,18 @@ void MainWindow::on_actionASCIITable_triggered()
     p->show();
 }
 
+void MainWindow::updateFunctionButtonTitle()
+{
+    if(ui->actionRecordRawData->isChecked() ||
+       ui->actionRecordGraphData->isChecked())
+    {
+        ui->function->setTitle(tr("功能(Recording)"));
+        return;
+    }
+    ui->function->setTitle(tr("功能"));
+    return;
+}
+
 void MainWindow::on_actionRecordRawData_triggered(bool checked)
 {
     ui->actionRecordRawData->setChecked(checked);
@@ -3815,12 +3827,14 @@ void MainWindow::on_actionRecordRawData_triggered(bool checked)
             rawDataRecordPath = savePath;
             p_logger->init_logger(RAW_DATA_LOG, rawDataRecordPath);
         }
+        updateFunctionButtonTitle();
         return;
     }
     lastRawDataRecordPath = rawDataRecordPath;
     lastRawDataRecordPath = lastRawDataRecordPath.mid(0, lastRawDataRecordPath.lastIndexOf('/')+1);
     rawDataRecordPath.clear();
     p_logger->logger_buff_flush(RAW_DATA_LOG);
+    updateFunctionButtonTitle();
 }
 
 void MainWindow::on_actionHexConverter_triggered(bool checked)
@@ -3888,12 +3902,14 @@ void MainWindow::on_actionRecordGraphData_triggered(bool checked)
             graphDataNeedHead = true;
             p_logger->init_logger(GRAPH_DATA_LOG, graphDataRecordPath);
         }
+        updateFunctionButtonTitle();
         return;
     }
     lastGraphDataRecordPath = graphDataRecordPath;
     lastGraphDataRecordPath = lastGraphDataRecordPath.mid(0, lastGraphDataRecordPath.lastIndexOf('/')+1);
     graphDataRecordPath.clear();
     p_logger->logger_buff_flush(GRAPH_DATA_LOG);
+    updateFunctionButtonTitle();
 }
 
 void MainWindow::on_actionLogRecord_triggered(bool checked)
