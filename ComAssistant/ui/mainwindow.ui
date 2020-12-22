@@ -777,6 +777,8 @@ p, li { white-space: pre-wrap; }
      </property>
      <addaction name="actionAscii"/>
      <addaction name="actionFloat"/>
+     <addaction name="actionCSV"/>
+     <addaction name="separator"/>
      <addaction name="actionSumCheck"/>
     </widget>
     <widget class="QMenu" name="plotterSetting">
@@ -944,7 +946,7 @@ p, li { white-space: pre-wrap; }
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Ascii</string>
+    <string>ASCII</string>
    </property>
   </action>
   <action name="actionFloat">
@@ -952,7 +954,7 @@ p, li { white-space: pre-wrap; }
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Float</string>
+    <string>FLOAT</string>
    </property>
   </action>
   <action name="actionLinePlot">
@@ -1099,6 +1101,9 @@ p, li { white-space: pre-wrap; }
    <property name="toolTip">
     <string>和校验</string>
    </property>
+   <property name="statusTip">
+    <string>最后一个数据应是前面数据的累加和。</string>
+   </property>
   </action>
   <action name="actionPopupHotkey">
    <property name="text">
@@ -1212,6 +1217,14 @@ p, li { white-space: pre-wrap; }
    </property>
    <property name="statusTip">
     <string>调试信息记录开关</string>
+   </property>
+  </action>
+  <action name="actionCSV">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>CSV</string>
    </property>
   </action>
  </widget>

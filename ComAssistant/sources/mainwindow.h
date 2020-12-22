@@ -140,6 +140,7 @@ private slots:
     void on_actionFFTShow_triggered(bool checked);
     void on_actionAscii_triggered(bool checked);
     void on_actionFloat_triggered(bool checked);
+    void on_actionCSV_triggered(bool checked);
     void on_actiondebug_triggered(bool checked);
     void on_actionSumCheck_triggered(bool checked);
     void on_actionOpenGL_triggered(bool checked);

@@ -99,6 +99,8 @@ enum ProtocolType_e{
     Ascii_SumCheck,
     Float,
     Float_SumCheck,
+    CSV,
+    CSV_SumCheck,
 };
 
 enum LineType_e{

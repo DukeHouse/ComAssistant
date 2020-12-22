@@ -162,6 +162,13 @@ void MainWindow::readConfig()
             on_actionSumCheck_triggered(true);
         }
     }
+    else if(Config::getPlotterType()==ProtocolType_e::CSV||
+            Config::getPlotterType()==ProtocolType_e::CSV_SumCheck){
+        on_actionCSV_triggered(true);
+        if(Config::getPlotterType()==ProtocolType_e::CSV_SumCheck){
+            on_actionSumCheck_triggered(true);
+        }
+    }
 
     //轴标签
     ui->customPlot->xAxis->setLabel(Config::getXAxisName());
@@ -1032,6 +1039,13 @@ MainWindow::~MainWindow()
                 Config::setPlotterType(ProtocolType_e::Float_SumCheck);
             else
                 Config::setPlotterType(ProtocolType_e::Float);
+        }
+        else if(ui->actionCSV->isChecked())
+        {
+            if(ui->actionSumCheck->isChecked())
+                Config::setPlotterType(ProtocolType_e::CSV_SumCheck);
+            else
+                Config::setPlotterType(ProtocolType_e::CSV);
         }
 
         Config::setPlotterGraphNames(ui->customPlot->plotControl->getNameSets());
@@ -2521,6 +2535,13 @@ void MainWindow::setVisualizerTitle(void)
         else
             ui->visualizer->setTitle(tr("数据可视化：FLOAT协议"));
     }
+    else if(ui->actionCSV->isChecked())
+    {
+        if(ui->actionSumCheck->isChecked())
+            ui->visualizer->setTitle(tr("数据可视化：CSV协议(和校验)"));
+        else
+            ui->visualizer->setTitle(tr("数据可视化：CSV协议"));
+    }
 }
 
 void MainWindow::resetVisualizerTitle(void)
@@ -2657,6 +2678,7 @@ void MainWindow::on_actionAscii_triggered(bool checked)
     ui->customPlot->protocol->setProtocolType(DataProtocol::Ascii);
     ui->actionAscii->setChecked(true);
     ui->actionFloat->setChecked(false);
+    ui->actionCSV->setChecked(false);
 
     setVisualizerTitle();
 }
@@ -2669,6 +2691,7 @@ void MainWindow::on_actionFloat_triggered(bool checked)
     ui->customPlot->protocol->setProtocolType(DataProtocol::Float);
     ui->actionAscii->setChecked(false);
     ui->actionFloat->setChecked(true);
+    ui->actionCSV->setChecked(false);
 
     setVisualizerTitle();
 }
@@ -3926,4 +3949,17 @@ void MainWindow::on_actionLogRecord_triggered(bool checked)
     {
         qDebug() << "open log record";
     }
+}
+
+void MainWindow::on_actionCSV_triggered(bool checked)
+{
+    Q_UNUSED(checked)
+
+    ui->customPlot->protocol->clearBuff();
+    ui->customPlot->protocol->setProtocolType(DataProtocol::CSV);
+    ui->actionAscii->setChecked(false);
+    ui->actionFloat->setChecked(false);
+    ui->actionCSV->setChecked(true);
+
+    setVisualizerTitle();
 }

@@ -25,7 +25,8 @@ public:
 
     typedef enum{
         Ascii,
-        Float
+        Float,
+        CSV
     }ProtocolType_e;
     //定义数据模型
     typedef double OneData_t;

@@ -145,7 +145,6 @@ inline void DataProtocol::parsePacksFromBuffer(QByteArray& buffer, QByteArray& r
         bufferLock.lock();
         restBuffer = buffer.mid(lastScannedIndex);
         bufferLock.unlock();
-
     }else if(protocolType == Float){
         QByteArray tmpArray = buffer;
         while (tmpArray.indexOf(MAXDATA_AS_END)!=-1) {
@@ -159,6 +158,70 @@ inline void DataProtocol::parsePacksFromBuffer(QByteArray& buffer, QByteArray& r
                 qDebug()<<"丢弃数据（长度不是4的倍数）："<<before.toHex().toUpper();
         }
         restBuffer = tmpArray;
+    }
+    else if(protocolType == CSV)
+    {
+        bufferLock.lock();
+        while (buffer.indexOf('\0')!=-1) {
+            buffer.remove(buffer.indexOf('\0'), 1);
+        }
+        bufferLock.unlock();
+        QRegularExpression reg;
+        QRegularExpressionMatch match;
+        int scanIndex = 0;
+        int lastScannedIndex = 0;
+        //逗号分隔符格式
+        reg.setPattern("(\\s*([+-]?\\d+(\\.\\d+)?)?,?)+\r?\n");
+        reg.setPatternOptions(QRegularExpression::InvertedGreedinessOption);//设置为非贪婪模式匹配
+        do {
+                QByteArray onePack;
+                match = reg.match(buffer, scanIndex);
+                if(match.hasMatch()) {
+                    scanIndex = match.capturedEnd();
+                    lastScannedIndex = scanIndex;
+                    onePack.clear();
+                    onePack.append(match.captured(0).toLocal8Bit());
+                    if(hasErrorStr_Ascii(onePack) != 0)
+                    {
+                        qDebug()<<"hasErrorStr_CSV"<<onePack;
+                        continue;
+                    }
+                    //剔除\r\n
+                    onePack = onePack.trimmed();
+                    //补0
+                    while(onePack.indexOf(",,") != -1){
+                        onePack.insert(onePack.indexOf(",,") + 1,'0');
+                    }
+                    if(onePack.startsWith(','))
+                    {
+                        onePack.push_front('0');
+                    }
+                    if(onePack.endsWith(','))
+                    {
+                        onePack.remove(onePack.size() - 1, 1);
+                    }
+                    if(!onePack.isEmpty()){
+                        RowData_t data = extractRowData(onePack);
+                        addToDataPool(data, enableSumCheck);
+                    }
+//                    qDebug()<<"match"<<match.captured(0);
+                }
+                else{
+//                    qDebug()<<"no match";
+                    if(buffer.size() - scanIndex > MAX_EXTRACT_LENGTH)
+                    {
+                        scanIndex += MAX_EXTRACT_LENGTH;
+                    }
+                    else
+                    {
+                        scanIndex++;
+                    }
+                }
+        } while(scanIndex < buffer.size());
+
+        bufferLock.lock();
+        restBuffer = buffer.mid(lastScannedIndex);
+        bufferLock.unlock();
     }
 }
 
@@ -214,7 +277,6 @@ inline DataProtocol::RowData_t DataProtocol::extractRowData(const Pack_t &pack)
                     break;
                 }
         } while(index < dataPack.length());
-
     }else if(protocolType == Float){
         dataPack = pack;
         while (dataPack.size()>0) {
@@ -226,6 +288,13 @@ inline DataProtocol::RowData_t DataProtocol::extractRowData(const Pack_t &pack)
             }else{
 //                qDebug()<<"get max";
             }
+        }
+    }
+    else if(protocolType == CSV){
+        QByteArrayList numberList = pack.split(',');
+        foreach(QByteArray num, numberList)
+        {
+            rowData << num.toDouble();
         }
     }
 
