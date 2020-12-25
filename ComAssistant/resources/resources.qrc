@@ -4,5 +4,7 @@
         <file>style.css</file>
         <file>stm32isp.exe</file>
         <file>AsciiTable.html</file>
+        <file>AsciiTable_EN.html</file>
+        <file>manual_EN.html</file>
     </qresource>
 </RCC>

@@ -1,0 +1,256 @@
+<h1 style="text-align: center;">Dart ComAssistant</h1>
+<h1 style="text-align: center;">Manual</h1>
+<h2 style="text-align: center;">(Hot key 'F1')</h2>
+
+<h2>File</h2>
+<ul>
+  <li><b>Save origin data</b>:Save the raw data received.</li>
+  <li><b>Open origin data</b>:Open and read the raw data from file</li>
+  <li><b>Save display data</b>:Save the text showed in the data display area</li>
+  <li><b>Save graph data</b>:Save graph data to XLSX/CSV/TXT file.(If you want to reload the graph via Dart please use 'Save origin data')</li>
+  <li><b>Save graph</b>:Save graph as picture file. The order of image quality is usually: pdf > bmp > jpg = png</li>
+  <li><b>Send file</b>:Send file in binary stream.</li>
+</ul>
+
+<h2>Func</h2>
+<ul>
+  <li><b>Multi string</b>:The data sent will be recorded here for repeated use.</li>
+  <li><b>Text classification engine</b>:Open and it will worked according to the protocol. E.g "{name:hello world}\n"</li>
+  <li><b>Extract sub name</b>:Text classification engine supports the extraction of secondary names for secondary classification, E.g {name1:{name2}hello world}\n. Graph protocol do NOT support sub name!</li>
+  <li><b>Record raw data</b>:Record raw data to file in real time.</li>
+  <li><b>STM32-ISP</b>:An one-key program tool to program firmware to STM32F1 and STM32F4 series chips.</li>
+  <li><b>ASCII code table</b>:A tool provided an ASCII code table</li>
+  <li><b>HEX converter</b>:A tool to convert data between ASCII and HEX</li>
+</ul>
+
+<h2>Setting</h2>
+<ul>
+  <li><b>Serial setting</b>:Richer settings for the serial port</li>
+  <li><b>Encoding rules</b>:It will affect the Chinese display</li>
+  <li><b>Enter style</b>:Select win-style enter "\r\n" or unix-style enter "\n". </li>
+  <li><b>Custom setting</b>:
+    <ul>
+        <!--<li><b>关键字高亮</b>:开启/关闭数据显示区的关键字高亮功能, 方便阅读. 时间戳信息、字符串、注释等以及如下字符会被高亮: , ; { } = ( ) [ ] &lt; &gt;</li>-->
+        <li><b>Global popup hotkey</b>:Pops up the main window, default key is Shift+Alt+C, click to modify</li>
+        <li><b>Font setting</b>:Set font</li>
+        <li><b>Background color setting</b>:Setting background color</li>
+    </ul>
+  </li>
+  <li><b>Reset config</b>:Click to reset all config. Delete 'ComAssistantConfig.ini' file can have the same effect.</li>
+
+</ul>
+
+<h2>Text classification display</h2>
+<p>
+Please send data according protocol otherwise Dart can not parse text correctly.
+</p>
+<ul>
+    The protocol is a string of below style:
+    <pre style="background-color: rgb(235, 235, 235);">
+    
+    {name:text_data}\n
+
+    The above represents a data packet, where
+    name represents the packed name, composed of letters, numbers, and underscores
+    ':' is the separator between name and text_data
+    text_data represents any text data
+    '\n' is LF character. It can be '\n' or "\r\n". 
+    The length of one packet is limited to 512 bytes now.
+    </pre>
+    Data has the same name will be displayed under the same window. <br>
+    <br>
+    For example:<br>
+    If there are voltage and current data that need to be displayed separately, the string format sent is as follows:<br>
+    <pre style="background-color: rgb(235, 235, 235);">
+    
+    {voltage:the voltage is 3.32 V}\n
+    {current:the current is 0.23 A}\n
+    </pre>
+    <p>
+    C language sample code
+    </p>
+    <pre style="background-color: rgb(235, 235, 235);">
+    #define PRINT_VOL(fmt, ...) printf("{voltage:"#fmt"}\n", __VA_ARGS__)
+    #define PRINT_CUR(fmt, ...) printf("{current:"#fmt"}\n", __VA_ARGS__)
+
+    float vol = 3.32;
+    float cur = 0.23;
+    void fun()
+    {
+      PRINT_VOL("the voltage is %.2f V", vol);
+      PRINT_CUR("the current is %.2f A", cur);
+    }
+    </pre>
+</ul>
+
+<h2>asciiMatch regular match</h2>
+<ul>
+Enter the key character to be matched to extract a string containing the specified character. The end of the string must contain '\n', and the maximum length is limited to 512 bytes. The matching grammar refers to QT5 regular grammar.
+</ul>
+
+<h2>Visualization</h2>
+<ul>
+  <li><b>Line type</b>:Support 3 styles: line graph, dot-line graph and dot graph</li>
+  <li><b>Value display</b>:Switch of value display component. It worked in Ascii protocol only.</li>
+  <li><b>Protocol</b>:The plotter supports 3 protocols(Ascii, Float and CSV), and supports sum-check mode, and is compatible with integer and floating-point. </li>
+    <ul>
+      <li>
+        <b>The C language rule of the Ascii protocol is</b>:
+        <pre style="background-color: rgb(235, 235, 235);">
+
+        printf("{plotter:%.3f,%.3f,%.3f}\n", data1, data2, data3);
+        </pre>
+        represents the data of 3 curves at the same time. The number of curves cannot exceed 15. The 'plotter' in the string can also be changed to other text data, refer to the classification text display function
+      </li><br>
+      <li>
+        <b>Ascii protocol rule with sum check is</b>:The last data of the string is the checksum. 
+        <pre style="background-color: rgb(235, 235, 235);">
+
+        printf("{plotter:%d,%d,%d}\n", data1, data2, data1 + data2);
+        </pre>
+        This mode only supports integer data<br>
+      </li><br>
+      <li>
+        <b>Float protocol rules is</b>:Directly send the float type data in little-endian order and use the four bytes of 0x00, 0x00, 0x80, 0x7F as the end of one pack. The first flot data represents the first curve, and so on, the number of curves cannot exceed 15. 
+        <pre style="background-color: rgb(235, 235, 235);">
+
+        //float to byte macro
+        #define BYTE0(dwTemp)       (*(char *)(&dwTemp))
+        #define BYTE1(dwTemp)       (*((char *)(&dwTemp) + 1))
+        #define BYTE2(dwTemp)       (*((char *)(&dwTemp) + 2))
+        #define BYTE3(dwTemp)       (*((char *)(&dwTemp) + 3))
+        //Send function
+        void SendCurve(float data1, float data2)
+        {
+          u8 dataBuff[4+4+4];           //3 float variables
+          u8 cnt = 0;
+          dataBuff[cnt++]=BYTE0(data1); //First variable
+          dataBuff[cnt++]=BYTE1(data1);
+          dataBuff[cnt++]=BYTE2(data1);
+          dataBuff[cnt++]=BYTE3(data1);
+          dataBuff[cnt++]=BYTE0(data2); //Second variable
+          dataBuff[cnt++]=BYTE1(data2);
+          dataBuff[cnt++]=BYTE2(data2);
+          dataBuff[cnt++]=BYTE3(data2);
+          dataBuff[cnt++]=0x00;         //End sign
+          dataBuff[cnt++]=0x00;
+          dataBuff[cnt++]=0x80;
+          dataBuff[cnt++]=0x7F;
+
+          u8 size = cnt;
+          for(int i = 0; i &lt; cnt; i++){
+            printf("%c",dataBuff[i]);
+          }
+        }
+        </pre>
+      </li><br>
+      <li>
+        <b>Float protocol rule with sum check is</b>:The last curve data used as sum check <br>
+        <pre style="background-color: rgb(235, 235, 235);">
+
+        //float to byte macro
+        #define BYTE0(dwTemp)       (*(char *)(&dwTemp))
+        #define BYTE1(dwTemp)       (*((char *)(&dwTemp) + 1))
+        #define BYTE2(dwTemp)       (*((char *)(&dwTemp) + 2))
+        #define BYTE3(dwTemp)       (*((char *)(&dwTemp) + 3))
+        //Send function
+        void SendCurve(float data1, float data2)
+        {
+          u8 dataBuff[4+4+4+4];             //3 float variables
+          u8 cnt = 0;
+          float sumCheck = data1 + data2;
+          dataBuff[cnt++]=BYTE0(data1);     //First variable
+          dataBuff[cnt++]=BYTE1(data1);
+          dataBuff[cnt++]=BYTE2(data1);
+          dataBuff[cnt++]=BYTE3(data1);
+          dataBuff[cnt++]=BYTE0(data2);     //Second variable
+          dataBuff[cnt++]=BYTE1(data2);
+          dataBuff[cnt++]=BYTE2(data2);
+          dataBuff[cnt++]=BYTE3(data2);
+          dataBuff[cnt++]=BYTE0(sumCheck);  //Sum check
+          dataBuff[cnt++]=BYTE1(sumCheck);
+          dataBuff[cnt++]=BYTE2(sumCheck);
+          dataBuff[cnt++]=BYTE3(sumCheck);
+          dataBuff[cnt++]=0x00;             //End sign
+          dataBuff[cnt++]=0x00;
+          dataBuff[cnt++]=0x80;
+          dataBuff[cnt++]=0x7F;
+
+          u8 size = cnt;
+          for(int i = 0; i &lt; cnt; i++){
+            printf("%c",dataBuff[i]);
+          }
+        }
+        </pre>
+      </li><br>
+      <li>
+        <b>CSV protocol</b>:
+        Send text that meets the CSV format: use a comma to separate numbers and numbers, and use '\n' at the end of one row packet data. <br>
+        The C language rule of CSV protocol is:
+        <pre style="background-color: rgb(235, 235, 235);">
+
+        printf("%f,%f,%f\n", data1, data2, data3);
+        </pre>
+        represents the data of 3 curves at the same time. The number of curves cannot exceed 15. 
+      </li><br>
+      <li>
+        <b>CSV protocol with checksum</b>:
+        Same as CSV protocol, except that the last number will be used as the sum check. It only support integer mode.<br>
+      </li>
+    </ul>
+  <!--<li><b>绘图测试</b>:勾选后软件会生成不同波形数据并发送到串口, 将TX和RX短接后, 软件可以显示收到的数据</li>-->
+</ul><br>
+<ul>
+  <b>Note</b>:
+  <li>Timestamp mode: Checked and select one curve as X axis timestamp</li>
+  <li>The X axis is the number of points and the Y axis is the value of the points. If the data points are required to have the same time interval, please control the sending time interval by yourself. </li>
+  <li>The protocol without verification may cause drawing errors. </li>
+</ul>
+
+<h2>Operation guidance</h2>
+<ul>
+  <li>When selecting a curve, you can: right-click to delete, hide the selected curve, and coordinate following</li>
+  <li>Right-click the legend to modify the display position of the legend</li>
+  <li>Use the mouse wheel to zoom the coordinate axis</li>
+  <li>Double-click the curve name to modify the curve name</li>
+  <li>Double-click the axis title to modify the axis title name</li>
+  <li>All components can be resized by dragging</li>
+</ul>
+
+<h2>Hot key</h2>
+<ul>
+  <li><code style="background-color: rgb(235, 235, 235);">Shift+Alt+C </code>Global pop-up key (support customization)</li>
+  <li><code style="background-color: rgb(235, 235, 235);">Ctrl+Enter </code>Send button</li>
+  <li><code style="background-color: rgb(235, 235, 235);">Ctrl+Delete</code>Clear button</li>
+  <li><code style="background-color: rgb(235, 235, 235);">Ctrl+S</code>Save raw data</li>
+  <li><code style="background-color: rgb(235, 235, 235);">Ctrl+O</code>Open raw data</li>
+  <li><code style="background-color: rgb(235, 235, 235);">F1</code>Manual</li>
+  <li><code style="background-color: rgb(235, 235, 235);">F2</code>Usage statistics</li>
+  <li><code style="background-color: rgb(235, 235, 235);">F3</code>Check for updates</li>
+  <li><code style="background-color: rgb(235, 235, 235);">F4</code>About</li>
+  <li><code style="background-color: rgb(235, 235, 235);">Ctrl+Wheel</code>X and Y axis zoom</li>
+  <li><code style="background-color: rgb(235, 235, 235);">X+Wheel</code>X axis zoom</li>
+  <li><code style="background-color: rgb(235, 235, 235);">V+Wheel</code>Y axis zoom</li>
+</ul>
+
+<h2>Note</h2>
+<ul>
+  <li>Data display area only displays the most recent about 4096 bytes. Older data can be loaded by sliding the scroll wheel up.</li>
+  <li>Running multiple Dart may make the data recovery function untrustworthy, because the recovery files are shared. Putting it into different path to run is a good idea. </li>
+  <li>The hard disk writing frequency for recording data and data recovery is about 1 Hz. That is, if the software crashes unexpectedly, the data within 1 second from the crash may be lost. </li>
+  <li>Some USB-to-serial chips (such as FTDI) may respond slowly under high-speed transmission. Please try check the properties of the serial port in system device manager and select the highest buffer size and the smallest transmission delay counter. </li>
+  <li>The name tag at the front of the ASCII protocol is only used for classification and identification, and multi-window drawing cannot be performed based on the name tag</li>
+</ul>
+
+<h2>Privacy statement</h2>
+<p>
+Dart may collect some usage statistics and upload them to server. In order to distinguish the device, MAC address of the network card is needed. If you cannot accept it, you can use firewall to block Dart's network request, or do not use Dart.
+</p>
+
+<br><br>
+<p style="text-align: center;">
+Disclaimer: The author does not bear any responsibility for any consequences caused by Dart <br>
+  © 2020-now INHOWE
+</p>
+
+<p></p>

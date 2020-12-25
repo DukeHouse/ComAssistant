@@ -8,6 +8,10 @@ Ascii_Table_Dialog::Ascii_Table_Dialog(QWidget *parent) :
     ui->setupUi(this);
 
     QFile file(":AsciiTable.html");
+    if (QLocale::system().name() != "zh_CN")
+    {
+        file.setFileName(":/AsciiTable_EN.html");
+    }
     QString html;
     if(file.exists()){
         if(file.open(QFile::ReadOnly)){

@@ -25,6 +25,10 @@ void About_Me_Dialog::showManualDoc(void)
 {
     QFile file(":/manual.html");
     QString html;
+    if (QLocale::system().name() != "zh_CN")
+    {
+        file.setFileName(":/manual_EN.html");
+    }
     if(file.exists()){
         if(file.open(QFile::ReadOnly)){
             html = file.readAll();
