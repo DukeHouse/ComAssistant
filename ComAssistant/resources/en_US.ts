@@ -653,8 +653,8 @@ Ascii To Hex</source>
     </message>
     <message>
         <location filename="../ui/mainwindow.ui" line="218"/>
-        <location filename="../sources/mainwindow.cpp" line="1238"/>
-        <location filename="../sources/mainwindow.cpp" line="1260"/>
+        <location filename="../sources/mainwindow.cpp" line="1270"/>
+        <location filename="../sources/mainwindow.cpp" line="1292"/>
         <source>打开串口</source>
         <translation>Open</translation>
     </message>
@@ -717,13 +717,13 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <location filename="../ui/mainwindow.ui" line="461"/>
-        <location filename="../sources/mainwindow.cpp" line="568"/>
-        <location filename="../sources/mainwindow.cpp" line="1488"/>
-        <location filename="../sources/mainwindow.cpp" line="1564"/>
-        <location filename="../sources/mainwindow.cpp" line="1571"/>
-        <location filename="../sources/mainwindow.cpp" line="1755"/>
-        <location filename="../sources/mainwindow.cpp" line="1763"/>
-        <location filename="../sources/mainwindow.cpp" line="1917"/>
+        <location filename="../sources/mainwindow.cpp" line="578"/>
+        <location filename="../sources/mainwindow.cpp" line="1520"/>
+        <location filename="../sources/mainwindow.cpp" line="1596"/>
+        <location filename="../sources/mainwindow.cpp" line="1603"/>
+        <location filename="../sources/mainwindow.cpp" line="1787"/>
+        <location filename="../sources/mainwindow.cpp" line="1795"/>
+        <location filename="../sources/mainwindow.cpp" line="1949"/>
         <source>清  空</source>
         <translation>Clear</translation>
     </message>
@@ -805,13 +805,13 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <location filename="../ui/mainwindow.ui" line="756"/>
-        <location filename="../sources/mainwindow.cpp" line="3809"/>
+        <location filename="../sources/mainwindow.cpp" line="3882"/>
         <source>功能</source>
         <translation>Func</translation>
     </message>
     <message>
         <location filename="../ui/mainwindow.ui" line="772"/>
-        <location filename="../sources/mainwindow.cpp" line="2556"/>
+        <location filename="../sources/mainwindow.cpp" line="2591"/>
         <source>数据可视化</source>
         <translation>Visualization</translation>
     </message>
@@ -864,7 +864,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <location filename="../ui/mainwindow.ui" line="856"/>
-        <location filename="../sources/mainwindow.cpp" line="3285"/>
+        <location filename="../sources/mainwindow.cpp" line="3351"/>
         <source>保存原始数据</source>
         <translation>Save origin data</translation>
     </message>
@@ -910,7 +910,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <location filename="../ui/mainwindow.ui" line="902"/>
-        <location filename="../sources/mainwindow.cpp" line="3284"/>
+        <location filename="../sources/mainwindow.cpp" line="3350"/>
         <source>保存显示数据</source>
         <translation>Save display data</translation>
     </message>
@@ -1039,7 +1039,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <location filename="../ui/mainwindow.ui" line="1182"/>
-        <location filename="../sources/mainwindow.cpp" line="3769"/>
+        <location filename="../sources/mainwindow.cpp" line="3841"/>
         <source>需要选择一条曲线作为时间戳数据</source>
         <translation>Please select a graph as time stamp data</translation>
     </message>
@@ -1154,12 +1154,12 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <location filename="../sources/mainwindow.cpp" line="83"/>
-        <location filename="../sources/mainwindow.cpp" line="1505"/>
-        <location filename="../sources/mainwindow.cpp" line="1872"/>
-        <location filename="../sources/mainwindow.cpp" line="1908"/>
-        <location filename="../sources/mainwindow.cpp" line="1914"/>
-        <location filename="../sources/mainwindow.cpp" line="2893"/>
-        <location filename="../sources/mainwindow.cpp" line="2949"/>
+        <location filename="../sources/mainwindow.cpp" line="1537"/>
+        <location filename="../sources/mainwindow.cpp" line="1904"/>
+        <location filename="../sources/mainwindow.cpp" line="1940"/>
+        <location filename="../sources/mainwindow.cpp" line="1946"/>
+        <location filename="../sources/mainwindow.cpp" line="2936"/>
+        <location filename="../sources/mainwindow.cpp" line="2992"/>
         <source>警告</source>
         <translation>Warning</translation>
     </message>
@@ -1173,15 +1173,15 @@ p, li { white-space: pre-wrap; }
         <translation type="vanished">Timer:</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="425"/>
-        <location filename="../sources/mainwindow.cpp" line="2654"/>
-        <location filename="../sources/mainwindow.cpp" line="3666"/>
+        <location filename="../sources/mainwindow.cpp" line="435"/>
+        <location filename="../sources/mainwindow.cpp" line="2691"/>
+        <location filename="../sources/mainwindow.cpp" line="3732"/>
         <source>名称</source>
         <translation>Name</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="426"/>
-        <location filename="../sources/mainwindow.cpp" line="2655"/>
+        <location filename="../sources/mainwindow.cpp" line="436"/>
+        <location filename="../sources/mainwindow.cpp" line="2692"/>
         <source>值</source>
         <translation>Value</translation>
     </message>
@@ -1189,54 +1189,54 @@ p, li { white-space: pre-wrap; }
         <location filename="../sources/mainwindow.cpp" line="30"/>
         <location filename="../sources/mainwindow.cpp" line="33"/>
         <location filename="../sources/mainwindow.cpp" line="53"/>
-        <location filename="../sources/mainwindow.cpp" line="267"/>
-        <location filename="../sources/mainwindow.cpp" line="280"/>
-        <location filename="../sources/mainwindow.cpp" line="546"/>
-        <location filename="../sources/mainwindow.cpp" line="637"/>
-        <location filename="../sources/mainwindow.cpp" line="681"/>
-        <location filename="../sources/mainwindow.cpp" line="694"/>
-        <location filename="../sources/mainwindow.cpp" line="712"/>
-        <location filename="../sources/mainwindow.cpp" line="719"/>
-        <location filename="../sources/mainwindow.cpp" line="745"/>
-        <location filename="../sources/mainwindow.cpp" line="748"/>
-        <location filename="../sources/mainwindow.cpp" line="1675"/>
-        <location filename="../sources/mainwindow.cpp" line="1876"/>
-        <location filename="../sources/mainwindow.cpp" line="2033"/>
-        <location filename="../sources/mainwindow.cpp" line="2043"/>
-        <location filename="../sources/mainwindow.cpp" line="2071"/>
-        <location filename="../sources/mainwindow.cpp" line="2132"/>
-        <location filename="../sources/mainwindow.cpp" line="2151"/>
-        <location filename="../sources/mainwindow.cpp" line="2169"/>
-        <location filename="../sources/mainwindow.cpp" line="2262"/>
-        <location filename="../sources/mainwindow.cpp" line="2447"/>
-        <location filename="../sources/mainwindow.cpp" line="2501"/>
-        <location filename="../sources/mainwindow.cpp" line="2831"/>
-        <location filename="../sources/mainwindow.cpp" line="2854"/>
-        <location filename="../sources/mainwindow.cpp" line="2867"/>
-        <location filename="../sources/mainwindow.cpp" line="2902"/>
-        <location filename="../sources/mainwindow.cpp" line="2917"/>
-        <location filename="../sources/mainwindow.cpp" line="2977"/>
-        <location filename="../sources/mainwindow.cpp" line="3205"/>
-        <location filename="../sources/mainwindow.cpp" line="3208"/>
-        <location filename="../sources/mainwindow.cpp" line="3623"/>
-        <location filename="../sources/mainwindow.cpp" line="3640"/>
-        <location filename="../sources/mainwindow.cpp" line="3643"/>
-        <location filename="../sources/mainwindow.cpp" line="3673"/>
-        <location filename="../sources/mainwindow.cpp" line="3769"/>
-        <location filename="../sources/mainwindow.cpp" line="3826"/>
-        <location filename="../sources/mainwindow.cpp" line="3845"/>
-        <location filename="../sources/mainwindow.cpp" line="3900"/>
-        <location filename="../sources/mainwindow.cpp" line="3919"/>
+        <location filename="../sources/mainwindow.cpp" line="277"/>
+        <location filename="../sources/mainwindow.cpp" line="290"/>
+        <location filename="../sources/mainwindow.cpp" line="556"/>
+        <location filename="../sources/mainwindow.cpp" line="647"/>
+        <location filename="../sources/mainwindow.cpp" line="691"/>
+        <location filename="../sources/mainwindow.cpp" line="704"/>
+        <location filename="../sources/mainwindow.cpp" line="722"/>
+        <location filename="../sources/mainwindow.cpp" line="729"/>
+        <location filename="../sources/mainwindow.cpp" line="755"/>
+        <location filename="../sources/mainwindow.cpp" line="758"/>
+        <location filename="../sources/mainwindow.cpp" line="1707"/>
+        <location filename="../sources/mainwindow.cpp" line="1908"/>
+        <location filename="../sources/mainwindow.cpp" line="2065"/>
+        <location filename="../sources/mainwindow.cpp" line="2075"/>
+        <location filename="../sources/mainwindow.cpp" line="2103"/>
+        <location filename="../sources/mainwindow.cpp" line="2164"/>
+        <location filename="../sources/mainwindow.cpp" line="2183"/>
+        <location filename="../sources/mainwindow.cpp" line="2201"/>
+        <location filename="../sources/mainwindow.cpp" line="2294"/>
+        <location filename="../sources/mainwindow.cpp" line="2482"/>
+        <location filename="../sources/mainwindow.cpp" line="2536"/>
+        <location filename="../sources/mainwindow.cpp" line="2874"/>
+        <location filename="../sources/mainwindow.cpp" line="2897"/>
+        <location filename="../sources/mainwindow.cpp" line="2910"/>
+        <location filename="../sources/mainwindow.cpp" line="2945"/>
+        <location filename="../sources/mainwindow.cpp" line="2960"/>
+        <location filename="../sources/mainwindow.cpp" line="3020"/>
+        <location filename="../sources/mainwindow.cpp" line="3270"/>
+        <location filename="../sources/mainwindow.cpp" line="3273"/>
+        <location filename="../sources/mainwindow.cpp" line="3689"/>
+        <location filename="../sources/mainwindow.cpp" line="3706"/>
+        <location filename="../sources/mainwindow.cpp" line="3709"/>
+        <location filename="../sources/mainwindow.cpp" line="3739"/>
+        <location filename="../sources/mainwindow.cpp" line="3841"/>
+        <location filename="../sources/mainwindow.cpp" line="3899"/>
+        <location filename="../sources/mainwindow.cpp" line="3918"/>
+        <location filename="../sources/mainwindow.cpp" line="3974"/>
+        <location filename="../sources/mainwindow.cpp" line="3993"/>
         <source>提示</source>
         <translation>Info</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="1168"/>
+        <location filename="../sources/mainwindow.cpp" line="1200"/>
         <source>刷新功能被禁用</source>
         <translation>Refresh is disabled</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="1146"/>
+        <location filename="../sources/mainwindow.cpp" line="1178"/>
         <source>未找到可用串口!</source>
         <translation>No serial port found!</translation>
     </message>
@@ -1246,33 +1246,33 @@ p, li { white-space: pre-wrap; }
         <translation>Global pop-up hotkey registration failed</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="268"/>
+        <location filename="../sources/mainwindow.cpp" line="278"/>
         <source>欢迎使用纸飞机串口调试助手。</source>
         <translation>Welcome to use Dart ComAssistant.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="269"/>
+        <location filename="../sources/mainwindow.cpp" line="279"/>
         <source>由于阁下是首次运行，接下来会弹出帮助文件和相关声明，请认真阅读。</source>
         <translation>Since you are first run Dart, help file and related statement will be poped up next, please read it.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="270"/>
+        <location filename="../sources/mainwindow.cpp" line="280"/>
         <source>若阁下继续使用本软件则代表阁下接受并同意相关声明，
 否则请关闭软件。</source>
         <translation>If you continue to Dart, you must accept and agree to the relevant statement. Or you need close it.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="281"/>
+        <location filename="../sources/mainwindow.cpp" line="291"/>
         <source>我已知悉并同意相关声明。</source>
         <translation>I am aware of and agree to the relevant statement.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="1231"/>
+        <location filename="../sources/mainwindow.cpp" line="1263"/>
         <source>关闭串口</source>
         <translation>Close</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="1240"/>
+        <location filename="../sources/mainwindow.cpp" line="1272"/>
         <source>请检查下列情况后重新打开串口：
 
 </source>
@@ -1286,63 +1286,63 @@ p, li { white-space: pre-wrap; }
         <translation type="vanished"># Is the cable loose?</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="1241"/>
+        <location filename="../sources/mainwindow.cpp" line="1273"/>
         <source># 线缆是否松动？
 </source>
         <translation># Is the cable loose?
 </translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="1242"/>
+        <location filename="../sources/mainwindow.cpp" line="1274"/>
         <source># 是否选择了正确的串口设备？
 </source>
         <translation># Have you choosed the correct serial device?
 </translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="1243"/>
+        <location filename="../sources/mainwindow.cpp" line="1275"/>
         <source># 该串口是否被其他程序占用？
 </source>
         <translation># Is the serial device occupied by other software?
 </translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="1244"/>
+        <location filename="../sources/mainwindow.cpp" line="1276"/>
         <source># 是否设置了过高的波特率？
 </source>
         <translation># Is the baudrate too high?
 </translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="1245"/>
+        <location filename="../sources/mainwindow.cpp" line="1277"/>
         <source>串口打开失败!</source>
         <translation>Serial open failed!</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="1412"/>
+        <location filename="../sources/mainwindow.cpp" line="1444"/>
         <source>解析进度：</source>
         <translation>Parsing progress:</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="1479"/>
+        <location filename="../sources/mainwindow.cpp" line="1511"/>
         <source>发送进度：</source>
         <translation>Sending progress:</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="1506"/>
+        <location filename="../sources/mainwindow.cpp" line="1538"/>
         <source>检测到串口故障，已关闭串口。
 串口是否发生了松动？</source>
         <translation>Detected serial fault, serial closed.
 Is the cable loose?</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="1675"/>
-        <location filename="../sources/mainwindow.cpp" line="1876"/>
+        <location filename="../sources/mainwindow.cpp" line="1707"/>
+        <location filename="../sources/mainwindow.cpp" line="1908"/>
         <source>串口未打开</source>
         <translation>Serial is not open</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="1708"/>
+        <location filename="../sources/mainwindow.cpp" line="1740"/>
         <source>文本输入区数据转换失败，放弃此次发送！</source>
         <translation>Data conversion failed. Discard current data!</translation>
     </message>
@@ -1351,7 +1351,7 @@ Is the cable loose?</translation>
         <translation type="vanished">Timer:</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="1872"/>
+        <location filename="../sources/mainwindow.cpp" line="1904"/>
         <source>发送间隔较小可能不够准确</source>
         <translation>Small sending interval may not be accurate enough</translation>
     </message>
@@ -1360,34 +1360,34 @@ Is the cable loose?</translation>
         <translation type="vanished">Illegal hex format.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2033"/>
+        <location filename="../sources/mainwindow.cpp" line="2065"/>
         <source>时间戳数据不会被保存！只保存接收到的原始数据。</source>
         <translation>The time stamp will not be save! Only save the origin data.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2037"/>
+        <location filename="../sources/mainwindow.cpp" line="2069"/>
         <source>保存原始数据-选择文件路径</source>
         <translation>Save origin data - select file path</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2088"/>
+        <location filename="../sources/mainwindow.cpp" line="2120"/>
         <source>读取原始数据-选择文件路径</source>
         <translation>Read origin data - select file path</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2094"/>
-        <location filename="../sources/mainwindow.cpp" line="2226"/>
+        <location filename="../sources/mainwindow.cpp" line="2126"/>
+        <location filename="../sources/mainwindow.cpp" line="2258"/>
         <source>尚未支持的文件格式</source>
         <translation>Unsupported file format</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2094"/>
+        <location filename="../sources/mainwindow.cpp" line="2126"/>
         <source>请选择dat文件。</source>
         <translation>Please choose dat file.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="580"/>
-        <location filename="../sources/mainwindow.cpp" line="1749"/>
+        <location filename="../sources/mainwindow.cpp" line="590"/>
+        <location filename="../sources/mainwindow.cpp" line="1781"/>
         <source>中  止</source>
         <translation>Abort</translation>
     </message>
@@ -1406,7 +1406,7 @@ Is the cable loose?</translation>
         <translation type="vanished">Global popup hotkey is used by other software</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="440"/>
+        <location filename="../sources/mainwindow.cpp" line="450"/>
         <source>纸飞机串口助手</source>
         <translation>Dart ComAssistant</translation>
     </message>
@@ -1420,280 +1420,355 @@ Is the cable loose?</translation>
         <translation type="vanished">Welcome to use Dart ComAssistant. It will show you the help manual the statement. If you use Dart, you accept and agree the relevant statement, otherwise please close Dart.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="547"/>
+        <location filename="../sources/mainwindow.cpp" line="557"/>
         <source>纸飞机正在收发数据，确认关闭纸飞机吗？</source>
         <translation>Dart is receiving data, are you sure to close it?</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="616"/>
+        <location filename="../sources/mainwindow.cpp" line="626"/>
         <source>文件分包进度：</source>
         <translation>File slicing progres:</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="637"/>
+        <location filename="../sources/mainwindow.cpp" line="647"/>
         <source>请等待上一个文件解析完成后再进行该操作</source>
         <translation>Please wait for the last file to be parsed before current proceeding</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="681"/>
-        <location filename="../sources/mainwindow.cpp" line="745"/>
-        <location filename="../sources/mainwindow.cpp" line="2071"/>
-        <location filename="../sources/mainwindow.cpp" line="2262"/>
-        <location filename="../sources/mainwindow.cpp" line="3208"/>
+        <location filename="../sources/mainwindow.cpp" line="691"/>
+        <location filename="../sources/mainwindow.cpp" line="755"/>
+        <location filename="../sources/mainwindow.cpp" line="2103"/>
+        <location filename="../sources/mainwindow.cpp" line="2294"/>
+        <location filename="../sources/mainwindow.cpp" line="3273"/>
         <source>文件打开失败。</source>
         <translation>File open failed.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="695"/>
+        <location filename="../sources/mainwindow.cpp" line="705"/>
         <source>检测到数据恢复文件，可能是上次未正确关闭程序导致的。</source>
         <translation>Recovered files are detected, which may be caused by incorrectly closing the program last time.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="696"/>
+        <location filename="../sources/mainwindow.cpp" line="706"/>
         <source>点击Ok重新加载上次数据</source>
         <translation>Click Ok to load recovery file</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="697"/>
+        <location filename="../sources/mainwindow.cpp" line="707"/>
         <source>点击Discard丢弃上次数据</source>
         <translation>Click Discard to discard recovery file</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="698"/>
+        <location filename="../sources/mainwindow.cpp" line="708"/>
         <source>点击Cancel自行处理上次数据</source>
         <translation>Click Cancel to handle recovery file by yourself</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="713"/>
+        <location filename="../sources/mainwindow.cpp" line="723"/>
         <source>旧备份恢复数据文件删除失败，请自行处理：</source>
         <translation>Old recovery file deleted failed, please handle it by yourself:</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="720"/>
+        <location filename="../sources/mainwindow.cpp" line="730"/>
         <source>数据恢复文件已另存到程序所在目录：</source>
         <translation>Recovery file has been saved to the program directory:</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="722"/>
+        <location filename="../sources/mainwindow.cpp" line="732"/>
         <source>请自行处理。</source>
         <translation>Please handle it yourself.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="748"/>
+        <location filename="../sources/mainwindow.cpp" line="758"/>
         <source>未知的窗口名称</source>
         <translation>Unknown window name</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="1173"/>
+        <location filename="../sources/mainwindow.cpp" line="1205"/>
         <source>正在扫描可用串口……</source>
         <translation>Scanning available serial ports...</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="1181"/>
+        <location filename="../sources/mainwindow.cpp" line="1213"/>
         <source>串口扫描完毕</source>
         <translation>Scanned finished</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="1191"/>
+        <location filename="../sources/mainwindow.cpp" line="1223"/>
         <source>BUSY</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="1192"/>
+        <location filename="../sources/mainwindow.cpp" line="1224"/>
         <source>未找到可用串口!点我刷新</source>
         <translation>No available serial port found! Click me to refresh.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="1914"/>
+        <location filename="../sources/mainwindow.cpp" line="1946"/>
         <source>hex发送模式下存在非法的十六进制格式。</source>
         <translation>There is illegal hexadecimal format in hex send mode.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2023"/>
-        <location filename="../sources/mainwindow.cpp" line="2208"/>
+        <location filename="../sources/mainwindow.cpp" line="2055"/>
+        <location filename="../sources/mainwindow.cpp" line="2240"/>
         <source>选择保存窗口</source>
         <translation>Select the window you want to save</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2023"/>
-        <location filename="../sources/mainwindow.cpp" line="2208"/>
+        <location filename="../sources/mainwindow.cpp" line="2055"/>
+        <location filename="../sources/mainwindow.cpp" line="2240"/>
         <source>名称标签</source>
         <translation>tab name</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2132"/>
+        <location filename="../sources/mainwindow.cpp" line="2164"/>
         <source>请先关闭串口。</source>
         <translation>Please close serial port first.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2151"/>
+        <location filename="../sources/mainwindow.cpp" line="2183"/>
         <source>串口设置失败，请关闭串口重试</source>
         <translation>Serial setting failed, please close serial and retry</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2169"/>
+        <location filename="../sources/mainwindow.cpp" line="2201"/>
         <source>请输入合法波特率</source>
         <translation>Illegal baudrate</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2193"/>
+        <location filename="../sources/mainwindow.cpp" line="2225"/>
         <source>已重新启动串口</source>
         <translation>Serial reopened</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2195"/>
+        <location filename="../sources/mainwindow.cpp" line="2227"/>
         <source>串口重启失败</source>
         <translation>Serial reopened failed</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2219"/>
+        <location filename="../sources/mainwindow.cpp" line="2251"/>
         <source>保存显示数据-选择文件路径</source>
         <translation>Save display data - select file path</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2226"/>
+        <location filename="../sources/mainwindow.cpp" line="2258"/>
         <source>请选择txt文本文件。</source>
         <translation>Please choose txt file.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2270"/>
+        <location filename="../sources/mainwindow.cpp" line="2302"/>
         <source>正在检查更新……</source>
         <translation>Checking for update...</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2366"/>
+        <location filename="../sources/mainwindow.cpp" line="2401"/>
         <source>编辑当前条目</source>
         <translation>Edit item</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2369"/>
+        <location filename="../sources/mainwindow.cpp" line="2404"/>
         <source>编辑当前条目注释</source>
         <translation>Edit current item comment</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2374"/>
+        <location filename="../sources/mainwindow.cpp" line="2409"/>
         <source>上移当前条目</source>
         <translation>Move up current item</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2377"/>
+        <location filename="../sources/mainwindow.cpp" line="2412"/>
         <source>下移当前条目</source>
         <translation>Move down current item</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2382"/>
+        <location filename="../sources/mainwindow.cpp" line="2417"/>
         <source>删除当前条目</source>
         <translation>Delete item</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2388"/>
+        <location filename="../sources/mainwindow.cpp" line="2423"/>
         <source>新增一个条目</source>
         <translation>Add a new item</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2391"/>
+        <location filename="../sources/mainwindow.cpp" line="2426"/>
         <source>清空所有条目</source>
         <translation>Clear items</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2419"/>
+        <location filename="../sources/mainwindow.cpp" line="2454"/>
         <source>编辑条目</source>
         <translation>Edit item</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2419"/>
-        <location filename="../sources/mainwindow.cpp" line="2442"/>
-        <location filename="../sources/mainwindow.cpp" line="2513"/>
+        <location filename="../sources/mainwindow.cpp" line="2454"/>
+        <location filename="../sources/mainwindow.cpp" line="2477"/>
+        <location filename="../sources/mainwindow.cpp" line="2548"/>
         <source>新的文本：</source>
         <translation>New text:</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2442"/>
+        <location filename="../sources/mainwindow.cpp" line="2477"/>
         <source>编辑条目注释</source>
         <translation>Edit item comment</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2447"/>
+        <location filename="../sources/mainwindow.cpp" line="2482"/>
         <source>注释不允许使用 | 符号，本次修改被放弃</source>
         <translation>You can not use | symbol in comment, modification is abandoned</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2502"/>
+        <location filename="../sources/mainwindow.cpp" line="2537"/>
         <source>确认清除所有条目？</source>
         <translation>Clear all item?</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2513"/>
+        <location filename="../sources/mainwindow.cpp" line="2548"/>
         <source>新增条目内容</source>
         <translation>New item containt</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2528"/>
+        <location filename="../sources/mainwindow.cpp" line="2563"/>
         <source>数据可视化：ASCII协议(和校验)</source>
         <translation>Visulize: ASCII(sum check)</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2530"/>
+        <location filename="../sources/mainwindow.cpp" line="2565"/>
         <source>数据可视化：ASCII协议</source>
         <translation>Visulize: ASCII</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2534"/>
+        <location filename="../sources/mainwindow.cpp" line="2569"/>
         <source>数据可视化：FLOAT协议(和校验)</source>
         <translation>Visulize: FLOAT(sum check)</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2536"/>
+        <location filename="../sources/mainwindow.cpp" line="2571"/>
         <source>数据可视化：FLOAT协议</source>
         <translation>Visulize: FLOAT</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2541"/>
+        <location filename="../sources/mainwindow.cpp" line="2576"/>
         <source>数据可视化：CSV协议(和校验)</source>
         <translation>Visulize: CSV(sum check)</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2543"/>
+        <location filename="../sources/mainwindow.cpp" line="2578"/>
         <source>数据可视化：CSV协议</source>
         <translation>Visulize: CSV</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2629"/>
+        <location filename="../sources/mainwindow.cpp" line="2666"/>
         <source>出现一组异常绘图数据，已丢弃。</source>
         <translation>One abnormal plot data, discarded.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3581"/>
+        <location filename="../sources/mainwindow.cpp" line="3173"/>
+        <source>   - 首次启动日期：</source>
+        <translation>  - First start date:</translation>
+    </message>
+    <message>
+        <location filename="../sources/mainwindow.cpp" line="3178"/>
+        <source>   - 使用绘图器次数：</source>
+        <translation>  - usage count of plotter:</translation>
+    </message>
+    <message>
+        <location filename="../sources/mainwindow.cpp" line="3179"/>
+        <source>   - 绘制数据点数：</source>
+        <translation>  - number of draw point:</translation>
+    </message>
+    <message>
+        <location filename="../sources/mainwindow.cpp" line="3180"/>
+        <source>   - 使用数值显示器次数：</source>
+        <translation>  - usage count of Value-Display component:</translation>
+    </message>
+    <message>
+        <location filename="../sources/mainwindow.cpp" line="3181"/>
+        <source>   - 使用频谱图次数：</source>
+        <translation>  - usage count of FFT:</translation>
+    </message>
+    <message>
+        <location filename="../sources/mainwindow.cpp" line="3182"/>
+        <source>   - 使用分类引擎次数：</source>
+        <translation>  - usage count of text classification engine:</translation>
+    </message>
+    <message>
+        <location filename="../sources/mainwindow.cpp" line="3183"/>
+        <source>   - 分类引擎解析数据：</source>
+        <translation>  - data size parsed by text classification enging:</translation>
+    </message>
+    <message>
+        <location filename="../sources/mainwindow.cpp" line="3184"/>
+        <source>   - asciiMatch解析数据：</source>
+        <translation>  - data size parsed by asciiMatch:</translation>
+    </message>
+    <message>
+        <location filename="../sources/mainwindow.cpp" line="3185"/>
+        <source>   - 使用多字符串次数：</source>
+        <translation>  - usage count of MultiStr:</translation>
+    </message>
+    <message>
+        <location filename="../sources/mainwindow.cpp" line="3186"/>
+        <source>   - 使用ASCII码表次数：</source>
+        <translation>  - usage count of ASCII table:</translation>
+    </message>
+    <message>
+        <location filename="../sources/mainwindow.cpp" line="3187"/>
+        <source>   - 使用STM32ISP次数：</source>
+        <translation>  - usage count of STM32ISP:</translation>
+    </message>
+    <message>
+        <location filename="../sources/mainwindow.cpp" line="3188"/>
+        <source>   - 使用HEX Tool次数：</source>
+        <translation>  - usage count of Hex Tool:</translation>
+    </message>
+    <message>
+        <location filename="../sources/mainwindow.cpp" line="3189"/>
+        <source>   - 使用ASCII协议次数：</source>
+        <translation>  - usage count of ASCII protocol:</translation>
+    </message>
+    <message>
+        <location filename="../sources/mainwindow.cpp" line="3190"/>
+        <source>   - 使用FLOAT协议次数：</source>
+        <translation>  - usage count of FLOAT protocol:</translation>
+    </message>
+    <message>
+        <location filename="../sources/mainwindow.cpp" line="3191"/>
+        <source>   - 使用CSV协议次数：</source>
+        <translation>  - usage count of CSV protocol:</translation>
+    </message>
+    <message>
+        <location filename="../sources/mainwindow.cpp" line="3647"/>
         <source>不允许删除匹配窗口</source>
         <translation>Can not delete match window</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3623"/>
+        <location filename="../sources/mainwindow.cpp" line="3689"/>
         <source>仅支持单文件解析。</source>
         <translation>Only support parse single file.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3640"/>
+        <location filename="../sources/mainwindow.cpp" line="3706"/>
         <source>仅支持dat文件解析。</source>
         <translation>Only support parse dat file.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3839"/>
+        <location filename="../sources/mainwindow.cpp" line="3912"/>
         <source>记录原始数据到文件-选择文件路径</source>
         <translation>Record raw data to file - select path</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3846"/>
+        <location filename="../sources/mainwindow.cpp" line="3919"/>
         <source>尚未支持的文件格式，请选择dat格式文件。</source>
         <translation>Unsupported file, please select dat file.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3913"/>
+        <location filename="../sources/mainwindow.cpp" line="3987"/>
         <source>记录曲线数据到文件-选择文件路径</source>
         <translation>Record graph data to file - select path</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3920"/>
+        <location filename="../sources/mainwindow.cpp" line="3994"/>
         <source>尚未支持的文件格式，请选择csv/txt/xlsx格式文件。</source>
         <translation>Unsupported file, please select csv/txt/xlsx file.</translation>
     </message>
@@ -1702,46 +1777,46 @@ Is the cable loose?</translation>
         <translation type="vanished">Only support single dat file.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3644"/>
+        <location filename="../sources/mainwindow.cpp" line="3710"/>
         <source>确认解析该文件？</source>
         <translation>Parse current file?</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3662"/>
-        <location filename="../sources/mainwindow.cpp" line="3671"/>
+        <location filename="../sources/mainwindow.cpp" line="3728"/>
+        <location filename="../sources/mainwindow.cpp" line="3737"/>
         <source>递增计数值</source>
         <translation>up-count value</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3666"/>
+        <location filename="../sources/mainwindow.cpp" line="3732"/>
         <source>选择X轴</source>
         <translation>Choose X axis</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3673"/>
+        <location filename="../sources/mainwindow.cpp" line="3739"/>
         <source>递增计数值模式下将关闭时间戳模式</source>
         <translation>Time stamp mode will be turned off in the up-count value mode</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3806"/>
+        <location filename="../sources/mainwindow.cpp" line="3879"/>
         <source>功能(Recording)</source>
         <translation>Func(Recording)</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3827"/>
-        <location filename="../sources/mainwindow.cpp" line="3901"/>
+        <location filename="../sources/mainwindow.cpp" line="3900"/>
+        <location filename="../sources/mainwindow.cpp" line="3975"/>
         <source>接下来的数据将被记录到程序所在目录下的</source>
         <translation>The new data will be recorded to the file</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3827"/>
-        <location filename="../sources/mainwindow.cpp" line="3901"/>
+        <location filename="../sources/mainwindow.cpp" line="3900"/>
+        <location filename="../sources/mainwindow.cpp" line="3975"/>
         <source>文件中</source>
         <translation> </translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3828"/>
-        <location filename="../sources/mainwindow.cpp" line="3902"/>
+        <location filename="../sources/mainwindow.cpp" line="3901"/>
+        <location filename="../sources/mainwindow.cpp" line="3976"/>
         <source>如需更改数据记录位置，请先关闭串口再使用本功能。</source>
         <translation>Close serial port first if you want to change record path.</translation>
     </message>
@@ -1754,187 +1829,183 @@ Is the cable loose?</translation>
         <translation type="vanished">Warning: Plotter busy. Unparased data: </translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2827"/>
+        <location filename="../sources/mainwindow.cpp" line="2870"/>
         <source>警告：确认恢复默认设置吗？</source>
         <translation>Warning: Do you want to reset to default?</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2827"/>
+        <location filename="../sources/mainwindow.cpp" line="2870"/>
         <source>该操作会重置软件初始状态！</source>
         <translation>It will reset software config to default!</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2831"/>
+        <location filename="../sources/mainwindow.cpp" line="2874"/>
         <source>重置成功。请重启程序。</source>
         <translation>Reset success. Please restart software.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2854"/>
+        <location filename="../sources/mainwindow.cpp" line="2897"/>
         <source>绘图器数据容器为空，无法保存。</source>
         <translation>Can not save data due to empty plotter container.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2859"/>
+        <location filename="../sources/mainwindow.cpp" line="2902"/>
         <source>保存绘图数据-选择文件路径</source>
         <translation>Save plotter data - select file path</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2867"/>
+        <location filename="../sources/mainwindow.cpp" line="2910"/>
         <source>尚未支持的文件格式。请选择xlsx或者csv或者txt格式文件。</source>
         <translation>Unsupported file format. Please choose xlsx, csv, or txt file.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2893"/>
-        <location filename="../sources/mainwindow.cpp" line="2949"/>
+        <location filename="../sources/mainwindow.cpp" line="2936"/>
+        <location filename="../sources/mainwindow.cpp" line="2992"/>
         <source>保存失败。文件是否被其他软件占用？</source>
         <translation>Save failed. Does the file occupied by other software?</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2902"/>
+        <location filename="../sources/mainwindow.cpp" line="2945"/>
         <source>绘图器未开启，无法保存图片。</source>
         <translation>Can not save picture due to unopened plotter.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2908"/>
+        <location filename="../sources/mainwindow.cpp" line="2951"/>
         <source>曲线保存图片-选择文件路径</source>
         <translation>Save plotter data to picture - select file path</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2917"/>
+        <location filename="../sources/mainwindow.cpp" line="2960"/>
         <source>尚未支持的文件格式。请选择jpg/bmp/png/pdf文件。</source>
         <translation>Unsupported file format. Please choose jpg/bmp/png/pdf file.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="2977"/>
+        <location filename="../sources/mainwindow.cpp" line="3020"/>
         <source>高亮设置将应用于新的显示窗口。</source>
         <translation>The highlight setting will be applied to the new window.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3077"/>
-        <location filename="../sources/mainwindow.cpp" line="3088"/>
+        <location filename="../sources/mainwindow.cpp" line="3069"/>
         <source> 天 </source>
         <translation> day </translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3077"/>
-        <location filename="../sources/mainwindow.cpp" line="3088"/>
+        <location filename="../sources/mainwindow.cpp" line="3070"/>
         <source> 小时 </source>
         <translation> hour </translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3077"/>
-        <location filename="../sources/mainwindow.cpp" line="3088"/>
+        <location filename="../sources/mainwindow.cpp" line="3071"/>
         <source> 分钟 </source>
         <translation> minute </translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3077"/>
-        <location filename="../sources/mainwindow.cpp" line="3088"/>
+        <location filename="../sources/mainwindow.cpp" line="3072"/>
         <source> 秒</source>
         <translation> second</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3092"/>
+        <location filename="../sources/mainwindow.cpp" line="3079"/>
         <source>恭喜阁下，获得了【青铜码农】的称号！请再接再厉！</source>
         <translation>Congratulations, you have won the title of Bronze Coder! Please keep up!</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3094"/>
+        <location filename="../sources/mainwindow.cpp" line="3081"/>
         <source>恭喜阁下，获得了【白银码农】的称号！请再接再厉！</source>
         <translation>Congratulations, you have won the title of Silver Coder! Please keep up!</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3096"/>
+        <location filename="../sources/mainwindow.cpp" line="3083"/>
         <source>恭喜阁下，获得了【黄金码农】的称号！请再接再厉！</source>
         <translation>Congratulations, you have won the title of Gold Coder! Please keep up!</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3098"/>
+        <location filename="../sources/mainwindow.cpp" line="3085"/>
         <source>恭喜阁下，获得了【铂金码农】的称号！请再接再厉！</source>
         <translation>Congratulations, you have won the title of Platinum Coder! Please keep up!</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3100"/>
+        <location filename="../sources/mainwindow.cpp" line="3087"/>
         <source>恭喜阁下，获得了【星钻码农】的称号！请再接再厉！</source>
         <translation>Congratulations, you have won the title of Diamond Coder! Please keep up!</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3102"/>
+        <location filename="../sources/mainwindow.cpp" line="3089"/>
         <source>恭喜阁下，获得了【皇冠码农】的称号！请再接再厉！</source>
         <translation>Congratulations, you have won the title of Crown Coder! Please keep up!</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3104"/>
+        <location filename="../sources/mainwindow.cpp" line="3091"/>
         <source>恭喜阁下，获得了【王牌码农】的称号！请再接再厉！</source>
         <translation>Congratulations, you have won the title of Ace Coder! Please keep up!</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3111"/>
+        <location filename="../sources/mainwindow.cpp" line="3161"/>
         <source>## 软件版本：</source>
         <translation>## Software version:</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3113"/>
+        <location filename="../sources/mainwindow.cpp" line="3163"/>
         <source>## 设备信息</source>
         <translation>## Device info</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3116"/>
+        <location filename="../sources/mainwindow.cpp" line="3166"/>
         <source>## 软件使用统计</source>
         <translation>## usage statistic</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3117"/>
+        <location filename="../sources/mainwindow.cpp" line="3167"/>
         <source>   ### 自本次启动软件以来，阁下：</source>
         <translation>   ### since last launching the software, you:</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3122"/>
+        <location filename="../sources/mainwindow.cpp" line="3172"/>
         <source>   ### 自首次启动软件以来，阁下：</source>
         <translation>   ### since fisrt launching the software, you:</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3130"/>
+        <location filename="../sources/mainwindow.cpp" line="3195"/>
         <source>## 隐私声明</source>
         <translation>## Privacy statement</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3133"/>
+        <location filename="../sources/mainwindow.cpp" line="3198"/>
         <source>  - 如阁下不同意本声明，可阻断本软件的网络请求或者阁下应该停止使用本软件。</source>
         <translation>  - If you do not agree with this statement, you can block the software&apos;s network request or you should stop using the software.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3135"/>
+        <location filename="../sources/mainwindow.cpp" line="3200"/>
         <source>## 感谢阁下的使用</source>
         <translation>## Thanks for using</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3278"/>
+        <location filename="../sources/mainwindow.cpp" line="3344"/>
         <source>显示所有文本</source>
         <translation>Show all text</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3282"/>
+        <location filename="../sources/mainwindow.cpp" line="3348"/>
         <source>复制全部显示数据</source>
         <translation>Copy all show data</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3283"/>
+        <location filename="../sources/mainwindow.cpp" line="3349"/>
         <source>复制全部原始数据</source>
         <translation>Copy all raw data</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3493"/>
+        <location filename="../sources/mainwindow.cpp" line="3559"/>
         <source>修改全局弹出热键</source>
         <translation>Modify global popup hotkey</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3493"/>
+        <location filename="../sources/mainwindow.cpp" line="3559"/>
         <source>新的全局弹出热键：</source>
         <translation>New global popup hotkey:</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3576"/>
+        <location filename="../sources/mainwindow.cpp" line="3642"/>
         <source>不允许删除主窗口</source>
         <translation>Refuse to delete main window</translation>
     </message>
@@ -1975,7 +2046,7 @@ Is the cable loose?</translation>
         <translation type="vanished">Congratulations! Won the ace title!</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3106"/>
+        <location filename="../sources/mainwindow.cpp" line="3093"/>
         <source>荣誉只是浮云~</source>
         <translation>Honor is only virtual~</translation>
     </message>
@@ -1988,7 +2059,7 @@ Is the cable loose?</translation>
         <translation type="vanished">[PC info]</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3114"/>
+        <location filename="../sources/mainwindow.cpp" line="3164"/>
         <source>   MAC地址：</source>
         <translation>   MAC:</translation>
     </message>
@@ -1997,35 +2068,35 @@ Is the cable loose?</translation>
         <translation type="vanished">[Usage statistics]</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3118"/>
-        <location filename="../sources/mainwindow.cpp" line="3123"/>
+        <location filename="../sources/mainwindow.cpp" line="3168"/>
+        <location filename="../sources/mainwindow.cpp" line="3174"/>
         <source>   - 共发送数据：</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3119"/>
-        <location filename="../sources/mainwindow.cpp" line="3124"/>
+        <location filename="../sources/mainwindow.cpp" line="3169"/>
+        <location filename="../sources/mainwindow.cpp" line="3175"/>
         <source>   - 共接收数据：</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3120"/>
-        <location filename="../sources/mainwindow.cpp" line="3125"/>
+        <location filename="../sources/mainwindow.cpp" line="3170"/>
+        <location filename="../sources/mainwindow.cpp" line="3176"/>
         <source>   - 共运行本软件：</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3126"/>
+        <location filename="../sources/mainwindow.cpp" line="3177"/>
         <source>   - 共启动本软件：</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3126"/>
+        <location filename="../sources/mainwindow.cpp" line="3177"/>
         <source> 次</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3128"/>
+        <location filename="../sources/mainwindow.cpp" line="3193"/>
         <source>   </source>
         <translation></translation>
     </message>
@@ -2034,12 +2105,12 @@ Is the cable loose?</translation>
         <translation type="vanished">[Privacy Statement]</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3131"/>
+        <location filename="../sources/mainwindow.cpp" line="3196"/>
         <source>  - 以上统计信息可能会被上传至服务器用于统计。</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3132"/>
+        <location filename="../sources/mainwindow.cpp" line="3197"/>
         <source>  - 其他任何信息均不会被上传。</source>
         <translation></translation>
     </message>
@@ -2048,42 +2119,42 @@ Is the cable loose?</translation>
         <translation type="vanished">Thanks for using</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3154"/>
+        <location filename="../sources/mainwindow.cpp" line="3219"/>
         <source>打开文件</source>
         <translation>Open file</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3205"/>
+        <location filename="../sources/mainwindow.cpp" line="3270"/>
         <source>请先打开串口。</source>
         <translation>Please open serial.</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3279"/>
+        <location filename="../sources/mainwindow.cpp" line="3345"/>
         <source>复制所选文本</source>
         <translation>Copy selected text</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3286"/>
+        <location filename="../sources/mainwindow.cpp" line="3352"/>
         <source>清空数据显示区</source>
         <translation>Clear data display area</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3341"/>
+        <location filename="../sources/mainwindow.cpp" line="3407"/>
         <source>删除元素所在行</source>
         <translation>Delete selected line</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3347"/>
+        <location filename="../sources/mainwindow.cpp" line="3413"/>
         <source>删除所有行</source>
         <translation>Delete all lines</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3410"/>
+        <location filename="../sources/mainwindow.cpp" line="3476"/>
         <source>选择字体</source>
         <translation>Select fonts</translation>
     </message>
     <message>
-        <location filename="../sources/mainwindow.cpp" line="3459"/>
+        <location filename="../sources/mainwindow.cpp" line="3525"/>
         <source>选择背景色</source>
         <translation>Select background color</translation>
     </message>

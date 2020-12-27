@@ -3133,9 +3133,10 @@ void MainWindow::on_actionUsageStatistic_triggered()
     currentRxStr = sta_ConvertHuman_Cnt(currentRx);
     totalRegParseStr    = sta_ConvertHuman_Cnt(Config::getTotalStatistic(KEY_TOTALREGPARSE) + statisticRegParseCnt);
     totalTeeParseStr    = sta_ConvertHuman_Cnt(Config::getTotalStatistic(KEY_TOTALTEEPARSE) + statisticTeeParseCnt);
+    totalPlotterNumStr  = sta_ConvertHuman_Cnt(Config::getTotalStatistic(KEY_TOTALPLOTTERNUM) + statisticPlotterNumCnt);
+    totalPlotterNumStr  = totalPlotterNumStr.mid(0, totalPlotterNumStr.size() - 1); //移除最后的字符B
 
     //次数换算
-    totalPlotterNumStr      = QString::number(Config::getTotalStatistic(KEY_TOTALPLOTTERNUM) + statisticPlotterNumCnt);
     totalValueDisplayUseStr = QString::number(Config::getTotalStatistic(KEY_TOTALVALUEDISPLAYUSE) + statisticValueDisplayUseCnt);
     totalPlotterUseStr      = QString::number(Config::getTotalStatistic(KEY_TOTALPLOTTERUSE) + statisticPlotterUseCnt);
     totalFFTUseStr          = QString::number(Config::getTotalStatistic(KEY_TOTALFFTUSE) + statisticFFTUseCnt);
