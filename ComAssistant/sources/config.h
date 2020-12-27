@@ -77,6 +77,20 @@
 #define KEY_LASTRXCNT           QString("LastRxCnt")
 #define KEY_TOTALRXCNT          QString("TotalRxCnt")
 #define KEY_TOTALRUNCNT         QString("TotalRunCnt")
+#define KEY_TOTALPLOTTERUSE     QString("TotalPlotterUse")
+#define KEY_TOTALPLOTTERNUM      QString("TotalPlotterNum")
+#define KEY_TOTALVALUEDISPLAYUSE QString("TotalValueDisplayUse")
+#define KEY_TOTALFFTUSE         QString("TotalFFTUse")
+#define KEY_TOTALMULTISTRUSE    QString("TotalMultiStrUse")
+#define KEY_TOTALASCIITABLEUSE  QString("TotalASCIITableUse")
+#define KEY_TOTALSTM32ISPUSE    QString("TotalSTM32ISPUse")
+#define KEY_TOTALHEXTOOLUSE     QString("TotalHexToolUse")
+#define KEY_TOTALASCIILUSE      QString("TotalASCIIUse")
+#define KEY_TOTALFLOATUSE       QString("TotalFLOATUse")
+#define KEY_TOTALCSVUSE         QString("TotalCSVUse")
+#define KEY_TOTALTEEUSE         QString("TotalTeeUse")
+#define KEY_TOTALTEEPARSE       QString("TotalTeeParseCnt")
+#define KEY_TOTALREGPARSE       QString("TotalRegParseCnt")
 
 //about键
 #define KEY_VERSION     QString("Version")
@@ -220,6 +234,8 @@ public:
     static QString getTotalRxCnt(void);
     static void setTotalRunCnt(int64_t runCnt=1);
     static QString getTotalRunCnt(void);
+    static void addCurrentStatistic(QString key, int64_t cnt);
+    static int64_t getTotalStatistic(QString key);
 };
 
 #endif // CONFIG_H

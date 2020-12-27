@@ -664,7 +664,8 @@ void Config::setFirstStartTime(QString time){
 }
 QString Config::getFirstStartTime(void){
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    QString value = iniFile->value(SECTION_STATISTIC+KEY_FIRST_STARTTIME, QDateTime::currentDateTime().toString("yyyyMMddhhmmss")).toString();
+    QString value = iniFile->value(SECTION_STATISTIC+KEY_FIRST_STARTTIME,
+                                   QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss")).toString();
     delete iniFile;
     return value;
 }
@@ -777,6 +778,21 @@ void Config::setTotalRunCnt(int64_t runCnt){
 QString Config::getTotalRunCnt(void){
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
     QString value = iniFile->value(SECTION_STATISTIC+KEY_TOTALRUNCNT, 0).toString();
+    delete iniFile;
+    return value;
+}
+
+void Config::addCurrentStatistic(QString key, int64_t cnt){
+    createDefaultIfNotExist();
+    int64_t total = getTotalStatistic(key);
+    total += cnt;
+    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
+    iniFile->setValue(SECTION_STATISTIC+key, total);
+    delete iniFile;
+}
+int64_t Config::getTotalStatistic(QString key){
+    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
+    int64_t value = iniFile->value(SECTION_STATISTIC+key, 0).toLongLong();
     delete iniFile;
     return value;
 }

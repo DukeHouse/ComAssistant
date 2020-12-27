@@ -203,6 +203,9 @@ private:
     void updateUIPanelFont(QFont font);
     int32_t firstRunNotify();
     void updateFunctionButtonTitle();
+    QString sta_ConvertHuman_Cnt(double num);
+    QString sta_ConvertHuman_Time(double sec);
+    QString statisticConvertRank(double totalTx, double totalRx);
     Ui::MainWindow *ui;
     mySerialPort serial;
 
@@ -264,6 +267,21 @@ private:
     double txSpeedKB = 0;
     int64_t statisticRxByteCnt = 0;
     int64_t statisticTxByteCnt = 0;
+    int64_t statisticPlotterNumCnt = 0;
+    int64_t statisticPlotterRxByteCnt = 0;
+    int64_t statisticValueDisplayUseCnt = 0;
+    int64_t statisticPlotterUseCnt  = 0;
+    int64_t statisticFFTUseCnt = 0;
+    int64_t statisticMultiStrUseCnt = 0;
+    int64_t statisticAsciiTableUseCnt = 0;
+    int64_t statisticStm32IspUseCnt = 0;
+    int64_t statisticHexToolUseCnt = 0;
+    int64_t statisticASCIIUseCnt = 0;
+    int64_t statisticFLOATUseCnt = 0;
+    int64_t statisticCSVUseCnt = 0;
+    int64_t statisticTeeUseCnt = 0;
+    int64_t statisticTeeParseCnt = 0;
+    int64_t statisticRegParseCnt = 0;
 
     //布局
     QSplitter *splitter_output = NULL;

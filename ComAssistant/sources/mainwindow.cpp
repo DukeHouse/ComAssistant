@@ -263,7 +263,7 @@ void MainWindow::layoutConfig()
 int32_t MainWindow::firstRunNotify()
 {
     if(Config::getFirstRun()){
-        Config::setFirstStartTime(QDateTime::currentDateTime().toString("yyyyMMddhhmmss"));
+        Config::setFirstStartTime(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
         QMessageBox::information(this, tr("提示"),
                                  tr("欢迎使用纸飞机串口调试助手。") + "\n\n" +
                                  tr("由于阁下是首次运行，接下来会弹出帮助文件和相关声明，请认真阅读。") + "\n\n" +
@@ -754,6 +754,8 @@ void MainWindow::regM_dataUpdated(const QString &packData)
 {
     ui->regMatchBrowser->appendPlainText(packData);
     ui->regMatchBrowser->moveCursor(QTextCursor::End);
+
+    statisticRegParseCnt += packData.size();
 }
 
 void MainWindow::regM_saveDataResult(const qint32& result, const QString &path, const qint32 fileSize)
@@ -766,6 +768,9 @@ void MainWindow::tee_textGroupsUpdate(const QString &name, const QByteArray &dat
 //    qDebug()<<"tee_textGroupsUpdate";
     QPlainTextEdit *textEdit = nullptr;
     qint32 count = 0;
+
+    //statistic
+    statisticTeeParseCnt += data.size();
 
     //find tab name
     count = ui->tabWidget->count();
@@ -1077,6 +1082,20 @@ MainWindow::~MainWindow()
         Config::setLastRxCnt(serial.getTotalRxCnt());
         Config::setTotalRxCnt(serial.getTotalRxCnt());
         Config::setTotalRunCnt(1);
+        Config::addCurrentStatistic(KEY_TOTALPLOTTERUSE, statisticPlotterUseCnt);
+        Config::addCurrentStatistic(KEY_TOTALPLOTTERNUM, statisticPlotterNumCnt);
+        Config::addCurrentStatistic(KEY_TOTALVALUEDISPLAYUSE, statisticValueDisplayUseCnt);
+        Config::addCurrentStatistic(KEY_TOTALFFTUSE, statisticFFTUseCnt);
+        Config::addCurrentStatistic(KEY_TOTALMULTISTRUSE, statisticMultiStrUseCnt);
+        Config::addCurrentStatistic(KEY_TOTALASCIITABLEUSE, statisticAsciiTableUseCnt);
+        Config::addCurrentStatistic(KEY_TOTALSTM32ISPUSE, statisticStm32IspUseCnt);
+        Config::addCurrentStatistic(KEY_TOTALHEXTOOLUSE, statisticHexToolUseCnt);
+        Config::addCurrentStatistic(KEY_TOTALASCIILUSE, statisticASCIIUseCnt);
+        Config::addCurrentStatistic(KEY_TOTALFLOATUSE, statisticFLOATUseCnt);
+        Config::addCurrentStatistic(KEY_TOTALCSVUSE, statisticCSVUseCnt);
+        Config::addCurrentStatistic(KEY_TOTALTEEUSE, statisticTeeUseCnt);
+        Config::addCurrentStatistic(KEY_TOTALTEEPARSE, statisticTeeParseCnt);
+        Config::addCurrentStatistic(KEY_TOTALREGPARSE, statisticRegParseCnt);
     }else{
         if(g_agree_statement)
         {
@@ -2298,6 +2317,8 @@ void MainWindow::on_actionSTM32_ISP_triggered()
 
     if(serialState)
         on_comSwitch_clicked(true);
+
+    statisticStm32IspUseCnt++;
 }
 
 /*
@@ -2341,6 +2362,7 @@ void MainWindow::on_actionMultiString_triggered(bool checked)
         ui->multiString->show();
         //设置颜色交错
         ui->multiString->setAlternatingRowColors(true);
+        statisticMultiStrUseCnt++;
     }else {
         ui->multiString->hide();
     }
@@ -2564,6 +2586,7 @@ void MainWindow::on_actionPlotterSwitch_triggered(bool checked)
     if(checked){
         ui->customPlot->show();
         setVisualizerTitle();
+        statisticPlotterUseCnt++;
     }else{
         ui->customPlot->hide();
         resetVisualizerTitle();
@@ -2587,9 +2610,10 @@ void MainWindow::plotterShowTimerSlot()
         return;
     }
 
-    //数据填充
+    //数据填充与统计
     while(ui->customPlot->protocol->parsedBuffSize()>0){
         oneRowData = ui->customPlot->protocol->popOneRowData();
+        statisticPlotterNumCnt += oneRowData.size();
         //数据记录
         if(!graphDataRecordPath.isEmpty())
         {
@@ -2674,6 +2698,9 @@ void MainWindow::on_actionAscii_triggered(bool checked)
 {
     Q_UNUSED(checked)
 
+    if(ui->actionAscii->isChecked())
+        statisticASCIIUseCnt++;
+
     ui->customPlot->protocol->clearBuff();
     ui->customPlot->protocol->setProtocolType(DataProtocol::Ascii);
     ui->actionAscii->setChecked(true);
@@ -2686,6 +2713,9 @@ void MainWindow::on_actionAscii_triggered(bool checked)
 void MainWindow::on_actionFloat_triggered(bool checked)
 {
     Q_UNUSED(checked)
+
+    if(ui->actionFloat->isChecked())
+        statisticFLOATUseCnt++;
 
     ui->customPlot->protocol->clearBuff();
     ui->customPlot->protocol->setProtocolType(DataProtocol::Float);
@@ -2977,117 +3007,61 @@ void MainWindow::on_actionKeyWordHighlight_triggered(bool checked)
     QMessageBox::information(this, tr("提示"), tr("高亮设置将应用于新的显示窗口。"));
 }
 /*
- * Funciont:显示使用统计
-*/
-void MainWindow::on_actionUsageStatistic_triggered()
+ * 字节数据转换成人类习惯的单位
+ */
+QString MainWindow::sta_ConvertHuman_Cnt(double num)
 {
-    static double lastTotalTx = Config::getTotalTxCnt().toDouble();
-    static double lastTotalRx = Config::getTotalRxCnt().toDouble();
-    static double lastTotalRunTime = Config::getTotalRunTime().toDouble();
-    double currentTx = serial.getTxCnt();
-    double currentRx = serial.getRxCnt();
-    double currentRunTime_f = currentRunTime;
-    double totalTx = lastTotalTx + currentTx;
-    double totalRx = lastTotalRx + currentRx;
-    double totalRunTime = lastTotalRunTime + currentRunTime_f;
-    double totalTxRx_MB = totalTx/1024.0/1024.0 + totalRx/1024.0/1024.0;
-    //单位
-    QString totalTxUnit;
-    QString totalRxUnit;
-    QString currentTxUnit;
-    QString currentRxUnit;
-    //时间换算
-    QString days;
-    QString hou;
-    QString min;
-    QString sec;
-    QString currentRunTimeStr, totalRunTimeStr;
-    int64_t day;
-    int64_t hour;
-    int64_t minute;
-    int64_t second;
-    int64_t nest = 0; //执行统计
-
-    //单位换算
+    int64_t nest = 0;
+    QString unit;
+    QString ret;
     nest = 0;
-    while(totalTx>1024){
-        totalTx = totalTx/1024.0;
+    while(num>1024){
+        num = num/1024.0;
         nest++;
     }
     switch(nest){
-        case 0:totalTxUnit = " B";break;
-        case 1:totalTxUnit = " KB";break;
-        case 2:totalTxUnit = " MB";break;
-        case 3:totalTxUnit = " GB";break;
-        case 4:totalTxUnit = " TB";break;
+        case 0:unit = " B";break;
+        case 1:unit = " KB";break;
+        case 2:unit = " MB";break;
+        case 3:unit = " GB";break;
+        case 4:unit = " TB";break;
     }
-    //单位换算
-    nest = 0;
-    while(totalRx>1024){
-        totalRx = totalRx/1024.0;
-        nest++;
+    if(unit == " B")
+    {
+        return QString::number(static_cast<int64_t>(num)) + unit;
     }
-    switch(nest){
-        case 0:totalRxUnit = " B";break;
-        case 1:totalRxUnit = " KB";break;
-        case 2:totalRxUnit = " MB";break;
-        case 3:totalRxUnit = " GB";break;
-        case 4:totalRxUnit = " TB";break;
-    }
-    //单位换算
-    nest = 0;
-    while(currentTx>1024){
-        currentTx = currentTx/1024.0;
-        nest++;
-    }
-    switch(nest){
-        case 0:currentTxUnit = " B";break;
-        case 1:currentTxUnit = " KB";break;
-        case 2:currentTxUnit = " MB";break;
-        case 3:currentTxUnit = " GB";break;
-        case 4:currentTxUnit = " TB";break;
-    }
-    //单位换算
-    nest = 0;
-    while(currentRx>1024){
-        currentRx = currentRx/1024.0;
-        nest++;
-    }
-    switch(nest){
-        case 0:currentRxUnit = " B";break;
-        case 1:currentRxUnit = " KB";break;
-        case 2:currentRxUnit = " MB";break;
-        case 3:currentRxUnit = " GB";break;
-        case 4:currentRxUnit = " TB";break;
-    }
+    return QString::number(num, 'f', 2) + unit;
+}
+/*
+ * 时间数据转换成人类习惯的单位
+ */
+QString MainWindow::sta_ConvertHuman_Time(double sec)
+{
     //时间常数
-    int64_t mi = 60;
-    int64_t hh = mi * 60;
-    int64_t dd = hh * 24;
+    const int64_t mi = 60;
+    const int64_t hh = mi * 60;
+    const int64_t dd = hh * 24;
+
+    int64_t day = 0;
+    int64_t hour = 0;
+    int64_t minute = 0;
+    int64_t second = 0;
+
     //时间换算
-    day = static_cast<int64_t>(currentRunTime_f / dd);
-    hour = static_cast<int64_t>((currentRunTime_f - day * dd) / hh);
-    minute = static_cast<int64_t>((currentRunTime_f - day * dd - hour * hh) / mi);
-    second = static_cast<int64_t>((currentRunTime_f - day * dd - hour * hh - minute * mi));
+    day = static_cast<int64_t>(sec / dd);
+    hour = static_cast<int64_t>((sec - day * dd) / hh);
+    minute = static_cast<int64_t>((sec - day * dd - hour * hh) / mi);
+    second = static_cast<int64_t>((sec - day * dd - hour * hh - minute * mi));
 
-    days = QString::number(day,10);
-    hou = QString::number(hour,10);
-    min = QString::number(minute,10);
-    sec = QString::number(second,10);
-    currentRunTimeStr = days + tr(" 天 ") + hou + tr(" 小时 ") + min + tr(" 分钟 ") + sec + tr(" 秒");
-    //时间换算
-    day = static_cast<int64_t>(totalRunTime / dd);
-    hour = static_cast<int64_t>((totalRunTime - day * dd) / hh);
-    minute = static_cast<int64_t>((totalRunTime - day * dd - hour * hh) / mi);
-    second = static_cast<int64_t>((totalRunTime - day * dd - hour * hh - minute * mi));
-
-    days = QString::number(day,10);
-    hou = QString::number(hour,10);
-    min = QString::number(minute,10);
-    sec = QString::number(second,10);
-    totalRunTimeStr = days + tr(" 天 ") + hou + tr(" 小时 ") + min + tr(" 分钟 ") + sec + tr(" 秒");
-
+    return QString::number(day, 10) + tr(" 天 ") +
+           QString::number(hour, 10) + tr(" 小时 ") +
+           QString::number(minute, 10) + tr(" 分钟 ") +
+           QString::number(second, 10) + tr(" 秒");
+}
+QString MainWindow::statisticConvertRank(double totalTx, double totalRx)
+{
     QString rankStr;
+    double totalTxRx_MB = totalTx/1024.0/1024.0 + totalRx/1024.0/1024.0;
     if(totalTxRx_MB<100){
         rankStr = tr("恭喜阁下，获得了【青铜码农】的称号！请再接再厉！");
     }else if(totalTxRx_MB<200){
@@ -3105,6 +3079,69 @@ void MainWindow::on_actionUsageStatistic_triggered()
     }else{
         rankStr = tr("荣誉只是浮云~");
     }
+    return rankStr;
+}
+/*
+ * Funciont:显示使用统计
+*/
+void MainWindow::on_actionUsageStatistic_triggered()
+{
+    double currentTx = serial.getTxCnt();
+    double currentRx = serial.getRxCnt();
+    double totalTx = Config::getTotalTxCnt().toDouble() + currentTx;
+    double totalRx = Config::getTotalRxCnt().toDouble() + currentRx;
+    double totalRunTime = Config::getTotalRunTime().toDouble() + currentRunTime;
+
+    QString totalTxStr;
+    QString totalRxStr;
+    QString currentTxStr;
+    QString currentRxStr;
+    QString currentRunTimeStr, totalRunTimeStr;
+    QString totalPlotterNumStr;
+    QString totalValueDisplayUseStr;
+    QString totalPlotterUseStr;
+    QString totalFFTUseStr;
+    QString totalMultiStrUseStr;
+    QString totalAsciiTableUseStr;
+    QString totalStm32IspUseStr;
+    QString totalHexToolUseStr;
+    QString totalASCIIUseStr;
+    QString totalFLOATUseStr;
+    QString totalCSVUseStr;
+    QString totalTeeUseStr;
+    QString totalTeeParseStr;
+    QString totalRegParseStr;
+    QString rankStr;
+
+    //单位换算
+    totalTxStr   = sta_ConvertHuman_Cnt(totalTx);
+    totalRxStr   = sta_ConvertHuman_Cnt(totalRx);
+    currentTxStr = sta_ConvertHuman_Cnt(currentTx);
+    currentRxStr = sta_ConvertHuman_Cnt(currentRx);
+    totalRegParseStr    = sta_ConvertHuman_Cnt(Config::getTotalStatistic(KEY_TOTALREGPARSE) + statisticRegParseCnt);
+    totalTeeParseStr    = sta_ConvertHuman_Cnt(Config::getTotalStatistic(KEY_TOTALTEEPARSE) + statisticTeeParseCnt);
+
+    //次数换算
+    totalPlotterNumStr      = QString::number(Config::getTotalStatistic(KEY_TOTALPLOTTERNUM) + statisticPlotterNumCnt);
+    totalValueDisplayUseStr = QString::number(Config::getTotalStatistic(KEY_TOTALVALUEDISPLAYUSE) + statisticValueDisplayUseCnt);
+    totalPlotterUseStr      = QString::number(Config::getTotalStatistic(KEY_TOTALPLOTTERUSE) + statisticPlotterUseCnt);
+    totalFFTUseStr          = QString::number(Config::getTotalStatistic(KEY_TOTALFFTUSE) + statisticFFTUseCnt);
+    totalMultiStrUseStr     = QString::number(Config::getTotalStatistic(KEY_TOTALMULTISTRUSE) + statisticMultiStrUseCnt);
+    totalAsciiTableUseStr   = QString::number(Config::getTotalStatistic(KEY_TOTALASCIITABLEUSE) + statisticAsciiTableUseCnt);
+    totalStm32IspUseStr     = QString::number(Config::getTotalStatistic(KEY_TOTALSTM32ISPUSE) + statisticStm32IspUseCnt);
+    totalHexToolUseStr      = QString::number(Config::getTotalStatistic(KEY_TOTALHEXTOOLUSE) + statisticHexToolUseCnt);
+    totalASCIIUseStr        = QString::number(Config::getTotalStatistic(KEY_TOTALASCIILUSE) + statisticASCIIUseCnt);
+    totalFLOATUseStr        = QString::number(Config::getTotalStatistic(KEY_TOTALFLOATUSE) + statisticFLOATUseCnt);
+    totalCSVUseStr          = QString::number(Config::getTotalStatistic(KEY_TOTALCSVUSE) + statisticCSVUseCnt);
+    totalTeeUseStr          = QString::number(Config::getTotalStatistic(KEY_TOTALTEEUSE) + statisticTeeUseCnt);
+
+
+    //时间换算
+    currentRunTimeStr = sta_ConvertHuman_Time(currentRunTime);
+    totalRunTimeStr   = sta_ConvertHuman_Time(totalRunTime);
+
+    //排名换算
+    rankStr = statisticConvertRank(totalTx, totalRx);
 
     //上屏显示
     QString str;
@@ -3115,15 +3152,30 @@ void MainWindow::on_actionUsageStatistic_triggered()
     str.append("\n");
     str.append(tr("## 软件使用统计") + "\n");
     str.append(tr("   ### 自本次启动软件以来，阁下：") + "\n");
-    str.append(tr("   - 共发送数据：")+QString::number(currentTx,'f',2)+currentTxUnit + "\n");
-    str.append(tr("   - 共接收数据：")+QString::number(currentRx,'f',2)+currentRxUnit + "\n");
-    str.append(tr("   - 共运行本软件：")+currentRunTimeStr + "\n");
+    str.append(tr("   - 共发送数据：") + currentTxStr + "\n");
+    str.append(tr("   - 共接收数据：") + currentRxStr + "\n");
+    str.append(tr("   - 共运行本软件：") + currentRunTimeStr + "\n");
     str.append("\n");
     str.append(tr("   ### 自首次启动软件以来，阁下：") + "\n");
-    str.append(tr("   - 共发送数据：")+QString::number(totalTx,'f',2)+totalTxUnit + "\n");
-    str.append(tr("   - 共接收数据：")+QString::number(totalRx,'f',2)+totalRxUnit + "\n");
-    str.append(tr("   - 共运行本软件：")+totalRunTimeStr + "\n");
-    str.append(tr("   - 共启动本软件：")+QString::number(Config::getTotalRunCnt().toInt()+1)+tr(" 次") + "\n");
+    str.append(tr("   - 首次启动日期：") + Config::getFirstStartTime() + "\n");
+    str.append(tr("   - 共发送数据：") + totalTxStr + "\n");
+    str.append(tr("   - 共接收数据：") + totalRxStr + "\n");
+    str.append(tr("   - 共运行本软件：") + totalRunTimeStr + "\n");
+    str.append(tr("   - 共启动本软件：") + QString::number(Config::getTotalRunCnt().toLongLong()+1)+tr(" 次") + "\n");
+    str.append(tr("   - 使用绘图器次数：") + totalPlotterUseStr + "\n");
+    str.append(tr("   - 绘制数据点数：") + totalPlotterNumStr + "\n");
+    str.append(tr("   - 使用数值显示器次数：") + totalValueDisplayUseStr + "\n");
+    str.append(tr("   - 使用频谱图次数：") + totalFFTUseStr + "\n");
+    str.append(tr("   - 使用分类引擎次数：") + totalTeeUseStr + "\n");
+    str.append(tr("   - 分类引擎解析数据：") + totalTeeParseStr + "\n");
+    str.append(tr("   - asciiMatch解析数据：") + totalRegParseStr + "\n");
+    str.append(tr("   - 使用多字符串次数：") + totalMultiStrUseStr + "\n");
+    str.append(tr("   - 使用ASCII码表次数：") + totalAsciiTableUseStr + "\n");
+    str.append(tr("   - 使用STM32ISP次数：") + totalStm32IspUseStr + "\n");
+    str.append(tr("   - 使用HEX Tool次数：") + totalHexToolUseStr + "\n");
+    str.append(tr("   - 使用ASCII协议次数：") + totalASCIIUseStr + "\n");
+    str.append(tr("   - 使用FLOAT协议次数：") + totalFLOATUseStr + "\n");
+    str.append(tr("   - 使用CSV协议次数：") + totalCSVUseStr + "\n");
     str.append("\n");
     str.append(tr("   ")+rankStr + "\n");
     str.append("\n");
@@ -3215,6 +3267,7 @@ void MainWindow::on_actionValueDisplay_triggered(bool checked)
     if(checked){
         ui->valueDisplay->show();
         setVisualizerTitle();
+        statisticValueDisplayUseCnt++;
     }else{
         ui->valueDisplay->hide();
         resetVisualizerTitle();
@@ -3730,6 +3783,7 @@ void MainWindow::on_actionFFTShow_triggered(bool checked)
         fft_window->move(pos);
         fft_window->setVisible(true);
         setVisualizerTitle();
+        statisticFFTUseCnt++;
         return;
     }
     fft_window->setVisible(false);
@@ -3759,6 +3813,11 @@ void MainWindow::on_actionTeeSupport_triggered(bool checked)
     ui->actionTeeSupport->setChecked(checked);
     ui->actionTeeLevel2NameSupport->setEnabled(checked);
     textExtractEnable = checked;
+
+    if(checked)
+    {
+        statisticTeeUseCnt++;
+    }
 }
 
 void MainWindow::on_actionTimeStampMode_triggered(bool checked)
@@ -3789,6 +3848,7 @@ void MainWindow::on_actionTimeStampMode_triggered(bool checked)
 void MainWindow::on_actionASCIITable_triggered()
 {
     static Ascii_Table_Dialog *p = nullptr;
+    statisticAsciiTableUseCnt++;
     if(p)
     {
         p->show();
@@ -3864,6 +3924,7 @@ void MainWindow::on_actionHexConverter_triggered(bool checked)
 {
     Q_UNUSED(checked)
     static Hex_Tool_Dialog *p = nullptr;
+    statisticHexToolUseCnt++;
     if(p)
     {
         p->show();
@@ -3954,6 +4015,9 @@ void MainWindow::on_actionLogRecord_triggered(bool checked)
 void MainWindow::on_actionCSV_triggered(bool checked)
 {
     Q_UNUSED(checked)
+
+    if(ui->actionCSV->isChecked())
+        statisticCSVUseCnt++;
 
     ui->customPlot->protocol->clearBuff();
     ui->customPlot->protocol->setProtocolType(DataProtocol::CSV);
