@@ -41,12 +41,13 @@ void RegMatchEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBu
             QByteArray onePack;
             match = reg.match(buffer, scanIndex);
             if(match.hasMatch()) {
-                scanIndex = match.capturedEnd();
+                //-1是因为匹配借用了前面数据包结尾的换行符\n，所以保留最后的换行符供下一个数据包借用
+                scanIndex = match.capturedEnd() - 1;
                 lastScannedIndex = scanIndex;
                 onePack = match.captured(0).toLocal8Bit();
                 onePack.remove(0, 1); //remove first '\n', last
                 matchedDataPool.append(onePack);
-                onePack.remove(onePack.size()-1, 1);
+                onePack.remove(onePack.size()-1, 1);//remove last '\r\n'
                 if(onePack.endsWith("\r"))
                 {
                     onePack.remove(onePack.size()-1, 1);
@@ -73,12 +74,15 @@ void RegMatchEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBu
 void RegMatchEngine::appendData(const QByteArray &newData)
 {
     QByteArray tmp = newData;
-    //正则匹配无法处理\0要删去
+    //正则匹配无法处理\0要删去，信号和槽也无法传递\0
     while(tmp.indexOf('\0') != -1)
     {
         tmp.remove(tmp.indexOf('\0'), 1);
     }
     dataLock.lock();
+    //由于匹配借用了前面数据包结尾的换行符，因此首个数据包要在前面补\n
+    if(rawDataBuff.isEmpty())
+        rawDataBuff = "\n";
     rawDataBuff.append(tmp);
     dataLock.unlock();
 }
@@ -106,6 +110,8 @@ void RegMatchEngine::clearData()
 {
     rawDataBuff.clear();
     matchedDataPool.clear();
+    //由于匹配借用了前面数据包结尾的换行符，因此这里也要保留最后的换行符供下一个数据包借用
+    rawDataBuff = "\n";
 }
 
 //保存指定名字的文本组到指定路径

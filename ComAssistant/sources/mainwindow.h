@@ -56,6 +56,9 @@ class MainWindow;
 extern bool g_agree_statement;
 extern bool g_log_record;
 
+#define TRY_REFRESH_BROWSER_CNT    (10)    //500ms内持续刷新
+#define DO_NOT_REFRESH_BROWSER     (0)
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -249,7 +252,7 @@ private:
 
     HTTP *http = nullptr;
 
-    bool RefreshTextBrowser = true; //数据显示区刷新标记
+    int32_t TryRefreshBrowserCnt = TRY_REFRESH_BROWSER_CNT; //数据显示区刷新标记，大于0的时候会继续刷新
     bool autoRefreshYAxisFlag;
 
     //数据记录

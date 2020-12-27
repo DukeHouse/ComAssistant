@@ -507,7 +507,7 @@ void MainWindow::quickHelp()
         ui->textBrowser->setPlaceholderText(helpText);
         helpText = "Show the string contained the key word"
                 "\n\n"
-                "(only support string which has LF character)";
+                "(only support string which end with LF character)";
         ui->regMatchBrowser->setPlaceholderText(helpText);
         helpText = "input key word";
         ui->regMatchEdit->setPlaceholderText(helpText);
@@ -531,7 +531,7 @@ void MainWindow::quickHelp()
     ui->textBrowser->setPlaceholderText(helpText);
     helpText = "该窗口显示包含关键字符的字符串"
             "\n\n"
-            "（仅支持匹配带换行符\\n的字符串）";
+            "（字符串需以换行符\\n结尾）";
     ui->regMatchBrowser->setPlaceholderText(helpText);
     helpText = "输入要匹配的关键字符";
     ui->regMatchEdit->setPlaceholderText(helpText);
@@ -814,14 +814,14 @@ void MainWindow::printToTextBrowserTimerSlot()
         printToTextBrowser();
         return;
     }
-    if(RefreshTextBrowser == false)
+    if(TryRefreshBrowserCnt == DO_NOT_REFRESH_BROWSER)
         return;
 
     //打印数据
     printToTextBrowser();
 
-    if(RefreshTextBrowser)
-        RefreshTextBrowser = false;
+    if(TryRefreshBrowserCnt)
+        TryRefreshBrowserCnt--;
 }
 
 
@@ -1415,7 +1415,7 @@ void MainWindow::readSerialPort()
     statusStatisticLabel->setText(serial.getTxRxString());
 
     //允许数据刷新
-    RefreshTextBrowser = true;
+    TryRefreshBrowserCnt = TRY_REFRESH_BROWSER_CNT;
 }
 
 //好像有一个bug，parseFileSlot执行多了会蹦，也就是文件大的时候就可能蹦？
@@ -1646,7 +1646,7 @@ void MainWindow::parseTimer100hzSlot()
     if(cnt % (PLOTTER_SHOW_PERIOD/10) == 0)
     {
         //协议解析控制
-        if(RefreshTextBrowser == false)
+        if(TryRefreshBrowserCnt == DO_NOT_REFRESH_BROWSER)
             return;
 
         parsePlotterAndTee();
@@ -3649,7 +3649,7 @@ void MainWindow::on_tabWidget_tabBarClicked(int index)
        ui->tabWidget->tabText(index) == REGMATCH_TAB_NAME )
     {
         resizeEvent(nullptr);
-        RefreshTextBrowser = true;
+        TryRefreshBrowserCnt = TRY_REFRESH_BROWSER_CNT;
     }
 }
 
