@@ -782,6 +782,7 @@ QString Config::getTotalRunCnt(void){
     return value;
 }
 
+// general
 void Config::addCurrentStatistic(QString key, int64_t cnt){
     createDefaultIfNotExist();
     int64_t total = getTotalStatistic(key);
@@ -793,6 +794,21 @@ void Config::addCurrentStatistic(QString key, int64_t cnt){
 int64_t Config::getTotalStatistic(QString key){
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
     int64_t value = iniFile->value(SECTION_STATISTIC+key, 0).toLongLong();
+    delete iniFile;
+    return value;
+}
+
+void Config::setConfigString(QString section, QString key, QString containt)
+{
+    createDefaultIfNotExist();
+    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
+    iniFile->setValue(section + key, containt);
+    delete iniFile;
+}
+QString Config::getConfigString(QString section, QString key)
+{
+    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
+    QString value = iniFile->value(section + key, "").toString();
     delete iniFile;
     return value;
 }

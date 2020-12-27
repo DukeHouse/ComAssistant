@@ -100,6 +100,16 @@ void MainWindow::readConfig()
         multi.pop_front();
     }
 
+    //tab页面和匹配字符串
+    ui->regMatchEdit->setText(Config::getConfigString(SECTION_GLOBAL, KEY_REG_MATCH_STR));
+    QString activatedTabName = Config::getConfigString(SECTION_GLOBAL, KEY_ACTIVATED_TAB);
+    for(int32_t i = 0; i < ui->tabWidget->count(); i++){
+        if(ui->tabWidget->tabText(i) == activatedTabName){
+            ui->tabWidget->setCurrentIndex(i);
+            break;
+        }
+    }
+
     //文件对话框路径
     lastFileDialogPath = Config::getLastFileDialogPath();
 
@@ -531,7 +541,7 @@ void MainWindow::quickHelp()
     ui->textBrowser->setPlaceholderText(helpText);
     helpText = "该窗口显示包含关键字符的字符串"
             "\n\n"
-            "（字符串需以换行符\\n结尾）";
+            "（字符串需以换行符\\n结尾；若要匹配中文请使用UTF8编码）";
     ui->regMatchBrowser->setPlaceholderText(helpText);
     helpText = "输入要匹配的关键字符";
     ui->regMatchEdit->setPlaceholderText(helpText);
@@ -1022,7 +1032,10 @@ MainWindow::~MainWindow()
         Config::setPopupHotKey(g_popupHotKeySequence);
         Config::setTeeSupport(textExtractEnable);
         Config::setTeeLevel2NameSupport(p_textExtract->getLevel2NameSupport());
-
+        Config::setConfigString(SECTION_GLOBAL, KEY_ACTIVATED_TAB,
+                                ui->tabWidget->tabText(ui->tabWidget->currentIndex()));
+        Config::setConfigString(SECTION_GLOBAL, KEY_REG_MATCH_STR,
+                                ui->regMatchEdit->text());
         //serial 只保存成功打开过的
         Config::setPortName(serial.portName());
         Config::setBaudrate(serial.baudRate());

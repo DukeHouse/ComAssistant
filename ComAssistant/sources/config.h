@@ -42,6 +42,8 @@
 #define KEY_TEE_Support         QString("TeeEnable")
 #define KEY_TEE_LEVEL2_NAME     QString("TeeLevel2NameEnable")
 #define KEY_LOG_RECORD          QString("LogRecord")
+#define KEY_ACTIVATED_TAB       QString("ActivatedTab")
+#define KEY_REG_MATCH_STR       QString("RegMatchStr")
 
 //serial键
 #define KEY_PORTNAME        QString("PortName")
@@ -234,8 +236,12 @@ public:
     static QString getTotalRxCnt(void);
     static void setTotalRunCnt(int64_t runCnt=1);
     static QString getTotalRunCnt(void);
+
+    //general
     static void addCurrentStatistic(QString key, int64_t cnt);
     static int64_t getTotalStatistic(QString key);
+    static void setConfigString(QString section, QString key, QString containt);
+    static QString getConfigString(QString section, QString key);
 };
 
 #endif // CONFIG_H
