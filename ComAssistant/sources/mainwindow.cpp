@@ -3022,28 +3022,47 @@ void MainWindow::on_actionKeyWordHighlight_triggered(bool checked)
 /*
  * 字节数据转换成人类习惯的单位
  */
-QString MainWindow::sta_ConvertHuman_Cnt(double num)
+QString MainWindow::sta_ConvertHuman_Byte(double num)
 {
+    double num_back = num;
     int64_t nest = 0;
     QString unit;
     QString ret;
     nest = 0;
-    while(num>1024){
-        num = num/1024.0;
+
+    while(num > 1024){
+        num = num / 1024.0;
         nest++;
     }
+
     switch(nest){
-        case 0:unit = " B";break;
-        case 1:unit = " KB";break;
-        case 2:unit = " MB";break;
-        case 3:unit = " GB";break;
-        case 4:unit = " TB";break;
+        case 0:
+            unit = " B";
+            ret  = QString::number(static_cast<int64_t>(num)) + unit;
+            break;
+        case 1:
+            unit = " KB";
+            ret  = QString::number(num, 'f', 3) + unit;
+            break;
+        case 2:
+            unit = " MB";
+            ret  = QString::number(num, 'f', 3) + unit;
+            break;
+        case 3:
+            unit = " GB";
+            ret  = QString::number(num, 'f', 3) + unit;
+            break;
+        case 4:
+            unit = " TB";
+            ret  = QString::number(num, 'f', 3) + unit;
+            break;
+        default:
+            num = num_back;
+            ret  = QString::number(static_cast<int64_t>(num)) + " B";
+            break;
     }
-    if(unit == " B")
-    {
-        return QString::number(static_cast<int64_t>(num)) + unit;
-    }
-    return QString::number(num, 'f', 2) + unit;
+
+    return ret;
 }
 /*
  * 时间数据转换成人类习惯的单位
@@ -3099,8 +3118,8 @@ QString MainWindow::statisticConvertRank(double totalTx, double totalRx)
 */
 void MainWindow::on_actionUsageStatistic_triggered()
 {
-    double currentTx = serial.getTxCnt();
-    double currentRx = serial.getRxCnt();
+    double currentTx = serial.getTotalTxCnt();
+    double currentRx = serial.getTotalRxCnt();
     double totalTx = Config::getTotalTxCnt().toDouble() + currentTx;
     double totalRx = Config::getTotalRxCnt().toDouble() + currentRx;
     double totalRunTime = Config::getTotalRunTime().toDouble() + currentRunTime;
@@ -3127,13 +3146,13 @@ void MainWindow::on_actionUsageStatistic_triggered()
     QString rankStr;
 
     //单位换算
-    totalTxStr   = sta_ConvertHuman_Cnt(totalTx);
-    totalRxStr   = sta_ConvertHuman_Cnt(totalRx);
-    currentTxStr = sta_ConvertHuman_Cnt(currentTx);
-    currentRxStr = sta_ConvertHuman_Cnt(currentRx);
-    totalRegParseStr    = sta_ConvertHuman_Cnt(Config::getTotalStatistic(KEY_TOTALREGPARSE) + statisticRegParseCnt);
-    totalTeeParseStr    = sta_ConvertHuman_Cnt(Config::getTotalStatistic(KEY_TOTALTEEPARSE) + statisticTeeParseCnt);
-    totalPlotterNumStr  = sta_ConvertHuman_Cnt(Config::getTotalStatistic(KEY_TOTALPLOTTERNUM) + statisticPlotterNumCnt);
+    totalTxStr   = sta_ConvertHuman_Byte(totalTx);
+    totalRxStr   = sta_ConvertHuman_Byte(totalRx);
+    currentTxStr = sta_ConvertHuman_Byte(currentTx);
+    currentRxStr = sta_ConvertHuman_Byte(currentRx);
+    totalRegParseStr    = sta_ConvertHuman_Byte(Config::getTotalStatistic(KEY_TOTALREGPARSE) + statisticRegParseCnt);
+    totalTeeParseStr    = sta_ConvertHuman_Byte(Config::getTotalStatistic(KEY_TOTALTEEPARSE) + statisticTeeParseCnt);
+    totalPlotterNumStr  = sta_ConvertHuman_Byte(Config::getTotalStatistic(KEY_TOTALPLOTTERNUM) + statisticPlotterNumCnt);
     totalPlotterNumStr  = totalPlotterNumStr.mid(0, totalPlotterNumStr.size() - 1); //移除最后的字符B
 
     //次数换算

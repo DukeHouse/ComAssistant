@@ -206,7 +206,7 @@ private:
     void updateUIPanelFont(QFont font);
     int32_t firstRunNotify();
     void updateFunctionButtonTitle();
-    QString sta_ConvertHuman_Cnt(double num);
+    QString sta_ConvertHuman_Byte(double num);
     QString sta_ConvertHuman_Time(double sec);
     QString statisticConvertRank(double totalTx, double totalRx);
     Ui::MainWindow *ui;
