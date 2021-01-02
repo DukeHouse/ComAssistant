@@ -15,6 +15,7 @@
 #include <QTimer>
 #include <QMutex>
 #include <QPlainTextEdit>
+#include <QTextCodec>
 
 class RegMatchEngine : public QObject
 {
@@ -30,6 +31,7 @@ public:
     explicit RegMatchEngine(QObject *parent = nullptr);
     ~RegMatchEngine();
     void updateRegMatch(QString newStr);
+    void updateCodec(QString codec);
 
 public slots:
     void appendData(const QByteArray &newData);
@@ -38,7 +40,7 @@ public slots:
     void clearData();
     qint32 saveData(const QString &path);
 signals:
-    void dataUpdated(const QString &packData);
+    void dataUpdated(const QByteArray &packData);
     void saveDataResult(const qint32& result, const QString &path, const qint32 fileSize);
 
 private:

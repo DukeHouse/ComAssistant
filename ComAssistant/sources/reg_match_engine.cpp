@@ -22,10 +22,16 @@ void RegMatchEngine::updateRegMatch(QString newStr)
     }
 }
 
+//好像没啥用
+void RegMatchEngine::updateCodec(QString codec)
+{
+    QTextCodec::setCodecForLocale(QTextCodec::codecForName(codec.toLocal8Bit()));
+}
+
 //从缓存中提取所有包
 void RegMatchEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBuffer, QMutex &bufferLock)
 {
-    if(buffer.isEmpty())
+    if(buffer.isEmpty() || buffer == "\n")
         return;
     if(RegMatchStr.isEmpty())
         return;
@@ -35,7 +41,7 @@ void RegMatchEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBu
     QRegularExpressionMatch match;
     int scanIndex = 0;
     int lastScannedIndex = 0;
-    reg.setPattern(pattern);
+    reg.setPattern(pattern.toLocal8Bit());
     reg.setPatternOptions(QRegularExpression::InvertedGreedinessOption);//设置为非贪婪模式匹配
     do {
             QByteArray onePack;
@@ -45,6 +51,21 @@ void RegMatchEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBu
                 scanIndex = match.capturedEnd() - 1;
                 lastScannedIndex = scanIndex;
                 onePack = match.captured(0).toLocal8Bit();
+                //中文兼容处理
+                if(onePack.size() != match.capturedEnd() - match.capturedStart())
+                {
+                    //GBK模式：match.capturedEnd()正确但onePack错误
+                    if(onePack.size() < match.capturedEnd() - match.capturedStart())
+                    {
+                        onePack = buffer.mid(match.capturedStart(), match.capturedEnd() - match.capturedStart());
+                    }
+                    //UTF8模式：match.capturedEnd()错误但onePack正确
+                    else if(onePack.size() > match.capturedEnd() - match.capturedStart())
+                    {
+                        scanIndex = match.capturedStart() + onePack.size() - 1;
+                        lastScannedIndex = scanIndex;
+                    }
+                }
                 onePack.remove(0, 1); //remove first '\n', last
                 matchedDataPool.append(onePack);
                 onePack.remove(onePack.size()-1, 1);//remove last '\r\n'

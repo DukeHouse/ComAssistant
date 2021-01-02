@@ -325,7 +325,7 @@ signals:
 public slots:
     void tee_textGroupsUpdate(const QString &name, const QByteArray &data);
     void tee_saveDataResult(const qint32& result, const QString &path, const qint32 fileSize);
-    void regM_dataUpdated(const QString &packData);
+    void regM_dataUpdated(const QByteArray &packData);
     void regM_saveDataResult(const qint32& result, const QString &path, const qint32 fileSize);
 
 protected:

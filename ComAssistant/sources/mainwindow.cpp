@@ -396,8 +396,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, SIGNAL(regM_clearData()), p_regMatch, SLOT(clearData()));
     connect(this, SIGNAL(regM_saveData(const QString &)),
             p_regMatch, SLOT(saveData(const QString &)));
-    connect(p_regMatch, SIGNAL(dataUpdated(const QString &)),
-            this, SLOT(regM_dataUpdated(const QString &)));
+    connect(p_regMatch, SIGNAL(dataUpdated(const QByteArray &)),
+            this, SLOT(regM_dataUpdated(const QByteArray &)));
     connect(p_regMatch, SIGNAL(saveDataResult(const qint32&, const QString &, const qint32 )),
             this, SLOT(regM_saveDataResult(const qint32&, const QString &, const qint32 )));
     p_regMatchThread->start();
@@ -541,7 +541,7 @@ void MainWindow::quickHelp()
     ui->textBrowser->setPlaceholderText(helpText);
     helpText = "该窗口显示包含关键字符的字符串"
             "\n\n"
-            "（字符串需以换行符\\n结尾；若要匹配中文请使用UTF8编码）";
+            "（字符串需以换行符\\n结尾）";
     ui->regMatchBrowser->setPlaceholderText(helpText);
     helpText = "输入要匹配的关键字符";
     ui->regMatchEdit->setPlaceholderText(helpText);
@@ -760,9 +760,22 @@ void MainWindow::tee_saveDataResult(const qint32& result, const QString &path, c
     }
 }
 
-void MainWindow::regM_dataUpdated(const QString &packData)
+void MainWindow::regM_dataUpdated(const QByteArray &packData)
 {
-    ui->regMatchBrowser->appendPlainText(packData);
+    QByteArray newPackData = packData;
+    if(ui->actionGBK->isChecked())
+    {
+        QTextCodec *utf8 = QTextCodec::codecForName("UTF-8");
+        QTextCodec* gbk = QTextCodec::codecForName("gbk");
+
+        //gbk -> utf8
+        //1. gbk to unicode
+        //2. unicode -> utf-8
+        newPackData = utf8->fromUnicode(
+                      gbk->toUnicode(newPackData)
+                      );
+    }
+    ui->regMatchBrowser->appendPlainText(newPackData);
     ui->regMatchBrowser->moveCursor(QTextCursor::End);
 
     statisticRegParseCnt += packData.size();
@@ -2025,6 +2038,9 @@ void MainWindow::on_actionUTF8_triggered(bool checked)
         QTextCodec *codec = QTextCodec::codecForName("UTF-8");
         QTextCodec::setCodecForLocale(codec);
         ui->actionGBK->setChecked(false);
+
+        p_regMatch->updateCodec("UTF-8");
+        on_regMatchEdit_textChanged(ui->regMatchEdit->text());
     }
 }
 
@@ -2036,6 +2052,9 @@ void MainWindow::on_actionGBK_triggered(bool checked)
         QTextCodec *codec = QTextCodec::codecForName("GBK");
         QTextCodec::setCodecForLocale(codec);
         ui->actionUTF8->setChecked(false);
+
+        p_regMatch->updateCodec("GBK");
+        on_regMatchEdit_textChanged(ui->regMatchEdit->text());
     }
 }
 
