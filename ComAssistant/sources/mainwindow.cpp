@@ -2577,6 +2577,13 @@ void MainWindow::addSeedSlot()
 //更新数据可视化按钮的标题
 void MainWindow::setVisualizerTitle(void)
 {
+    if(!ui->actionPlotterSwitch->isChecked() &&
+       !ui->actionValueDisplay->isChecked() &&
+       !ui->actionFFTShow->isChecked())
+    {
+        return;
+    }
+
     if(ui->actionAscii->isChecked()){
         if(ui->actionSumCheck->isChecked())
             ui->visualizer->setTitle(tr("数据可视化：ASCII协议(和校验)"));

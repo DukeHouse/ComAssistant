@@ -27,8 +27,25 @@ DataProtocol::ProtocolType_e DataProtocol::getProtocolType()
 
 void DataProtocol::appendData(const QByteArray &data)
 {
+    QByteArray tmp;
+    if(protocolType == Ascii)
+    {
+        //剔除正则匹配无法很好支持的字符：中文、'\0'
+        foreach(char ch, data)
+        {
+            if(ch & 0x80 || ch == '\0')
+            {
+                continue;
+            }
+            tmp.append(ch);
+        }
+    }
+    else
+    {
+        tmp = data;
+    }
     tempDataPoolLock.lock();
-    tempDataPool.append(data);
+    tempDataPool.append(tmp);
     tempDataPoolLock.unlock();
 }
 

@@ -138,11 +138,15 @@ void TextExtractEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& res
 
 void TextExtractEngine::appendData(const QByteArray &newData)
 {
-    QByteArray tmp = newData;
-    //正则匹配无法处理\0要删去
-    while(tmp.indexOf('\0') != -1)
+    QByteArray tmp;
+    //剔除正则匹配无法很好支持的字符：中文、'\0'
+    foreach(char ch, newData)
     {
-        tmp.remove(tmp.indexOf('\0'), 1);
+        if(ch & 0x80 || ch == '\0')
+        {
+            continue;
+        }
+        tmp.append(ch);
     }
     dataLock.lock();
     rawData.buff.append(tmp);

@@ -80,7 +80,7 @@ void RegMatchEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBu
 void RegMatchEngine::appendData(const QByteArray &newData)
 {
     QByteArray tmp;
-    //剔除中文和\0，因为正则匹配类对中文支持太差，救不了
+    //剔除正则匹配无法很好支持的字符：中文、'\0'
     foreach(char ch, newData)
     {
         if(ch & 0x80 || ch == '\0')
