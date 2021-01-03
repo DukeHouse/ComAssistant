@@ -3992,6 +3992,16 @@ void MainWindow::on_regMatchEdit_textChanged(const QString &arg1)
     {
         return;
     }
+    QByteArray temp = arg1.toLocal8Bit();
+    foreach(char ch, temp)
+    {
+        if(ch & 0x80)
+        {
+            //该操作会再次触发信号
+            ui->regMatchEdit->setText("ERROR: Please use ASCII character!");
+            return;
+        }
+    }
     emit regM_clearData();
     ui->regMatchBrowser->clear();
     p_regMatch->updateRegMatch(arg1);

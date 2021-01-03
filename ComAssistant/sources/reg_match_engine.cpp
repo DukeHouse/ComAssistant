@@ -51,21 +51,6 @@ void RegMatchEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBu
                 scanIndex = match.capturedEnd() - 1;
                 lastScannedIndex = scanIndex;
                 onePack = match.captured(0).toLocal8Bit();
-                //中文兼容处理
-                if(onePack.size() != match.capturedEnd() - match.capturedStart())
-                {
-                    //GBK模式：match.capturedEnd()正确但onePack错误
-                    if(onePack.size() < match.capturedEnd() - match.capturedStart())
-                    {
-                        onePack = buffer.mid(match.capturedStart(), match.capturedEnd() - match.capturedStart());
-                    }
-                    //UTF8模式：match.capturedEnd()错误但onePack正确
-                    else if(onePack.size() > match.capturedEnd() - match.capturedStart())
-                    {
-                        scanIndex = match.capturedStart() + onePack.size() - 1;
-                        lastScannedIndex = scanIndex;
-                    }
-                }
                 onePack.remove(0, 1); //remove first '\n', last
                 matchedDataPool.append(onePack);
                 onePack.remove(onePack.size()-1, 1);//remove last '\r\n'
@@ -94,11 +79,15 @@ void RegMatchEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBu
 
 void RegMatchEngine::appendData(const QByteArray &newData)
 {
-    QByteArray tmp = newData;
-    //正则匹配无法处理\0要删去，信号和槽也无法传递\0
-    while(tmp.indexOf('\0') != -1)
+    QByteArray tmp;
+    //剔除中文和\0，因为正则匹配类对中文支持太差，救不了
+    foreach(char ch, newData)
     {
-        tmp.remove(tmp.indexOf('\0'), 1);
+        if(ch & 0x80 || ch == '\0')
+        {
+            continue;
+        }
+        tmp.append(ch);
     }
     dataLock.lock();
     //由于匹配借用了前面数据包结尾的换行符，因此首个数据包要在前面补\n
