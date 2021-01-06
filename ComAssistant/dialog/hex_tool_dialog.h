@@ -30,6 +30,10 @@ private slots:
 
     void on_pushButton_HexToFloat_clicked();
 
+    void on_pushButton_FloatToHex_BigEndian_clicked();
+
+    void on_pushButton_HexToFloat_BigEndian_clicked();
+
 private:
     Ui::Hex_Tool_Dialog *ui;
     int32_t replace_spliter_to_space(QString input, QString &output, QString RegExp);

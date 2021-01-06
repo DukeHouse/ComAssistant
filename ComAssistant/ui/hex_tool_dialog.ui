@@ -15,12 +15,12 @@
   </property>
   <layout class="QGridLayout" name="gridLayout_2">
    <item row="0" column="0">
-    <layout class="QGridLayout" name="gridLayout" rowstretch="0,0,0,0,0" columnstretch="0,0,0" columnminimumwidth="0,0,0">
+    <layout class="QGridLayout" name="gridLayout" rowstretch="0,0,0,0,0,0,0" columnstretch="0,0,0" columnminimumwidth="0,0,0">
      <property name="spacing">
       <number>6</number>
      </property>
      <item row="2" column="1">
-      <widget class="QPushButton" name="pushButton_clear">
+      <widget class="QPushButton" name="pushButton_FloatToHex_BigEndian">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
          <horstretch>0</horstretch>
@@ -28,25 +28,20 @@
         </sizepolicy>
        </property>
        <property name="text">
-        <string>Clear</string>
+        <string>---&gt;
+Float To Hex
+(Big Endian)</string>
        </property>
       </widget>
      </item>
-     <item row="0" column="0" rowspan="5">
+     <item row="0" column="0" rowspan="7">
       <widget class="QPlainTextEdit" name="asciiBrowser">
        <property name="placeholderText">
         <string>ASCII输入/输出区</string>
        </property>
       </widget>
      </item>
-     <item row="0" column="2" rowspan="5">
-      <widget class="QPlainTextEdit" name="hexBrowser">
-       <property name="placeholderText">
-        <string>HEX输入/输出区</string>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="1">
+     <item row="6" column="1">
       <widget class="QPushButton" name="pushButton_HexToAscii">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -60,8 +55,27 @@ Hex To Ascii</string>
        </property>
       </widget>
      </item>
-     <item row="1" column="1">
-      <widget class="QPushButton" name="pushButton_FloatToHex">
+     <item row="3" column="1">
+      <widget class="QPushButton" name="pushButton_clear">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="font">
+        <font>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Clear</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="1">
+      <widget class="QPushButton" name="pushButton_HexToFloat">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
          <horstretch>0</horstretch>
@@ -69,9 +83,9 @@ Hex To Ascii</string>
         </sizepolicy>
        </property>
        <property name="text">
-        <string>---&gt;
-Float To Hex
-(Little End)</string>
+        <string>&lt;---
+ Hex To Float
+(Little Endian)</string>
        </property>
       </widget>
      </item>
@@ -89,8 +103,30 @@ Ascii To Hex</string>
        </property>
       </widget>
      </item>
-     <item row="3" column="1">
-      <widget class="QPushButton" name="pushButton_HexToFloat">
+     <item row="1" column="1">
+      <widget class="QPushButton" name="pushButton_FloatToHex">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>---&gt;
+Float To Hex
+(Little Endian)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="2" rowspan="7">
+      <widget class="QPlainTextEdit" name="hexBrowser">
+       <property name="placeholderText">
+        <string>HEX输入/输出区</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QPushButton" name="pushButton_HexToFloat_BigEndian">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
          <horstretch>0</horstretch>
@@ -100,7 +136,7 @@ Ascii To Hex</string>
        <property name="text">
         <string>&lt;---
  Hex To Float
-(Little End)</string>
+(Big Endian)</string>
        </property>
       </widget>
      </item>

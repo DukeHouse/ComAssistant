@@ -118,7 +118,7 @@ void Hex_Tool_Dialog::on_pushButton_FloatToHex_clicked()
         if(!ok)
         {
             QMessageBox::information(this, tr("提示"), tr("转换失败，数据错误：") + list.at(i));
-            return;
+            break;
         }
 
         QByteArray array = QByteArray::fromRawData(reinterpret_cast<char *>(&num), sizeof(float));
@@ -169,7 +169,7 @@ void Hex_Tool_Dialog::on_pushButton_HexToFloat_clicked()
         {
             QMessageBox::information(this, tr("提示"),
                                      tr("转换失败，数据错误：") + list.at(i));
-            return;
+            break;
         }
         subStr.insert(6, ' ');
         subStr.insert(4, ' ');
@@ -180,6 +180,100 @@ void Hex_Tool_Dialog::on_pushButton_HexToFloat_clicked()
         {
             QMessageBox::information(this, tr("提示"),
                                      tr("转换失败，数据错误：") + list.at(i));
+            break;
+        }
+        showStr.append(QString::number(num));
+        showStr.append(" ");
+    }
+    ui->asciiBrowser->setPlainText(showStr);
+}
+
+void Hex_Tool_Dialog::on_pushButton_FloatToHex_BigEndian_clicked()
+{
+    if(ui->asciiBrowser->toPlainText().isEmpty())
+        return;
+
+    QString str;
+
+    float_data_pre_formatter(ui->asciiBrowser->toPlainText().toLocal8Bit(), str);
+
+    QStringList list = str.split(' ');
+
+    float num;
+    QString numStr;
+    QString showStr;
+    bool ok;
+    for(int32_t i = 0; i < list.size(); i++)
+    {
+        num = list.at(i).toFloat(&ok);
+        if(!ok)
+        {
+            QMessageBox::information(this, tr("提示"), tr("转换失败，数据错误：") + list.at(i));
+            break;
+        }
+
+        QByteArray array = QByteArray::fromRawData(reinterpret_cast<char *>(&num), sizeof(float));
+        QByteArray invertedArray;
+        if(array.size() != 4)
+        {
+            QMessageBox::information(this, tr("提示"), tr("转换失败，数据错误：") + list.at(i));
+            break;
+        }
+        invertedArray.append(array.at(3));
+        invertedArray.append(array.at(2));
+        invertedArray.append(array.at(1));
+        invertedArray.append(array.at(0));
+        numStr = toHexDisplay(invertedArray);
+        numStr.remove(' ');
+        showStr.append(numStr);
+        showStr.append(' ');
+    }
+    ui->hexBrowser->setPlainText(showStr);
+}
+
+void Hex_Tool_Dialog::on_pushButton_HexToFloat_BigEndian_clicked()
+{
+    if(ui->hexBrowser->toPlainText().isEmpty())
+    {
+        return;
+    }
+
+    QString str = ui->hexBrowser->toPlainText().toLocal8Bit();
+    replace_spliter_to_space(str, str, "[,;\\\\/]");
+    replace_spliter_to_space(str, str, "[，。；、、]");
+    replace_spliter_to_space(str, str, "\n");
+    str = str.simplified();
+
+    QStringList list = str.split(' ');
+    QString subStr;
+    QString showStr;
+    float num;
+    bool ok;
+    for(int32_t i = 0; i < list.size(); i++)
+    {
+        subStr = list.at(i);
+        if(subStr.size() != 8)
+        {
+            QMessageBox::information(this, tr("提示"),
+                                     tr("转换失败，数据错误：") + list.at(i));
+            break;
+        }
+        QString invertedSubStr;
+        invertedSubStr.append(subStr.mid(6, 2));
+        invertedSubStr.append(subStr.mid(4, 2));
+        invertedSubStr.append(subStr.mid(2, 2));
+        invertedSubStr.append(subStr.mid(0, 2));
+        subStr = invertedSubStr;
+        subStr.insert(6, ' ');
+        subStr.insert(4, ' ');
+        subStr.insert(2, ' ');
+        QByteArray array;
+        array = HexStringToByteArray(subStr, ok);
+        if(!byteArrayToFloat(array, num))
+        {
+            QMessageBox::information(this, tr("提示"),
+                                     tr("转换失败，数据错误：") + list.at(i));
+            break;
         }
         showStr.append(QString::number(num));
         showStr.append(" ");
