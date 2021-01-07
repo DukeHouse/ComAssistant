@@ -6,6 +6,12 @@ About_Me_Dialog::About_Me_Dialog(QWidget *parent) :
     ui(new Ui::About_Me_Dialog)
 {
     ui->setupUi(this);
+
+#ifdef Q_OS_WIN32
+    QFont font("Microsoft YaHei", 10);
+    ui->textBrowser->document()->setDefaultFont(font);
+#endif
+
     //使用了高亮器html显示会出问题
 }
 
