@@ -34,6 +34,8 @@ private slots:
 
     void on_QtUrl_Compiler_linkActivated(const QString &link);
 
+    void on_QtUrl_SupportUs_linkActivated(const QString &link);
+
 private:
     Ui::About_Me_Dialog *ui;
 };

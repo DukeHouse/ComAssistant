@@ -80,3 +80,8 @@ void About_Me_Dialog::on_QtUrl_Compiler_linkActivated(const QString &link)
 {
     QDesktopServices::openUrl(QUrl(link));
 }
+
+void About_Me_Dialog::on_QtUrl_SupportUs_linkActivated(const QString &link)
+{
+    QDesktopServices::openUrl(QUrl(link));
+}
