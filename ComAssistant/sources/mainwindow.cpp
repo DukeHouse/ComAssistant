@@ -3179,6 +3179,9 @@ void MainWindow::on_actionUsageStatistic_triggered()
     QString currentTxStr;
     QString currentRxStr;
     QString currentRunTimeStr, totalRunTimeStr;
+    QString currentRegParseStr;
+    QString currentTeeParseStr;
+    QString currentPlotterNumStr;
     QString totalPlotterNumStr;
     QString totalValueDisplayUseStr;
     QString totalPlotterUseStr;
@@ -3201,6 +3204,10 @@ void MainWindow::on_actionUsageStatistic_triggered()
     totalRxStr   = sta_ConvertHuman_Byte(totalRx);
     currentTxStr = sta_ConvertHuman_Byte(currentTx);
     currentRxStr = sta_ConvertHuman_Byte(currentRx);
+    currentRegParseStr    = sta_ConvertHuman_Byte(statisticRegParseCnt);
+    currentTeeParseStr    = sta_ConvertHuman_Byte(statisticTeeParseCnt);
+    currentPlotterNumStr  = sta_ConvertHuman_Byte(statisticPlotterNumCnt);
+    currentPlotterNumStr  = currentPlotterNumStr.mid(0, currentPlotterNumStr.size() - 1); //移除最后的字符B
     totalRegParseStr    = sta_ConvertHuman_Byte(Config::getTotalStatistic(KEY_TOTALREGPARSE) + statisticRegParseCnt);
     totalTeeParseStr    = sta_ConvertHuman_Byte(Config::getTotalStatistic(KEY_TOTALTEEPARSE) + statisticTeeParseCnt);
     totalPlotterNumStr  = sta_ConvertHuman_Byte(Config::getTotalStatistic(KEY_TOTALPLOTTERNUM) + statisticPlotterNumCnt);
@@ -3240,6 +3247,9 @@ void MainWindow::on_actionUsageStatistic_triggered()
     str.append(tr("   - 共发送数据：") + currentTxStr + "\n");
     str.append(tr("   - 共接收数据：") + currentRxStr + "\n");
     str.append(tr("   - 共运行本软件：") + currentRunTimeStr + "\n");
+    str.append(tr("   - 绘制数据点数：") + currentPlotterNumStr + "\n");
+    str.append(tr("   - 分类引擎解析数据：") + currentTeeParseStr + "\n");
+    str.append(tr("   - asciiMatch解析数据：") + currentRegParseStr + "\n");
     str.append("\n");
     str.append(tr("   ### 自首次启动软件以来，阁下：") + "\n");
     str.append(tr("   - 首次启动日期：") + Config::getFirstStartTime() + "\n");
