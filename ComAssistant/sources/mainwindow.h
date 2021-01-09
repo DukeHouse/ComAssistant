@@ -144,6 +144,7 @@ private slots:
     void on_actionAscii_triggered(bool checked);
     void on_actionFloat_triggered(bool checked);
     void on_actionCSV_triggered(bool checked);
+    void on_actionMAD_triggered(bool checked);
     void on_actiondebug_triggered(bool checked);
     void on_actionSumCheck_triggered(bool checked);
     void on_actionOpenGL_triggered(bool checked);
@@ -282,6 +283,7 @@ private:
     int64_t statisticASCIIUseCnt = 0;
     int64_t statisticFLOATUseCnt = 0;
     int64_t statisticCSVUseCnt = 0;
+    int64_t statisticMADUseCnt = 0;
     int64_t statisticTeeUseCnt = 0;
     int64_t statisticTeeParseCnt = 0;
     int64_t statisticRegParseCnt = 0;

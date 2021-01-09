@@ -778,6 +778,7 @@ p, li { white-space: pre-wrap; }
      <addaction name="actionAscii"/>
      <addaction name="actionFloat"/>
      <addaction name="actionCSV"/>
+     <addaction name="actionMAD"/>
      <addaction name="separator"/>
      <addaction name="actionSumCheck"/>
     </widget>
@@ -955,6 +956,9 @@ p, li { white-space: pre-wrap; }
    </property>
    <property name="text">
     <string>FLOAT</string>
+   </property>
+   <property name="statusTip">
+    <string>以float格式解析数据，精度高但可读性为0</string>
    </property>
   </action>
   <action name="actionLinePlot">
@@ -1225,6 +1229,20 @@ p, li { white-space: pre-wrap; }
    </property>
    <property name="text">
     <string>CSV</string>
+   </property>
+   <property name="statusTip">
+    <string>提取以逗号分隔的数字进行绘图</string>
+   </property>
+  </action>
+  <action name="actionMAD">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>MAD</string>
+   </property>
+   <property name="statusTip">
+    <string>疯狗协议，一行字符串中的数据都进行绘图</string>
    </property>
   </action>
  </widget>

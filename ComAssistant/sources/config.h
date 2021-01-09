@@ -90,6 +90,7 @@
 #define KEY_TOTALASCIILUSE      QString("TotalASCIIUse")
 #define KEY_TOTALFLOATUSE       QString("TotalFLOATUse")
 #define KEY_TOTALCSVUSE         QString("TotalCSVUse")
+#define KEY_TOTALMADUSE         QString("TotalMADUse")
 #define KEY_TOTALTEEUSE         QString("TotalTeeUse")
 #define KEY_TOTALTEEPARSE       QString("TotalTeeParseCnt")
 #define KEY_TOTALREGPARSE       QString("TotalRegParseCnt")
@@ -117,6 +118,8 @@ enum ProtocolType_e{
     Float_SumCheck,
     CSV,
     CSV_SumCheck,
+    MAD,
+    MAD_SumCheck,
 };
 
 enum LineType_e{

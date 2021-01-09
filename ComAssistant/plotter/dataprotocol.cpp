@@ -28,7 +28,7 @@ DataProtocol::ProtocolType_e DataProtocol::getProtocolType()
 void DataProtocol::appendData(const QByteArray &data)
 {
     QByteArray tmp;
-    if(protocolType == Ascii)
+    if(protocolType != Float)
     {
         //剔除正则匹配无法很好支持的字符：中文、'\0'
         foreach(char ch, data)
@@ -240,6 +240,46 @@ inline void DataProtocol::parsePacksFromBuffer(QByteArray& buffer, QByteArray& r
         restBuffer = buffer.mid(lastScannedIndex);
         bufferLock.unlock();
     }
+    else if(protocolType == MAD)
+    {
+        QRegularExpression reg;
+        QRegularExpressionMatch match;
+        int scanIndex = 0;
+        int lastScannedIndex = 0;
+        //逗号分隔符格式
+        reg.setPattern(".*\n");
+        reg.setPatternOptions(QRegularExpression::InvertedGreedinessOption);//设置为非贪婪模式匹配
+        do {
+                QByteArray onePack;
+                match = reg.match(buffer, scanIndex);
+                if(match.hasMatch()) {
+                    scanIndex = match.capturedEnd();
+                    lastScannedIndex = scanIndex;
+                    onePack.clear();
+                    onePack.append(match.captured(0).toLocal8Bit());
+                    if(!onePack.isEmpty()){
+                        RowData_t data = extractRowData(onePack);
+                        addToDataPool(data, enableSumCheck);
+                    }
+//                    qDebug()<<"match"<<match.captured(0);
+                }
+                else{
+//                    qDebug()<<"no match";
+                    if(buffer.size() - scanIndex > MAX_EXTRACT_LENGTH)
+                    {
+                        scanIndex += MAX_EXTRACT_LENGTH;
+                    }
+                    else
+                    {
+                        scanIndex++;
+                    }
+                }
+        } while(scanIndex < buffer.size());
+
+        bufferLock.lock();
+        restBuffer = buffer.mid(lastScannedIndex);
+        bufferLock.unlock();
+    }
 }
 
 void DataProtocol::clearBuff()
@@ -313,6 +353,28 @@ inline DataProtocol::RowData_t DataProtocol::extractRowData(const Pack_t &pack)
         {
             rowData << num.toDouble();
         }
+    }
+    else if(protocolType == MAD)
+    {
+        //把数据部分提取出来
+        Pack_t dataPack = pack;
+
+        QRegularExpression reg;
+        QRegularExpressionMatch match;
+        int index = 0;
+        reg.setPattern("[\\+-]?\\d+\\.?\\d*");//匹配实数 符号出现0、1次，数字至少1次，小数点0、1次，小数不出现或出现多次
+        do {
+                match = reg.match(dataPack, index);
+                if(match.hasMatch()) {
+                    index = match.capturedEnd();
+                    rowData << match.captured(0).toDouble();
+    //                qDebug()<<match.captured(0).toDouble();
+                }
+                else{
+    //                qDebug()<<"no match";
+                    break;
+                }
+        } while(index < dataPack.length());
     }
 
     return rowData;

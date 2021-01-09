@@ -179,6 +179,13 @@ void MainWindow::readConfig()
             on_actionSumCheck_triggered(true);
         }
     }
+    else if(Config::getPlotterType()==ProtocolType_e::MAD||
+            Config::getPlotterType()==ProtocolType_e::MAD_SumCheck){
+        on_actionMAD_triggered(true);
+        if(Config::getPlotterType()==ProtocolType_e::MAD_SumCheck){
+            on_actionSumCheck_triggered(true);
+        }
+    }
 
     //轴标签
     ui->customPlot->xAxis->setLabel(Config::getXAxisName());
@@ -1078,6 +1085,13 @@ MainWindow::~MainWindow()
             else
                 Config::setPlotterType(ProtocolType_e::CSV);
         }
+        else if(ui->actionMAD->isChecked())
+        {
+            if(ui->actionSumCheck->isChecked())
+                Config::setPlotterType(ProtocolType_e::MAD_SumCheck);
+            else
+                Config::setPlotterType(ProtocolType_e::MAD);
+        }
 
         Config::setPlotterGraphNames(ui->customPlot->plotControl->getNameSets());
         if(g_xAxisSource == XAxis_Cnt)  //暂时不支持存储XY图模式的X轴名字
@@ -1119,6 +1133,7 @@ MainWindow::~MainWindow()
         Config::addCurrentStatistic(KEY_TOTALASCIILUSE, statisticASCIIUseCnt);
         Config::addCurrentStatistic(KEY_TOTALFLOATUSE, statisticFLOATUseCnt);
         Config::addCurrentStatistic(KEY_TOTALCSVUSE, statisticCSVUseCnt);
+        Config::addCurrentStatistic(KEY_TOTALMADUSE, statisticMADUseCnt);
         Config::addCurrentStatistic(KEY_TOTALTEEUSE, statisticTeeUseCnt);
         Config::addCurrentStatistic(KEY_TOTALTEEPARSE, statisticTeeParseCnt);
         Config::addCurrentStatistic(KEY_TOTALREGPARSE, statisticRegParseCnt);
@@ -2603,6 +2618,13 @@ void MainWindow::setVisualizerTitle(void)
         else
             ui->visualizer->setTitle(tr("数据可视化：CSV协议"));
     }
+    else if(ui->actionMAD->isChecked())
+    {
+        if(ui->actionSumCheck->isChecked())
+            ui->visualizer->setTitle(tr("数据可视化：MAD协议(和校验)"));
+        else
+            ui->visualizer->setTitle(tr("数据可视化：MAD协议"));
+    }
 }
 
 void MainWindow::resetVisualizerTitle(void)
@@ -2745,7 +2767,8 @@ void MainWindow::on_actionAscii_triggered(bool checked)
     ui->actionAscii->setChecked(true);
     ui->actionFloat->setChecked(false);
     ui->actionCSV->setChecked(false);
-
+    ui->actionMAD->setChecked(false);
+    
     setVisualizerTitle();
 }
 
@@ -2761,7 +2784,8 @@ void MainWindow::on_actionFloat_triggered(bool checked)
     ui->actionAscii->setChecked(false);
     ui->actionFloat->setChecked(true);
     ui->actionCSV->setChecked(false);
-
+    ui->actionMAD->setChecked(false);
+    
     setVisualizerTitle();
 }
 
@@ -3166,6 +3190,7 @@ void MainWindow::on_actionUsageStatistic_triggered()
     QString totalASCIIUseStr;
     QString totalFLOATUseStr;
     QString totalCSVUseStr;
+    QString totalMADUseStr;
     QString totalTeeUseStr;
     QString totalTeeParseStr;
     QString totalRegParseStr;
@@ -3192,6 +3217,7 @@ void MainWindow::on_actionUsageStatistic_triggered()
     totalASCIIUseStr        = QString::number(Config::getTotalStatistic(KEY_TOTALASCIILUSE) + statisticASCIIUseCnt);
     totalFLOATUseStr        = QString::number(Config::getTotalStatistic(KEY_TOTALFLOATUSE) + statisticFLOATUseCnt);
     totalCSVUseStr          = QString::number(Config::getTotalStatistic(KEY_TOTALCSVUSE) + statisticCSVUseCnt);
+    totalMADUseStr          = QString::number(Config::getTotalStatistic(KEY_TOTALMADUSE) + statisticMADUseCnt);
     totalTeeUseStr          = QString::number(Config::getTotalStatistic(KEY_TOTALTEEUSE) + statisticTeeUseCnt);
 
 
@@ -3235,6 +3261,7 @@ void MainWindow::on_actionUsageStatistic_triggered()
     str.append(tr("   - 使用ASCII协议次数：") + totalASCIIUseStr + "\n");
     str.append(tr("   - 使用FLOAT协议次数：") + totalFLOATUseStr + "\n");
     str.append(tr("   - 使用CSV协议次数：") + totalCSVUseStr + "\n");
+    str.append(tr("   - 使用MAD协议次数：") + totalMADUseStr + "\n");
     str.append("\n");
     str.append(tr("   ")+rankStr + "\n");
     str.append("\n");
@@ -4093,6 +4120,24 @@ void MainWindow::on_actionCSV_triggered(bool checked)
     ui->actionAscii->setChecked(false);
     ui->actionFloat->setChecked(false);
     ui->actionCSV->setChecked(true);
+    ui->actionMAD->setChecked(false);
+    
+    setVisualizerTitle();
+}
+
+void MainWindow::on_actionMAD_triggered(bool checked)
+{
+    Q_UNUSED(checked)
+
+    if(ui->actionMAD->isChecked())
+        statisticMADUseCnt++;
+
+    ui->customPlot->protocol->clearBuff();
+    ui->customPlot->protocol->setProtocolType(DataProtocol::MAD);
+    ui->actionAscii->setChecked(false);
+    ui->actionFloat->setChecked(false);
+    ui->actionCSV->setChecked(false);
+    ui->actionMAD->setChecked(true);
 
     setVisualizerTitle();
 }

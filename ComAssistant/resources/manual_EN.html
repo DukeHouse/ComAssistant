@@ -196,7 +196,25 @@ Enter the key character to be matched to extract a string containing the specifi
       <li>
         <b>CSV protocol with checksum</b>:
         Same as CSV protocol, except that the last number will be used as the sum check. It only support integer mode.<br>
-      </li>
+      </li><br>
+      <li>
+        <b>MAD protocol</b>：
+        MAD protocol like a mad dog because it extract all possible number in one line string.<br>
+        MAD protocol has the least constraints, so it is the simplest to use and has the widest applicability.<br>
+        So it also leads to a higher probability of drawing incorrect data.<br>
+        The following are some examples of strings that can be drawn.<br>
+        <pre style="background-color: rgb(235, 235, 235);">
+
+        "1,2,3\n"         //Add one point to each curves(3 curves), the value of point is 1,2,3
+        "AT=4.5\n"        //Add one point to first curves, the value of point is 4.5
+        "{tag:6,7}\n"     //Add one point to each curves(2 curves), the value of point is 6,7
+        "vol:2V,cur:4A\n" //Add one point to each curves(2 curves), the value of point is 2,3
+        </pre><br>
+      </li><br>
+      <li>
+        <b>MAD protocol with sumCheck</b>：
+        Same as MAD protocol, except that the last number will be used as the sum check. It only support integer mode.<br>
+      </li><br>
     </ul>
   <!--<li><b>绘图测试</b>:勾选后软件会生成不同波形数据并发送到串口, 将TX和RX短接后, 软件可以显示收到的数据</li>-->
 </ul><br>
