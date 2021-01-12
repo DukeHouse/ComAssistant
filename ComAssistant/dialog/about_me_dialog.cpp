@@ -12,7 +12,7 @@ About_Me_Dialog::About_Me_Dialog(QWidget *parent) :
     ui->textBrowser->document()->setDefaultFont(font);
 #endif
 
-    //使用了高亮器html显示会出问题
+    //不要使用高亮器，因为html显示会出问题
 }
 
 About_Me_Dialog::~About_Me_Dialog()

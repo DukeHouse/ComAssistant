@@ -131,13 +131,83 @@ int64_t mySerialPort::getTotalRxCnt()
     return totalRxCnt;
 }
 
+//增加千位分隔符
+QString mySerialPort::numberStringAddSeprator(QString str)
+{
+    if(str.size() > 3 && str.size() <= 6)
+    {
+        str.insert(str.size() - 3, ',');
+    }
+    else if(str.size() > 6 && str.size() <= 9)
+    {
+        str.insert(str.size() - 6, ',');
+        str.insert(str.size() - 3, ',');
+    }
+    else if(str.size() > 10)
+    {
+        str.insert(str.size() - 9, ',');
+        str.insert(str.size() - 6, ',');
+        str.insert(str.size() - 3, ',');
+    }
+    return str;
+}
+QString mySerialPort::numberStringAddWarningColor(int64_t theCnt, QString theStr)
+{
+    #define ONE_MB      (1024*1024)
+    #define WARNING_0   (ONE_MB*10)
+    #define WARNING_1   (ONE_MB*20)
+    #define WARNING_2   (ONE_MB*30)
+    if(theCnt < WARNING_0)
+    {
+        // no code here.
+    }
+    else if(theCnt < WARNING_1)
+    {
+        theStr = "<font color=#ff7d46>" + theStr + "</font>";
+    }
+    else if(theCnt < WARNING_2)
+    {
+        theStr = "<font color=#FF5A5A>" + theStr + "</font>";
+    }
+    else
+    {
+        theStr = "<font color=#FF0000>" + theStr + "</font>";
+    }
+    return theStr;
+}
 /*
 */
 QString mySerialPort::getTxRxString()
 {
-    return "T:"+QString::number(getTxCnt())+" R:"+QString::number(getRxCnt());
-}
+    QString txStr, rxStr, result;
 
+    txStr = QString::number(getTxCnt());
+    txStr = numberStringAddSeprator(txStr);//加分隔符
+
+    rxStr = QString::number(getRxCnt());
+    rxStr = numberStringAddSeprator(rxStr);
+
+    return "T:" + txStr + " R:" + rxStr;
+}
+QString mySerialPort::getTxRxString_with_color()
+{
+
+    QString txStr, rxStr, result;
+
+    // Tx
+    txStr = QString::number(getTxCnt());
+    txStr = numberStringAddSeprator(txStr);
+//    txStr = numberStringAddWarningColor(getTxCnt(), txStr);//发送无需变色
+
+    // Rx
+    rxStr = QString::number(getRxCnt());
+    rxStr = numberStringAddSeprator(rxStr);
+    rxStr = numberStringAddWarningColor(getRxCnt(), rxStr);
+
+    result = "T:" + txStr + " R:" + rxStr;
+
+    return result;
+}
 /*
 */
 bool mySerialPort::open(QString PortName,int BaudRate)

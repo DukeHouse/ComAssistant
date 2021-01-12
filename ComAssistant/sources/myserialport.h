@@ -31,6 +31,7 @@ public:
     int64_t getTotalTxCnt();
     int64_t getTotalRxCnt();
     QString getTxRxString();
+    QString getTxRxString_with_color();
     //重置收发统计
     void resetCnt();
     void resetTxCnt();
@@ -39,6 +40,8 @@ public:
     bool moreSetting(StopBits stopbits=OneStop, Parity parity=NoParity,
                      FlowControl flowcontrol=NoFlowControl, DataBits databits=Data8);
 private:
+    QString numberStringAddSeprator(QString str);
+    QString numberStringAddWarningColor(int64_t theCnt, QString theStr);
     int64_t TxCnt;
     int64_t RxCnt;
     DataBits databits;

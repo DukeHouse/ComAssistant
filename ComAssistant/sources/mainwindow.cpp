@@ -2,8 +2,11 @@
 #include "ui_mainwindow.h"
 #include <QHotkey>
 
-#define RECOVERY_FILE_PATH           "ComAssistantRecovery.dat"
-#define BACKUP_RECOVERY_FILE_PATH    "ComAssistantRecovery_back.dat"
+#define BIRTHDAY_YEAR               "2020"
+#define BIRTHDAY_DATE               "02-16"
+
+#define RECOVERY_FILE_PATH          "ComAssistantRecovery.dat"
+#define BACKUP_RECOVERY_FILE_PATH   "ComAssistantRecovery_back.dat"
 
 bool    g_agree_statement = false;  //同意相关声明标志
 bool    g_log_record      = false;  //日志记录开关
@@ -431,7 +434,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //显示收发统计
     serial.resetCnt();
-    statusStatisticLabel->setText(serial.getTxRxString());
+    statusStatisticLabel->setText(serial.getTxRxString_with_color());
 
     //搜寻可用串口，并尝试打开
     refreshCom();
@@ -1453,7 +1456,7 @@ void MainWindow::readSerialPort()
     }
 
     //更新收发统计
-    statusStatisticLabel->setText(serial.getTxRxString());
+    statusStatisticLabel->setText(serial.getTxRxString_with_color());
 
     //允许数据刷新
     TryRefreshBrowserCnt = TRY_REFRESH_BROWSER_CNT;
@@ -1550,7 +1553,7 @@ void MainWindow::serialBytesWritten(qint64 bytes)
     }
 
     //更新收发统计
-    statusStatisticLabel->setText(serial.getTxRxString());
+    statusStatisticLabel->setText(serial.getTxRxString_with_color());
 }
 
 void MainWindow::handleSerialError(QSerialPort::SerialPortError errCode)
@@ -1797,7 +1800,7 @@ void MainWindow::on_sendButton_clicked()
     is_multi_str_double_click = false;
 
     //更新收发统计
-    statusStatisticLabel->setText(serial.getTxRxString());
+    statusStatisticLabel->setText(serial.getTxRxString_with_color());
 
     //多字符串序列发送
     if(g_multiStr_cur_index != -1)
@@ -1923,7 +1926,7 @@ void MainWindow::on_clearWindows_clicked()
     p_logger->clear_logger(RECOVERY_LOG);
 
     //更新收发统计
-    statusStatisticLabel->setText(serial.getTxRxString());
+    statusStatisticLabel->setText(serial.getTxRxString_with_color());
 }
 
 void MainWindow::on_cycleSendCheck_clicked(bool checked)
@@ -2182,6 +2185,18 @@ void MainWindow::on_actionOpenOriginData_triggered()
 */
 void MainWindow::on_actionAbout_triggered()
 {
+    //生日检查啦
+    QDateTime dateTime(QDateTime::currentDateTime());
+    if(dateTime.toString("MM-dd") == BIRTHDAY_DATE)
+    {
+        int32_t year = 0;
+        year = dateTime.toString("yyyy").toInt();
+        year = year - QString(BIRTHDAY_YEAR).toInt();
+        QMessageBox::information(this, "Happy~",
+                                 "Today is my birthday!\n I'm " +
+                                 QString::number(year) + " years old! :)");
+    }
+
     //创建关于我对话框资源
     About_Me_Dialog* p = new About_Me_Dialog(this);
     p->getVersionString(Config::getVersion());
@@ -2347,9 +2362,12 @@ void MainWindow::on_sendInterval_textChanged(const QString &arg1)
 
 void MainWindow::on_actionSTM32_ISP_triggered()
 {
-    bool serialState = ui->comSwitch->isChecked();
-    if(serialState)
-        on_comSwitch_clicked(false);
+    if(ui->comSwitch->isChecked())
+    {
+        QMessageBox::information(this, tr("提示"),
+                                 tr("请先关闭串口。"));
+        return;
+    }
 
     QFile file;
     file.copy(":/stm32isp.exe","stm32isp.exe");
@@ -2361,9 +2379,6 @@ void MainWindow::on_actionSTM32_ISP_triggered()
     delete p;
 
     file.remove();
-
-    if(serialState)
-        on_comSwitch_clicked(true);
 
     statisticStm32IspUseCnt++;
 }
