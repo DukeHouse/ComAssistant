@@ -154,9 +154,9 @@ QString mySerialPort::numberStringAddSeprator(QString str)
 QString mySerialPort::numberStringAddWarningColor(int64_t theCnt, QString theStr)
 {
     #define ONE_MB      (1024*1024)
-    #define WARNING_0   (ONE_MB*10)
-    #define WARNING_1   (ONE_MB*20)
-    #define WARNING_2   (ONE_MB*30)
+    #define WARNING_0   (ONE_MB*5)
+    #define WARNING_1   (ONE_MB*10)
+    #define WARNING_2   (ONE_MB*15)
     if(theCnt < WARNING_0)
     {
         // no code here.
