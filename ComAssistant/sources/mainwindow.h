@@ -55,6 +55,7 @@ class MainWindow;
 
 extern bool g_agree_statement;
 extern bool g_log_record;
+extern bool g_debugger;
 
 #define TRY_REFRESH_BROWSER_CNT    (10)    //500ms内持续刷新
 #define DO_NOT_REFRESH_BROWSER     (0)

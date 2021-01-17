@@ -105,6 +105,17 @@ int main(int argc, char *argv[])
         a.installTranslator(&translator);
     }
 
+    //debugger模式开关
+    QString cmdArg;
+    for(int32_t i = 0; i < argc; i++)
+    {
+        cmdArg = argv[i];
+        if(cmdArg == "--debugger")
+        {
+            g_debugger = true;
+        }
+    }
+
     MainWindow w;
 //    w.show(); //在构造函数中调用
 

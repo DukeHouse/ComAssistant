@@ -10,6 +10,7 @@
 
 bool    g_agree_statement = false;  //同意相关声明标志
 bool    g_log_record      = false;  //日志记录开关
+bool    g_debugger        = false;  //调试开关
 
 static qint32   g_xAxisSource = XAxis_Cnt;
 static qint32   g_multiStr_cur_index = -1;  // -1 means closed this function
@@ -499,6 +500,14 @@ MainWindow::MainWindow(QWidget *parent) :
     //http
     if(g_agree_statement)
         http = new HTTP(this);
+
+    //debugger
+    ui->actionMAD->setVisible(false);
+    if(g_debugger)
+    {
+       ui->actionMAD->setVisible(true);
+       ui->actiondebug->setVisible(true);
+    }
 
     readRecoveryFile();
 
