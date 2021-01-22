@@ -21,6 +21,7 @@ class About_Me_Dialog : public QDialog
 public:
     explicit About_Me_Dialog(QWidget *parent = nullptr);
     ~About_Me_Dialog();
+    void updateTitle(QString title);
     void getVersionString(QString str);
     void showManualDoc(void);
     void showMarkdown(QString &markdown);

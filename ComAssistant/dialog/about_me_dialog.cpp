@@ -20,6 +20,11 @@ About_Me_Dialog::~About_Me_Dialog()
     delete ui;
 }
 
+void About_Me_Dialog::updateTitle(QString title)
+{
+    this->setWindowTitle(title);
+}
+
 void About_Me_Dialog::getVersionString(QString str)
 {
     if(str.isEmpty())

@@ -755,13 +755,19 @@ p, li { white-space: pre-wrap; }
     <property name="title">
      <string>功能</string>
     </property>
+    <widget class="QMenu" name="menu_realTimeRecorder">
+     <property name="title">
+      <string>实时记录仪</string>
+     </property>
+     <addaction name="actionRecordRawData"/>
+     <addaction name="actionRecordGraphData"/>
+    </widget>
     <addaction name="actionMultiString"/>
     <addaction name="separator"/>
     <addaction name="actionTeeSupport"/>
     <addaction name="actionTeeLevel2NameSupport"/>
     <addaction name="separator"/>
-    <addaction name="actionRecordRawData"/>
-    <addaction name="actionRecordGraphData"/>
+    <addaction name="menu_realTimeRecorder"/>
     <addaction name="separator"/>
     <addaction name="actionSTM32_ISP"/>
     <addaction name="actionASCIITable"/>

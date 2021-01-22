@@ -285,13 +285,14 @@ int32_t MainWindow::firstRunNotify()
 {
     if(Config::getFirstRun()){
         Config::setFirstStartTime(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
-        QMessageBox::information(this, tr("提示"),
-                                 tr("欢迎使用纸飞机串口调试助手。") + "\n\n" +
-                                 tr("由于阁下是首次运行，接下来会弹出帮助文件和相关声明，请认真阅读。") + "\n\n" +
-                                 tr("若阁下继续使用本软件则代表阁下接受并同意相关声明，\n否则请关闭软件。"));
+//        QMessageBox::information(this, tr("提示"),
+//                                 tr("欢迎使用纸飞机串口调试助手。") + "\n\n" +
+//                                 tr("由于阁下是首次运行，接下来会弹出声明文档，请认真阅读。") + "\n\n" +
+//                                 tr("若阁下继续使用本软件则代表阁下接受并同意相关声明，\n否则请关闭软件。"));
         //弹出声明
         //创建关于我对话框资源
         About_Me_Dialog* p = new About_Me_Dialog(this);
+        p->updateTitle(tr("欢迎使用纸飞机串口调试助手！"));
         p->getVersionString(Config::getVersion());
         //设置close后自动销毁
         p->setAttribute(Qt::WA_DeleteOnClose);
@@ -309,7 +310,7 @@ int32_t MainWindow::firstRunNotify()
         {
             g_agree_statement = true;
             //弹出帮助文件
-            on_actionManual_triggered();
+//            on_actionManual_triggered();
         }
     }
     else
