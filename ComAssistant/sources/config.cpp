@@ -40,6 +40,7 @@ void Config::writeDefault(){
     iniFile->setValue(SECTION_GLOBAL+KEY_TEE_Support, true);
     iniFile->setValue(SECTION_GLOBAL+KEY_TEE_LEVEL2_NAME, false);
     iniFile->setValue(SECTION_GLOBAL+KEY_LOG_RECORD, false);
+    iniFile->setValue(SECTION_GLOBAL+KEY_SIMPLE_MODE, false);
 
     iniFile->setValue(SECTION_SERIAL+KEY_PORTNAME, "");
     iniFile->setValue(SECTION_SERIAL+KEY_BAUDRATE, QSerialPort::Baud115200);
@@ -809,6 +810,36 @@ QString Config::getConfigString(QString section, QString key)
 {
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
     QString value = iniFile->value(section + key, "").toString();
+    delete iniFile;
+    return value;
+}
+
+void Config::setConfigBool(QString section, QString key, bool flag)
+{
+    createDefaultIfNotExist();
+    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
+    iniFile->setValue(section + key, flag);
+    delete iniFile;
+}
+bool Config::getConfigBool(QString section, QString key, bool defaultBool)
+{
+    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
+    bool value = iniFile->value(section + key, defaultBool).toBool();
+    delete iniFile;
+    return value;
+}
+
+void Config::setConfigNumber(QString section, QString key, int64_t num)
+{
+    createDefaultIfNotExist();
+    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
+    iniFile->setValue(section + key, num);
+    delete iniFile;
+}
+int64_t Config::getConfigNumber(QString section, QString key, int64_t defaultNum)
+{
+    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
+    int64_t value = iniFile->value(section + key, defaultNum).toLongLong();
     delete iniFile;
     return value;
 }

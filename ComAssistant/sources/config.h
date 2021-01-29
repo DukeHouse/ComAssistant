@@ -44,6 +44,7 @@
 #define KEY_LOG_RECORD          QString("LogRecord")
 #define KEY_ACTIVATED_TAB       QString("ActivatedTab")
 #define KEY_REG_MATCH_STR       QString("RegMatchStr")
+#define KEY_SIMPLE_MODE         QString("SimpleMode")
 
 //serial键
 #define KEY_PORTNAME        QString("PortName")
@@ -246,6 +247,10 @@ public:
     static int64_t getTotalStatistic(QString key);
     static void setConfigString(QString section, QString key, QString containt);
     static QString getConfigString(QString section, QString key);
+    static void setConfigBool(QString section, QString key, bool flag);
+    static bool getConfigBool(QString section, QString key, bool defaultBool);
+    static void setConfigNumber(QString section, QString key, int64_t num);
+    static int64_t getConfigNumber(QString section, QString key, int64_t defaultNum);
 };
 
 #endif // CONFIG_H

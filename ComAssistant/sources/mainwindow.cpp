@@ -94,6 +94,10 @@ void MainWindow::readConfig()
         on_actionGBK_triggered(true);
     }
 
+    //简洁模式
+    on_actionSimpleMode_triggered
+        (Config::getConfigBool(SECTION_GLOBAL, KEY_SIMPLE_MODE, false));
+
     //多字符串
     ui->actionMultiString->setChecked(Config::getMultiStringState());
     on_actionMultiString_triggered(Config::getMultiStringState());
@@ -227,15 +231,18 @@ void MainWindow::readConfig()
 
 void MainWindow::adjustLayout()
 {
-    qint32 length;
-    QList<qint32> lengthList;
+    int32_t length;
+    QList<int32_t> lengthList;
 
     //splitter_io垂直间距调整
-    length = splitter_io->height();
-    lengthList.clear();
-    lengthList << static_cast<qint32>(length*0.8)
-               << static_cast<qint32>(length*0.2);
-    splitter_io->setSizes(lengthList);
+    if(!ui->actionSimpleMode->isChecked())
+    {
+        length = splitter_io->height();
+        lengthList.clear();
+        lengthList << static_cast<qint32>(length*0.8)
+                   << static_cast<qint32>(length*0.2);
+        splitter_io->setSizes(lengthList);
+    }
     //splitter_output垂直间距调整
     length = splitter_output->height();
     lengthList.clear();
@@ -495,6 +502,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //调整窗体布局
     adjustLayout();
+
     //是否首次运行
     firstRunNotify();
 
@@ -596,6 +604,7 @@ void MainWindow::openInteractiveUI()
     ui->multiString->setEnabled(true);
     ui->cycleSendCheck->setEnabled(true);
     ui->clearWindows->setText(tr("清  空"));
+    ui->clearWindows_simple->setText(ui->clearWindows->text());
 }
 
 //关闭可交互控件
@@ -608,6 +617,7 @@ void MainWindow::closeInteractiveUI()
     ui->cycleSendCheck->setEnabled(false);
     ui->cycleSendCheck->setChecked(false);
     ui->clearWindows->setText(tr("中  止"));
+    ui->clearWindows_simple->setText(ui->clearWindows->text());
 }
 
 void MainWindow::updateProgressBar(QString preStr, double percent)
@@ -1060,6 +1070,8 @@ MainWindow::~MainWindow()
         Config::setSendInterval(ui->sendInterval->text().toInt());
         Config::setTimeStampState(ui->timeStampCheckBox->isChecked());
         Config::setTimeStampTimeOut(ui->timeStampTimeOut->text().toInt());
+        Config::setConfigBool(SECTION_GLOBAL, KEY_SIMPLE_MODE, 
+                            ui->actionSimpleMode->isChecked());
         Config::setMultiStringState(ui->actionMultiString->isChecked());
         Config::setKeyWordHighlightState(ui->actionKeyWordHighlight->isChecked());
         Config::setTextSendArea(ui->textEdit->toPlainText());
@@ -1576,6 +1588,7 @@ void MainWindow::serialBytesWritten(qint64 bytes)
             ui->multiString->setEnabled(true);
             ui->cycleSendCheck->setEnabled(true);
             ui->clearWindows->setText(tr("清  空"));
+            ui->clearWindows_simple->setText(ui->clearWindows->text());
         }
     }
 
@@ -1652,6 +1665,7 @@ void MainWindow::multiStrSeqSendTimerSlot()
     if (!ui->actionMultiString->isChecked())
     {
         ui->clearWindows->setText(tr("清  空"));
+        ui->clearWindows_simple->setText(ui->clearWindows->text());
         multiStrSeqSendTimer.stop();
         return;
     }
@@ -1659,6 +1673,7 @@ void MainWindow::multiStrSeqSendTimerSlot()
     {
         g_multiStr_cur_index = -1;
         ui->clearWindows->setText(tr("清  空"));
+        ui->clearWindows_simple->setText(ui->clearWindows->text());
         multiStrSeqSendTimer.stop();
     }
 
@@ -1837,12 +1852,14 @@ void MainWindow::on_sendButton_clicked()
         if(seqTime > 0)
         {
             ui->clearWindows->setText(tr("中  止"));
+            ui->clearWindows_simple->setText(ui->clearWindows->text());
             multiStrSeqSendTimer.start(seqTime);
         }
         else
         {
             g_multiStr_cur_index = -1;
             ui->clearWindows->setText(tr("清  空"));
+            ui->clearWindows_simple->setText(ui->clearWindows->text());
             multiStrSeqSendTimer.stop();
         }
     }
@@ -1851,6 +1868,7 @@ void MainWindow::on_sendButton_clicked()
 void MainWindow::on_clearWindows_clicked()
 {
     ui->clearWindows->setText(tr("清  空"));
+    ui->clearWindows_simple->setText(ui->clearWindows->text());
 
     progressBar->setValue(0);
     progressBar->setVisible(false);
@@ -2005,6 +2023,7 @@ void MainWindow::on_textEdit_textChanged()
             }
             multiStrSeqSendTimer.stop();
             ui->clearWindows->setText(tr("清  空"));
+            ui->clearWindows_simple->setText(ui->clearWindows->text());
             ui->textEdit->clear();
             ui->textEdit->insertPlainText(lastText);
             return;
@@ -3785,9 +3804,25 @@ void MainWindow::resizeEvent(QResizeEvent* event)
 
 void MainWindow::splitterMovedSlot(int pos, int index)
 {
-    pos = !!pos;
-    index = !!index;
-//    qDebug()<<"splitterMovedSlot"<<pos<<index;
+    Q_UNUSED(pos);
+    Q_UNUSED(index);
+    // qDebug() << "splitterMovedSlot" << pos << index << ui->widget_input->height();
+
+    //简洁模式控制
+    bool trig = false;
+    static int32_t lastHeight = 0;
+    if( (ui->widget_input->height() == 0 && lastHeight != 0) ||
+        (ui->widget_input->height() != 0 && lastHeight == 0))
+    {
+        trig = true;
+    }
+    lastHeight = ui->widget_input->height();
+    if(trig)
+    {
+        bool checked = static_cast<bool>(ui->widget_input->height());
+        on_actionSimpleMode_triggered(!checked);
+        trig = false;
+    }
 
     //计算可显示字符并刷新显示
     resizeEvent(nullptr);
@@ -4226,4 +4261,36 @@ void MainWindow::on_actionMAD_triggered(bool checked)
     ui->actionMAD->setChecked(true);
 
     setVisualizerTitle();
+}
+
+//简洁模式的清空按钮
+void MainWindow::on_clearWindows_simple_clicked()
+{
+    on_clearWindows_clicked();
+}
+
+//简洁模式
+void MainWindow::on_actionSimpleMode_triggered(bool checked)
+{
+    int32_t length;
+    QList<int32_t> lengthList;
+    ui->actionSimpleMode->setChecked(checked);
+    // qDebug() << __FUNCTION__ << checked << ui->widget_input->size();
+    if(checked)
+    {
+        ui->clearWindows_simple->setVisible(true);
+        //splitter_io垂直间距调整
+        length = splitter_io->height();
+        lengthList << static_cast<int32_t>(length)
+                << static_cast<int32_t>(0);
+        splitter_io->setSizes(lengthList);
+    }
+    else
+    {
+        ui->clearWindows_simple->setVisible(false);
+        length = splitter_io->height();
+        lengthList << static_cast<int32_t>(length*0.8)
+                << static_cast<int32_t>(length*0.2);
+        splitter_io->setSizes(lengthList);
+    }
 }

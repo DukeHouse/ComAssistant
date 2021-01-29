@@ -85,6 +85,7 @@ private slots:
     void on_comSwitch_clicked(bool checked);
     void on_sendButton_clicked();
     void on_clearWindows_clicked();
+    void on_clearWindows_simple_clicked();
     void on_cycleSendCheck_clicked(bool checked);
     void on_textEdit_textChanged();
     void on_hexSend_stateChanged(int arg1);
@@ -115,6 +116,7 @@ private slots:
     void on_actionSendFile_triggered();
 
     //function
+    void on_actionSimpleMode_triggered(bool checked);
     void on_actionMultiString_triggered(bool checked);
     void on_actionSTM32_ISP_triggered();
     void on_actionPopupHotkey_triggered();

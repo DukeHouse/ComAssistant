@@ -40,7 +40,7 @@
       <number>0</number>
      </property>
      <item row="0" column="0" colspan="2">
-      <layout class="QHBoxLayout" name="layout_ctrl" stretch="1,0,0,0">
+      <layout class="QHBoxLayout" name="layout_ctrl" stretch="1,0,0,0,0">
        <item>
         <widget class="My_Combo_Box" name="comList">
          <property name="sizePolicy">
@@ -203,6 +203,25 @@
          </property>
          <property name="shortcut">
           <string>F5</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="clearWindows_simple">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string>清  空</string>
+         </property>
+         <property name="autoDefault">
+          <bool>false</bool>
+         </property>
+         <property name="flat">
+          <bool>false</bool>
          </property>
         </widget>
        </item>
@@ -762,6 +781,8 @@ p, li { white-space: pre-wrap; }
      <addaction name="actionRecordRawData"/>
      <addaction name="actionRecordGraphData"/>
     </widget>
+    <addaction name="actionSimpleMode"/>
+    <addaction name="separator"/>
     <addaction name="actionMultiString"/>
     <addaction name="separator"/>
     <addaction name="actionTeeSupport"/>
@@ -1249,6 +1270,14 @@ p, li { white-space: pre-wrap; }
    </property>
    <property name="statusTip">
     <string>疯狗协议，一行字符串中的数据都进行绘图</string>
+   </property>
+  </action>
+  <action name="actionSimpleMode">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>简洁模式</string>
    </property>
   </action>
  </widget>
