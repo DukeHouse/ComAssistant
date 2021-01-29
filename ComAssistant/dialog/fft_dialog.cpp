@@ -441,6 +441,11 @@ uint8_t FFT_Dialog::startFFTCal()
     return 0;
 }
 
+void FFT_Dialog::disableRePlot(bool flag)
+{
+    disableReplotFlag = flag;
+}
+
 //寻找最接近的2的幂
 int32_t FFT_Dialog::find_num_closest_power_of_2(int a)
 {
@@ -478,7 +483,7 @@ void FFT_Dialog::__100msTimerSlot()
         inputCntPerSec = 0;
     }
     //刷新曲线
-    if(needReplot)
+    if(needReplot && !disableReplotFlag)
     {
         if(autoRescaleAxisFlag)
             ui->plotter->rescaleAxes(true);

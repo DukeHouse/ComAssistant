@@ -963,6 +963,11 @@ void MainWindow::secTimerSlot()
         g_lastSecsSinceEpoch = QDateTime::currentSecsSinceEpoch();
     }
 
+    if(disableRefreshWindow)
+    {
+        disableRefreshWindow_triggered(true);
+    }
+
     //数据记录器定时保存数据
     emit logger_flush(RECOVERY_LOG);
     if(!rawDataRecordPath.isEmpty())
@@ -1502,6 +1507,12 @@ void MainWindow::printToTextBrowser()
     {
         windowSize = ui->textBrowser->size();
         resizeEvent(nullptr);
+    }
+
+    //暂停刷新则不刷新
+    if(disableRefreshWindow)
+    {
+        return;
     }
 
     //多显示一点
@@ -3397,6 +3408,20 @@ void MainWindow::on_actionValueDisplay_triggered(bool checked)
     adjustLayout();
 }
 
+void MainWindow::disableRefreshWindow_triggered(bool checked)
+{
+    disableRefreshWindow = checked;
+    fft_window->disableRePlot(checked);
+    if(disableRefreshWindow)
+    {
+        ui->statusBar->showMessage(tr("已暂停刷新数据。"));
+    }
+    else
+    {
+        ui->statusBar->showMessage("");
+    }
+}
+
 void MainWindow::showAllTextBrowser_triggered()
 {
     if(ui->hexDisplay->isChecked()){
@@ -3439,6 +3464,7 @@ void MainWindow::on_textBrowser_customContextMenuRequested(const QPoint &pos)
     QPoint noWarning = pos;
     noWarning.x();
 
+    QAction *stopRefresh = nullptr;
     QAction *showAllText = nullptr;
     QAction *copyText = nullptr;
     QAction *copyAllText = nullptr;
@@ -3449,6 +3475,7 @@ void MainWindow::on_textBrowser_customContextMenuRequested(const QPoint &pos)
 
     QMenu *popMenu = new QMenu( this );
     //添加右键菜单
+    stopRefresh = new QAction(tr("暂停刷新数据"), this);
     showAllText = new QAction(tr("显示所有文本"), this);
     copyText = new QAction(tr("复制所选文本"), this);
     if(ui->textBrowser->textCursor().selectedText().isEmpty())
@@ -3459,6 +3486,18 @@ void MainWindow::on_textBrowser_customContextMenuRequested(const QPoint &pos)
     saveOriginData = new QAction(tr("保存原始数据"), this);
     clearTextBrowser = new QAction(tr("清空数据显示区"), this);
 
+    stopRefresh->setCheckable(true);
+    if(disableRefreshWindow)
+    {
+        stopRefresh->setChecked(true);
+    }
+    else
+    {
+        stopRefresh->setChecked(false);
+    }
+
+    popMenu->addAction( stopRefresh );
+    popMenu->addSeparator();
     popMenu->addAction( showAllText );
     popMenu->addSeparator();
     popMenu->addAction( copyText );
@@ -3471,6 +3510,8 @@ void MainWindow::on_textBrowser_customContextMenuRequested(const QPoint &pos)
     popMenu->addSeparator();
     popMenu->addAction( clearTextBrowser );
 
+    connect( stopRefresh, SIGNAL(triggered(bool) ), 
+             this, SLOT( disableRefreshWindow_triggered(bool)) );
     connect( showAllText, SIGNAL(triggered() ), this, SLOT( showAllTextBrowser_triggered()) );
     connect( copyText, SIGNAL(triggered() ), this, SLOT( copySelectedTextBrowser_triggered()) );
     connect( copyAllText, SIGNAL(triggered() ), this, SLOT( copyAllTextBrowser_triggered()) );
@@ -3487,6 +3528,7 @@ void MainWindow::on_textBrowser_customContextMenuRequested(const QPoint &pos)
     delete copyAllText;
     delete copyText;
     delete showAllText;
+    delete stopRefresh;
 }
 
 void MainWindow::clearTextBrowserSlot()

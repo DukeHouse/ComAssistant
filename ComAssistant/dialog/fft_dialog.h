@@ -29,6 +29,7 @@ public:
     void appendData(DataProtocol::RowData_t &oneRowData);
     void clearGraphs(void);
     uint8_t startFFTCal();
+    void disableRePlot(bool);
 
 private:
     void plotter_init();
@@ -56,6 +57,7 @@ private:
     int32_t fft_cal_point_changed_tips = 0;
     int8_t autoRescaleAxisFlag = 1;
     QString lastFileDialogPath;
+    bool disableReplotFlag = false;
 protected:
     void closeEvent(QCloseEvent *event);
 signals:

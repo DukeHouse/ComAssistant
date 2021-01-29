@@ -99,6 +99,7 @@ private slots:
     void on_tabWidget_tabBarClicked(int index);
     void on_timeStampCheckBox_stateChanged(int arg1);
     void on_timeStampTimeOut_textChanged(const QString &arg1);
+    void disableRefreshWindow_triggered(bool checked);
     void showAllTextBrowser_triggered();
     void copySelectedTextBrowser_triggered(void);
     void copyAllTextBrowser_triggered(void);
@@ -265,6 +266,9 @@ private:
     QString lastGraphDataRecordPath = "";
     QThread *p_logger_thread;
     Data_Logger *p_logger;
+
+    //暂停刷新flag
+    bool disableRefreshWindow = false;
 
     //统计
     int64_t currentRunTime = 0; //运行时间
