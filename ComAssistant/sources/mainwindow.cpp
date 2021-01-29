@@ -1160,6 +1160,7 @@ MainWindow::~MainWindow()
         Config::addCurrentStatistic(KEY_TOTALTEEUSE, statisticTeeUseCnt);
         Config::addCurrentStatistic(KEY_TOTALTEEPARSE, statisticTeeParseCnt);
         Config::addCurrentStatistic(KEY_TOTALREGPARSE, statisticRegParseCnt);
+        Config::addCurrentStatistic(KEY_TOTALRECORDUSE, statisticRecordCnt);
     }else{
         if(g_agree_statement)
         {
@@ -3238,6 +3239,7 @@ void MainWindow::on_actionUsageStatistic_triggered()
     QString totalTeeUseStr;
     QString totalTeeParseStr;
     QString totalRegParseStr;
+    QString totalRecordUseStr;
     QString rankStr;
 
     //单位换算
@@ -3267,7 +3269,7 @@ void MainWindow::on_actionUsageStatistic_triggered()
     totalCSVUseStr          = QString::number(Config::getTotalStatistic(KEY_TOTALCSVUSE) + statisticCSVUseCnt);
     totalMADUseStr          = QString::number(Config::getTotalStatistic(KEY_TOTALMADUSE) + statisticMADUseCnt);
     totalTeeUseStr          = QString::number(Config::getTotalStatistic(KEY_TOTALTEEUSE) + statisticTeeUseCnt);
-
+    totalRecordUseStr       = QString::number(Config::getTotalStatistic(KEY_TOTALRECORDUSE) + statisticRecordCnt);
 
     //时间换算
     currentRunTimeStr = sta_ConvertHuman_Time(currentRunTime);
@@ -3313,6 +3315,7 @@ void MainWindow::on_actionUsageStatistic_triggered()
     str.append(tr("   - 使用FLOAT协议次数：") + totalFLOATUseStr + "\n");
     str.append(tr("   - 使用CSV协议次数：") + totalCSVUseStr + "\n");
     str.append(tr("   - 使用MAD协议次数：") + totalMADUseStr + "\n");
+    str.append(tr("   - 使用实时数据记录仪次数：") + totalRecordUseStr + "\n");
     str.append("\n");
     str.append(tr("   ")+rankStr + "\n");
     str.append("\n");
@@ -4031,6 +4034,7 @@ void MainWindow::updateFunctionButtonTitle()
     if(ui->actionRecordRawData->isChecked() ||
        ui->actionRecordGraphData->isChecked())
     {
+        statisticRecordCnt++;   
         ui->function->setTitle(tr("功能(Recording)"));
         return;
     }

@@ -292,6 +292,7 @@ private:
     int64_t statisticTeeUseCnt = 0;
     int64_t statisticTeeParseCnt = 0;
     int64_t statisticRegParseCnt = 0;
+    int64_t statisticRecordCnt = 0;
 
     //布局
     QSplitter *splitter_output = NULL;

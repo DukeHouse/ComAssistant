@@ -94,6 +94,7 @@
 #define KEY_TOTALTEEUSE         QString("TotalTeeUse")
 #define KEY_TOTALTEEPARSE       QString("TotalTeeParseCnt")
 #define KEY_TOTALREGPARSE       QString("TotalRegParseCnt")
+#define KEY_TOTALRECORDUSE      QString("TotalRecordUse")
 
 //about键
 #define KEY_VERSION     QString("Version")
