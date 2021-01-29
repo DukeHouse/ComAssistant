@@ -867,7 +867,7 @@ void MainWindow::printToTextBrowserTimerSlot()
         TryRefreshBrowserCnt--;
 }
 
-
+//格式化时间
 QString MainWindow::formatTime(qint32 ms)
 {
     qint32 ss = 1000;
@@ -881,10 +881,15 @@ QString MainWindow::formatTime(qint32 ms)
     long second = (ms - day * dd - hour * hh - minute * mi) / ss;
     long milliSecond = ms - day * dd - hour * hh - minute * mi - second * ss;
 
-    QString hou = QString::number(hour,10);
-    QString min = QString::number(minute,10);
-    QString sec = QString::number(second,10);
-    QString msec = QString::number(milliSecond,10);
+    QString hou = QString::number(hour, 10);
+    QString min = QString::number(minute, 10);
+    QString sec = QString::number(second, 10);
+    QString msec = QString::number(milliSecond, 10);
+
+    if(min.size() == 1)
+        min.insert(0, '0');
+    if(sec.size() == 1)
+        sec.insert(0, '0');
 
     //qDebug() << "minute:" << min << "second" << sec << "ms" << msec <<endl;
 
