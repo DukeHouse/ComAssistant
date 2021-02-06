@@ -3,6 +3,7 @@
 echo "Enter Release_64 to build"
 mkdir ../build-ComAssistant-Desktop_Qt_5_14_1_MinGW_64_bit-Release/
 cd ../build-ComAssistant-Desktop_Qt_5_14_1_MinGW_64_bit-Release/
+mingw32-make.exe clean -j8
 qmake.exe ../ComAssistant/ComAssistant.pro -spec win32-g++ "CONFIG+=qtquickcompiler"
 mingw32-make.exe -j8 2>&1
 
@@ -12,6 +13,7 @@ cd ../ComAssistant/
 echo "Enter Release_32 to build"
 mkdir ../build-ComAssistant-Desktop_Qt_5_14_1_MinGW_32_bit-Release
 cd ../build-ComAssistant-Desktop_Qt_5_14_1_MinGW_32_bit-Release/
+mingw32-make.exe clean -j8
 qmake.exe ../ComAssistant/ComAssistant.pro -spec win32-g++ "CONFIG+=qtquickcompiler"
 mingw32-make.exe -j8 2>&1
 

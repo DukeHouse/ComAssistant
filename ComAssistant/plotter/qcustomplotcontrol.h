@@ -16,12 +16,6 @@ using namespace std;
 
 class MyQCustomPlot;
 
-//typedef enum {
-//    Line,
-//    ScatterLine,
-//    Scatter
-//}LineType_e;
-
 class QCustomPlotControl
 {
 
