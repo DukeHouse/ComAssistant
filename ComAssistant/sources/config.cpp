@@ -16,7 +16,30 @@ Config::Config()
 
 }
 
+void Config::writeCommentMsgAtFileTop()
+{
+    QFile file(SAVE_PATH);
+    QByteArray temp;
+    QString header;
+    if(file.open(QFile::ReadOnly))
+    {
+        header = QObject::tr("; 本文件用于记录配置和统计信息，请勿修改。") + "\n";
+        temp = file.readAll();
+        temp = header.append(temp).toLocal8Bit();
+        file.close();
+        if(file.open(QFile::ReadWrite|QFile::Truncate))
+        {
+            file.write(temp);
+            file.close();
+            return;
+        }
+    }
+    qDebug() << __FUNCTION__ << "file open failed: " << SAVE_PATH;
+    return;
+}
+
 void Config::writeDefault(){
+    qDebug() << "exec " << __FUNCTION__ << "() at " <<__FILE__;
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
 
     QFont defaultFont;
@@ -41,6 +64,7 @@ void Config::writeDefault(){
     iniFile->setValue(SECTION_GLOBAL+KEY_TEE_LEVEL2_NAME, false);
     iniFile->setValue(SECTION_GLOBAL+KEY_LOG_RECORD, false);
     iniFile->setValue(SECTION_GLOBAL+KEY_SIMPLE_MODE, false);
+    iniFile->setValue(SECTION_GLOBAL+KEY_DEFAULT_PLOT_TITLE, DEFAULT_PLOT_TITLE_MACRO);
 
     iniFile->setValue(SECTION_SERIAL+KEY_PORTNAME, "");
     iniFile->setValue(SECTION_SERIAL+KEY_BAUDRATE, QSerialPort::Baud115200);
@@ -119,9 +143,49 @@ void Config::setVersion(void){
 QString Config::getVersion(){
     return VERSION_STRING;
 }
+QString Config::readVersion(void){
+    QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
+    QString value = iniFile->value(SECTION_ABOUT+KEY_VERSION, VERSION_STRING).toString();
+    delete iniFile;
+    return value;
+}
 int32_t Config::getVersionNumber()
 {
     return version_to_number(getVersion());
+}
+/*
+ * res = -1 传入的版本是旧版本
+ * res = 0  版本相等
+ * res = 1  传入的版本是新版本
+ */
+int32_t Config::versionCompare(QString oldVersion, QString newVersion)
+{
+    int32_t res = 0;
+    QStringList oldList = oldVersion.split(".");
+    if(oldList.size() != 3)
+        return -1;
+
+    QStringList newList = newVersion.split(".");
+    if(newList.size() != 3)
+        return -1;
+
+    if(newList.size() != oldList.size())
+        return -1;
+
+    for(int32_t i = 0; i < newList.size(); i++)
+    {
+        if(oldList.at(i).toInt() > newList.at(i).toInt())
+        {
+            res = -1;
+            break;
+        }
+        else if(oldList.at(i).toInt() < newList.at(i).toInt())
+        {
+            res = 1;
+            break;
+        }
+    }
+    return res;
 }
 //serial
 void Config::setPortName(QString name){
@@ -649,11 +713,11 @@ void Config::setLineType(LineType_e type){
     iniFile->setValue(SECTION_PLOTTER+KEY_LINETYPE, type);
     delete iniFile;
 }
-qint32 Config::getLineType(){
+LineType_e Config::getLineType(){
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    qint32 value = iniFile->value(SECTION_PLOTTER+KEY_LINETYPE, 0).toInt();
+    int32_t value = iniFile->value(SECTION_PLOTTER+KEY_LINETYPE, 0).toInt();
     delete iniFile;
-    return value;
+    return static_cast<LineType_e>(value);
 }
 
 //static
@@ -806,10 +870,10 @@ void Config::setConfigString(QString section, QString key, QString containt)
     iniFile->setValue(section + key, containt);
     delete iniFile;
 }
-QString Config::getConfigString(QString section, QString key)
+QString Config::getConfigString(QString section, QString key, QString defaultStr)
 {
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    QString value = iniFile->value(section + key, "").toString();
+    QString value = iniFile->value(section + key, defaultStr).toString();
     delete iniFile;
     return value;
 }

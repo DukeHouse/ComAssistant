@@ -30,7 +30,8 @@ public:
     void clearGraphs(void);
     uint8_t startFFTCal();
     void disableRePlot(bool);
-
+    void setFFTPlotterTitle(QString title);//FFT名称，只有绘图名称和FFT名称一致的绘图数据才进行FFT计算
+    QString getFFTPlotterTitle();
 private:
     void plotter_init();
     void plotter_show(QVector<double> &x, QVector<double> &y);
@@ -58,6 +59,7 @@ private:
     int8_t autoRescaleAxisFlag = 1;
     QString lastFileDialogPath;
     bool disableReplotFlag = false;
+    QString fftPlotterTitle;
 protected:
     void closeEvent(QCloseEvent *event);
 signals:

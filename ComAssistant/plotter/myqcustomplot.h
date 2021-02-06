@@ -49,17 +49,22 @@ public:
     ~MyQCustomPlot();
 
     MyTracer *m_Tracer; //坐标跟随鼠标
-    void init(QMenu* plotterSetting, QAction* saveGraphData, QAction* saveGraphPicture,
-              qint32 *xSource, bool *autoRescaleYAxisFlag, FFT_Dialog* window);
+    void init(QAction* saveGraphData,
+              QAction* saveGraphPicture,
+              int32_t xSource, 
+              bool autoRescaleYAxisFlag, 
+              FFT_Dialog* window, 
+              DataProtocol* protocol,
+              QString plotterTitle);
     bool saveGraphAsTxt(const QString& filePath, char separate=' ');
     QCustomPlotControl *plotControl = nullptr;
-    DataProtocol *protocol = nullptr;
-    QThread *protocol_thread = nullptr;
-    void appendDataWaitToParse(const QByteArray &data);
-    void startParse(bool enableSumCheck=false);
-signals:
-    void appendData(const QByteArray &data);
-    void parseData(bool enableSumCheck=false);
+    QString getPlotterTitle();
+    void setAutoRescaleYAxis(bool autoRescaleYAxisFlag);
+    bool getAutoRescaleYAxis();
+    void setxAxisSource(int32_t xSource);
+    int32_t getxAxisSource();
+    int32_t useOpenGL(bool flag);
+    bool getUseOpenGLState();
 public slots:
     void recvKey(QKeyEvent *e, bool isPressAct);
 private slots:
@@ -84,14 +89,26 @@ private slots:
     void graphClicked(QCPAbstractPlottable *plottable, int dataIndex);
     void showTracer(QMouseEvent *event);
 
+    //setting menu slots
+    void on_actionLineType_triggered();
+    void on_actionAutoRefreshYAxis_triggered(bool checked);
+    void on_actionOpenGL_triggered(bool checked);
+    void on_actionSelectXAxis_triggered();
+    void on_actionTimeStampMode_triggered(bool checked);
+signals:
+    void protocol_clearBuff(const QString &name);
+
 private:
-    QMenu* setting = nullptr;
+    void organizeSettingMenu(QMenu* menu);
     QAction* saveData = nullptr;
     QAction* savePicture = nullptr;
     qint32 key = 0;
-    qint32 *xAxisSource = nullptr;
-    bool *autoRescaleYAxis = nullptr;
+    int32_t xAxisSource = XAxis_Cnt;
+    bool autoRescaleYAxis = true;
     FFT_Dialog* fft_dialog = nullptr;
+    DataProtocol* p_protocol = nullptr;
+    QString titleName;
+    bool useGPUFlag = false;
 };
 
 #endif // MYQCUSTOMPLOT_H

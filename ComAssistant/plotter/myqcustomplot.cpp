@@ -31,20 +31,18 @@ MyQCustomPlot::MyQCustomPlot(QWidget* parent)
 
 MyQCustomPlot::~MyQCustomPlot()
 {
-    protocol_thread->quit();
-    protocol_thread->wait();
-//    delete protocol_thread; //deleteLater自动删除？
-    delete protocol_thread;
-
     delete m_Tracer;
     delete plotControl;
-//    delete protocol;
 }
 
-void MyQCustomPlot::init(QMenu* plotterSetting, QAction* saveGraphData, QAction* saveGraphPicture,
-                         qint32 *xSource, bool *autoRescaleYAxisFlag, FFT_Dialog* window)
+void MyQCustomPlot::init(QAction* saveGraphData,
+                         QAction* saveGraphPicture,
+                         int32_t xSource, 
+                         bool autoRescaleYAxisFlag,
+                         FFT_Dialog* window,
+                         DataProtocol* protocol,
+                         QString plotterTitle)
 {
-    setting = plotterSetting;
     saveData = saveGraphData;
     savePicture = saveGraphPicture;
     plotControl = new QCustomPlotControl;
@@ -52,29 +50,40 @@ void MyQCustomPlot::init(QMenu* plotterSetting, QAction* saveGraphData, QAction*
     xAxisSource = xSource;
     autoRescaleYAxis = autoRescaleYAxisFlag;
     fft_dialog = window;
+    p_protocol = protocol;
+    connect(this, SIGNAL(protocol_clearBuff(const QString &)),
+            p_protocol, SLOT(clearBuff(const QString &)));
+    titleName = plotterTitle;
     plotControl->setupPlotter(this, window);
-
-    protocol = new DataProtocol();
-    protocol_thread = new QThread(this);
-    protocol->moveToThread(protocol_thread);
-    qRegisterMetaType<qint32>("qint32&");
-    connect(protocol_thread, SIGNAL(finished()), protocol, SLOT(deleteLater()));
-    connect(this, SIGNAL(appendData(const QByteArray &)),
-            protocol, SLOT(appendData(const QByteArray &)));
-    connect(this, SIGNAL(parseData(bool)),
-            protocol, SLOT(parseData(bool)));
-
-    protocol_thread->start();
 }
 
-void MyQCustomPlot::appendDataWaitToParse(const QByteArray &data)
+void MyQCustomPlot::setAutoRescaleYAxis(bool autoRescaleYAxisFlag)
 {
-    emit appendData(data);
+    autoRescaleYAxis = autoRescaleYAxisFlag;
+}
+bool MyQCustomPlot::getAutoRescaleYAxis()
+{
+    return autoRescaleYAxis;
 }
 
-void MyQCustomPlot::startParse(bool enableSumCheck)
+void MyQCustomPlot::setxAxisSource(int32_t xSource)
 {
-    emit parseData(enableSumCheck);
+    xAxisSource = xSource;
+}
+int32_t MyQCustomPlot::getxAxisSource()
+{
+    return xAxisSource;
+}
+
+int32_t MyQCustomPlot::useOpenGL(bool flag)
+{
+    useGPUFlag = flag;
+    this->setOpenGl(useGPUFlag);
+    return 0;
+}
+bool MyQCustomPlot::getUseOpenGLState()
+{
+    return useGPUFlag;
 }
 
 /*plotter交互*/
@@ -96,7 +105,7 @@ void MyQCustomPlot::axisLabelDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart 
   }else if(part == QCPAxis::spAxis){
       //选的Y轴
       if(axis == this->yAxis || axis == this->yAxis2){
-          if(autoRescaleYAxis && *autoRescaleYAxis == true)
+          if(autoRescaleYAxis)
           {
               QMessageBox::information(this, tr("提示"), tr("若要精确设置Y轴，请先关闭自动刷新Y轴功能"));
               return;
@@ -127,17 +136,14 @@ void MyQCustomPlot::axisLabelDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart 
          return;
       }
       //选的X轴
-      if(!xAxisSource)
-      {
-          qDebug() << "unregistered xAxisSource in axisLabelDoubleClick";
-          return;
-      }
       //X轴在时间戳模式和非时间戳模式下具有不同的调整方式
-      if(*xAxisSource == XAxis_Cnt || plotControl->getEnableTimeStampMode())
+      if(xAxisSource == XAxis_Cnt || plotControl->getEnableTimeStampMode())
       {
           bool ok;
-          double newLength = QInputDialog::getDouble(this, tr("更改X轴长度"), tr("新的X轴长度："),plotControl->getXAxisLength(),
-                                                     0, 2147483647, 1, &ok, Qt::WindowCloseButtonHint);
+          double newLength = QInputDialog::getDouble(this, 
+                                                    tr("更改X轴长度"), tr("新的X轴长度："),
+                                                    plotControl->getXAxisLength(),
+                                                    0, 2147483647, 1, &ok, Qt::WindowCloseButtonHint);
           if (ok)
           {
             plotControl->setXAxisLength(newLength);
@@ -190,7 +196,8 @@ void MyQCustomPlot::legendDoubleClick(QCPLegend *legend, QCPAbstractLegendItem *
       this->replot();
 
       //把新名字传递给fft窗口
-      if(fft_dialog)
+      //(plotControl->setNameSet也会设，有点重复，最好不要删似乎删了会有点问题，但是不太记得了)
+      if(fft_dialog && fft_dialog->getFFTPlotterTitle() == titleName)
       {
           fft_dialog->setNameSet(this->plotControl->getNameSetsFromPlot());
       }
@@ -288,7 +295,7 @@ void MyQCustomPlot::mouseWheel(QWheelEvent *w)
             this->axisRect()->setRangeZoom(Qt::Horizontal|Qt::Vertical);
             break;
         default:
-            if(autoRescaleYAxis && *autoRescaleYAxis == true)
+            if(autoRescaleYAxis)
             {
                 //调X轴
                 this->axisRect()->setRangeZoom(Qt::Horizontal);
@@ -348,7 +355,7 @@ void MyQCustomPlot::rescaleXYAxis()
 {
     this->yAxis->rescale(true);
     //XY模式
-    if(xAxisSource && (*xAxisSource != XAxis_Cnt) &&
+    if(xAxisSource != XAxis_Cnt &&
        this->plotControl->getEnableTimeStampMode() != true)
     {
         this->xAxis->rescale(true);
@@ -369,16 +376,23 @@ void MyQCustomPlot::rescaleXYAxis()
 void MyQCustomPlot::removeAllGraphs()
 {
     QMessageBox::Button res;
-    res = QMessageBox::warning(this,tr("警告"), tr("确定要移除所有曲线吗？"), QMessageBox::Ok|QMessageBox::No);
+    res = QMessageBox::warning(this, tr("警告"), 
+                                tr("确定要移除所有曲线吗？"), 
+                                QMessageBox::Ok|QMessageBox::No);
     if(res == QMessageBox::No)
         return;
 
-    protocol->clearBuff();
+    if(p_protocol)
+    {
+        emit protocol_clearBuff(titleName);
+    }
     plotControl->clearPlotter(-1);
-    while(this->graphCount()>1){
+    while(this->graphCount() > 1)
+    {
         this->removeGraph(this->graphCount() - 1);
     }
-    this->yAxis->setRange(0, 5);
+    if(autoRescaleYAxis)
+        this->yAxis->setRange(0, 5);
     this->xAxis->setRange(0, plotControl->getXAxisLength(), Qt::AlignRight);
     this->replot();
 }
@@ -434,8 +448,10 @@ void MyQCustomPlot::hideSelectedGraph()
     {
         //获取图像编号
         int index = 0;
-        for(;index < this->graphCount(); index++){
-            if(this->graph(index)->name() == this->selectedGraphs().first()->name()){
+        for(;index < this->graphCount(); index++)
+        {
+            if(this->graph(index)->name() == this->selectedGraphs().first()->name())
+            {
                 break;
             }
         }
@@ -444,7 +460,8 @@ void MyQCustomPlot::hideSelectedGraph()
             this->selectedGraphs().first()->setVisible(false);
             this->legend->item(index)->setTextColor(Qt::gray);
         }
-        else{
+        else
+        {
             this->selectedGraphs().first()->setVisible(true);
             this->legend->item(index)->setTextColor(Qt::black);
         }
@@ -455,7 +472,8 @@ void MyQCustomPlot::hideSelectedGraph()
 void MyQCustomPlot::hideAllGraph()
 {
     int index = 0;
-    for(;index < this->graphCount(); index++){
+    for(;index < this->graphCount(); index++)
+    {
         this->graph(index)->setVisible(false);
         this->legend->item(index)->setTextColor(Qt::gray);
     }
@@ -475,85 +493,284 @@ void MyQCustomPlot::showAllGraph()
 bool MyQCustomPlot::isAllGraphHide(void)
 {
     int index = 0;
-    for(;index < this->graphCount(); index++){
-        if(this->graph(index)->visible()){
+    for(;index < this->graphCount(); index++)
+    {
+        if(this->graph(index)->visible())
+        {
             return false;
         }
     }
     return true;
 }
 
+void MyQCustomPlot::on_actionLineType_triggered()
+{
+    QAction* contextAction = nullptr;
+    contextAction = qobject_cast<QAction*>(sender());
+    if(!contextAction)
+    {
+        qDebug() << "no input param at" << __FUNCTION__;
+        return;
+    }
+
+    bool ok;
+    LineType_e line_type = static_cast<LineType_e>(contextAction->data().toInt(&ok));
+    if (!ok)
+    {
+        qDebug() << "convert input param error at" << __FUNCTION__;
+        return;
+    }
+
+    this->plotControl->setupLineType(line_type);
+    this->replot();
+}
+
+void MyQCustomPlot::on_actionAutoRefreshYAxis_triggered(bool checked)
+{
+    this->setAutoRescaleYAxis(checked);
+}
+
+void MyQCustomPlot::on_actionOpenGL_triggered(bool checked)
+{
+    //使能OpenGL
+    this->useOpenGL(checked);
+    
+    if(fft_dialog && fft_dialog->getFFTPlotterTitle() == titleName)
+        fft_dialog->setupPlotterOpenGL(checked); //实际未使能
+
+    //重绘
+    this->replot();
+}
+
+void MyQCustomPlot::on_actionSelectXAxis_triggered()
+{
+    static QString defaultXAxisLabel = this->xAxis->label();//记录初始默认标签
+    bool ok;
+    QString name;
+    QVector<QString> nameSets = this->plotControl->getNameSets();
+    QStringList list;
+    list.append(tr("系统自动递增"));
+    for (int32_t i = 0; i < this->graphCount(); i++)
+    {
+        list.append(nameSets.at(i));
+    }
+    name = QInputDialog::getItem(this, tr("提示"), 
+                                tr("请选择X轴数据源"),
+                                list, 0, false, &ok, Qt::WindowCloseButtonHint);
+    if(!ok)
+        return;
+
+    if(name == tr("系统自动递增") && this->plotControl->getEnableTimeStampMode())
+    {
+        QMessageBox::information(this, tr("提示"), tr("系统自动递增模式下将关闭时间戳模式"));
+        this->plotControl->setEnableTimeStampMode(false);
+    }
+
+    //选择了新的X轴,更新plotter->getxAxisSource()
+    for (int32_t i = 0; i < list.size(); i++)
+    {
+        if(list.at(i) == name)
+        {
+            this->setxAxisSource(i);
+            //更改X轴标签和隐藏被选为X轴的曲线
+            if(this->getxAxisSource() != XAxis_Cnt)
+            {
+                this->xAxis->setLabel(name);
+                int32_t j = 0;
+                for (j = 0; j < this->graphCount(); j++)
+                {
+                    if(this->graph(j)->name() == name)
+                    {
+                        this->graph(j)->setVisible(false);
+                        this->legend->item(j)->setTextColor(Qt::gray);
+                        continue;
+                    }
+                    this->graph(j)->setVisible(true);
+                    this->legend->item(j)->setTextColor(Qt::black);
+                }
+            }
+            else
+            {
+                //时域模式显示所有曲线
+                int32_t j = 0;
+                for (j = 0; j < this->graphCount(); j++)
+                {
+                    this->graph(j)->setVisible(true);
+                    this->legend->item(j)->setTextColor(Qt::black);
+                }
+                this->xAxis->setLabel(defaultXAxisLabel);
+            }
+            //并清空图像(不删除句柄)
+            QString empty;
+            emit protocol_clearBuff(empty);
+            this->plotControl->clearPlotter(-1);
+//            while(plotter->graphCount()>1){
+//                plotter->removeGraph(plotter->graphCount() - 1);
+//            }
+            this->yAxis->rescale(true);
+            this->xAxis->rescale(true);
+            this->replot();
+            break;
+        }
+    }
+}
+
+void MyQCustomPlot::on_actionTimeStampMode_triggered(bool checked)
+{
+    QMessageBox::StandardButton button;
+    if(checked && this->getxAxisSource() == XAxis_Cnt)
+    {
+        button = QMessageBox::information(this, tr("提示"),
+                                          tr("请为X轴选择一条曲线作为时间戳数据。"),
+                                          QMessageBox::Ok, QMessageBox::Cancel);
+        if(button != QMessageBox::Ok)
+        {
+            this->plotControl->setEnableTimeStampMode(!checked);
+            return;
+        }
+        on_actionSelectXAxis_triggered();
+        if(this->getxAxisSource() == XAxis_Cnt)//弹出窗口但是没有选择
+        {
+            this->plotControl->setEnableTimeStampMode(!checked);
+            return;
+        }
+    }
+    else if(!checked && this->getxAxisSource() != XAxis_Cnt)
+    {
+        on_actionSelectXAxis_triggered();
+    }
+    this->plotControl->setEnableTimeStampMode(checked);
+
+    return;
+}
+
+void MyQCustomPlot::organizeSettingMenu(QMenu* menu)
+{
+    // QMenu *menu = new QMenu(tr("设置"), this);
+    if(!menu)
+    {
+        return;
+    }
+
+    QMenu *lineType = nullptr;
+    lineType = menu->addMenu(tr("线型"));
+    if(!lineType)
+    {
+        return;
+    }
+
+    QAction *act = nullptr;
+    act = lineType->addAction(tr("线图"), this, SLOT(on_actionLineType_triggered()));
+    act->setData(Line);
+    act->setCheckable(true);
+    act->setChecked((this->plotControl->getLineType() == Line) ? true : false);
+
+    act = lineType->addAction(tr("点线图"), this, SLOT(on_actionLineType_triggered()));
+    act->setData(ScatterLine);
+    act->setCheckable(true);
+    act->setChecked((this->plotControl->getLineType() == ScatterLine) ? true : false);
+
+    act = lineType->addAction(tr("散点图"), this, SLOT(on_actionLineType_triggered()));
+    act->setData(Scatter);
+    act->setCheckable(true);
+    act->setChecked((this->plotControl->getLineType() == Scatter) ? true : false);
+
+    act = menu->addAction(tr("自动刷新Y轴"), this,
+                          SLOT(on_actionAutoRefreshYAxis_triggered(bool)));
+    act->setCheckable(true);
+    act->setChecked(this->getAutoRescaleYAxis());
+
+    act = menu->addAction(tr("GPU加速"), this,
+                          SLOT(on_actionOpenGL_triggered(bool)));
+    act->setCheckable(true);
+    act->setChecked(this->getUseOpenGLState());
+
+    menu->addSeparator();
+
+    act = menu->addAction(tr("更改X轴数据源"), this,
+                          SLOT(on_actionSelectXAxis_triggered()));
+
+    act = menu->addAction(tr("时间戳模式"), this,
+                          SLOT(on_actionTimeStampMode_triggered(bool)));
+    act->setCheckable(true);
+    act->setChecked(this->plotControl->getEnableTimeStampMode());
+}
+
 void MyQCustomPlot::contextMenuRequest(QPoint pos)
 {
-  QMenu *menu = new QMenu(this);
-  menu->setAttribute(Qt::WA_DeleteOnClose);
+    QMenu *menu = new QMenu(this);
+    menu->setAttribute(Qt::WA_DeleteOnClose);
 
-  if (this->legend->selectTest(pos, false) >= 0) // context menu on legend requested
-  {
-    menu->addAction(tr("移动到左上角"), this, SLOT(moveLegend()))->setData(static_cast<int>(Qt::AlignTop|Qt::AlignLeft));
-    menu->addAction(tr("移动到右上角"), this, SLOT(moveLegend()))->setData(static_cast<int>(Qt::AlignTop|Qt::AlignRight));
-    menu->addAction(tr("移动到右下角"), this, SLOT(moveLegend()))->setData(static_cast<int>(Qt::AlignBottom|Qt::AlignRight));
-    menu->addAction(tr("移动到左下角"), this, SLOT(moveLegend()))->setData(static_cast<int>(Qt::AlignBottom|Qt::AlignLeft));
-  }
-  // general context menu on graphs requested
-  if (this->graphCount() > 0){
-      menu->addSeparator();
-      menu->addAction(tr("寻找曲线"), this, SLOT(rescaleXYAxis()));
-      menu->addSeparator();
-      if(setting)
-      {
-          menu->addMenu(setting);
-      }
-      menu->addSeparator();
-      if(saveData)
-      {
-          menu->addAction(saveData);
-      }
-      if(savePicture)
-      {
-          menu->addAction(savePicture);
-      }
-      menu->addSeparator();
-      if (this->selectedGraphs().size() > 0){
-          menu->addAction(tr("移除所选曲线"), this, SLOT(removeSelectedGraph()));
-      }
-      menu->addAction(tr("移除所有曲线"), this, SLOT(removeAllGraphs()));
-  }
-  //选择了曲线
-  if (this->selectedGraphs().size() > 0){
-    menu->addSeparator();
-    menu->addAction(tr("更改所选曲线颜色"), this, SLOT(reColorSelectedGraph()));
-    menu->addAction(tr("重命名所选曲线"), this, SLOT(reNameSelectedGraph()));
-    menu->addSeparator();
-    //所选曲线是否可见
-    if(this->selectedGraphs().first()->visible()){
-        menu->addAction(tr("隐藏所选曲线"), this, SLOT(hideSelectedGraph()));
-    }else{
-        menu->addAction(tr("显示所选曲线"), this, SLOT(hideSelectedGraph()));
+    if (this->legend->selectTest(pos, false) >= 0) // context menu on legend requested
+    {
+        menu->addAction(tr("移动到左上角"), this, SLOT(moveLegend()))->setData(static_cast<int>(Qt::AlignTop|Qt::AlignLeft));
+        menu->addAction(tr("移动到右上角"), this, SLOT(moveLegend()))->setData(static_cast<int>(Qt::AlignTop|Qt::AlignRight));
+        menu->addAction(tr("移动到右下角"), this, SLOT(moveLegend()))->setData(static_cast<int>(Qt::AlignBottom|Qt::AlignRight));
+        menu->addAction(tr("移动到左下角"), this, SLOT(moveLegend()))->setData(static_cast<int>(Qt::AlignBottom|Qt::AlignLeft));
     }
-  }
-  if(isAllGraphHide())
-  {
-      menu->addAction(tr("显示所有曲线"), this, SLOT(showAllGraph()));
-  }else
-  {
-      menu->addAction(tr("隐藏所有曲线"), this, SLOT(hideAllGraph()));
-  }
-  menu->popup(this->mapToGlobal(pos));
+    // general context menu on graphs requested
+    if (this->graphCount() > 0)
+    {
+        menu->addSeparator();
+        menu->addAction(tr("寻找曲线"), this, SLOT(rescaleXYAxis()));
+        menu->addSeparator();
+        QMenu *setting;
+        setting = menu->addMenu(tr("设置"));
+        organizeSettingMenu(setting);
+        menu->addSeparator();
+        if(saveData)
+        {
+            menu->addAction(saveData);
+        }
+        if(savePicture)
+        {
+            menu->addAction(savePicture);
+        }
+        menu->addSeparator();
+        if (this->selectedGraphs().size() > 0){
+            menu->addAction(tr("移除所选曲线"), this, SLOT(removeSelectedGraph()));
+        }
+        menu->addAction(tr("移除所有曲线"), this, SLOT(removeAllGraphs()));
+    }
+    //选择了曲线
+    if (this->selectedGraphs().size() > 0)
+    {
+        menu->addSeparator();
+        menu->addAction(tr("更改所选曲线颜色"), this, SLOT(reColorSelectedGraph()));
+        menu->addAction(tr("重命名所选曲线"), this, SLOT(reNameSelectedGraph()));
+        menu->addSeparator();
+        //所选曲线是否可见
+        if(this->selectedGraphs().first()->visible())
+        {
+            menu->addAction(tr("隐藏所选曲线"), this, SLOT(hideSelectedGraph()));
+        }
+        else
+        {
+            menu->addAction(tr("显示所选曲线"), this, SLOT(hideSelectedGraph()));
+        }
+    }
+    if(isAllGraphHide())
+    {
+        menu->addAction(tr("显示所有曲线"), this, SLOT(showAllGraph()));
+    }else
+    {
+        menu->addAction(tr("隐藏所有曲线"), this, SLOT(hideAllGraph()));
+    }
+    menu->popup(this->mapToGlobal(pos));
 }
 
 void MyQCustomPlot::moveLegend()
 {
-  if (QAction* contextAction = qobject_cast<QAction*>(sender())) // make sure this slot is really called by a context menu action, so it carries the data we need
-  {
-    bool ok;
-    int dataInt = contextAction->data().toInt(&ok);
-    if (ok)
+    if (QAction* contextAction = qobject_cast<QAction*>(sender())) // make sure this slot is really called by a context menu action, so it carries the data we need
     {
-      this->axisRect()->insetLayout()->setInsetAlignment(0, static_cast<Qt::Alignment>(dataInt));
-      this->replot();
+        bool ok;
+        int dataInt = contextAction->data().toInt(&ok);
+        if (ok)
+        {
+            this->axisRect()->insetLayout()->setInsetAlignment(0, static_cast<Qt::Alignment>(dataInt));
+            this->replot();
+        }
     }
-  }
 }
 
 void MyQCustomPlot::graphClicked(QCPAbstractPlottable *plottable, int dataIndex)
@@ -586,7 +803,7 @@ void MyQCustomPlot::showTracer(QMouseEvent *event)
     //获取x,y轴坐标
     double x = 0;
     double y = 0;
-    if(xAxisSource && (*xAxisSource != XAxis_Cnt))
+    if(xAxisSource != XAxis_Cnt)
     {
         x = this->xAxis->pixelToCoord(event->pos().x());
         y = this->yAxis->pixelToCoord(event->pos().y());
@@ -671,4 +888,9 @@ bool MyQCustomPlot::saveGraphAsTxt(const QString& filePath, char separate)
     file.flush();
     file.close();
     return true;
+}
+
+QString MyQCustomPlot::getPlotterTitle(void)
+{
+    return titleName;
 }

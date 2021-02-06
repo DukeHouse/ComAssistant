@@ -147,7 +147,8 @@ void QCustomPlotControl::setNameSet(QVector<QString> names)
          customPlot->graph(i)->setName(nameSet[i]);
     }
 
-    if(fft_dialog)
+    if(fft_dialog &&
+       fft_dialog->getFFTPlotterTitle() == customPlot->getPlotterTitle())
     {
         fft_dialog->setNameSet(nameSet);
     }
@@ -197,10 +198,15 @@ QCPRange QCustomPlotControl::getXRange()
     return xRange;
 }
 
+QVector<double> QCustomPlotControl::getRecentRowData()
+{
+    return recentRowData;
+}
+
 /*
  * Function:把数据取出来显示到绘图器上
 */
-bool QCustomPlotControl::addDataToPlotter(QVector<double> rowData, qint32 xSource)
+bool QCustomPlotControl::addDataToPlotter(QVector<double> rowData)
 {
     QElapsedTimer time;
     time.start();
@@ -224,8 +230,9 @@ bool QCustomPlotControl::addDataToPlotter(QVector<double> rowData, qint32 xSourc
     }
 
     //填充数据
-    int minCnt = colorSet.size()>rowData.size()?rowData.size():colorSet.size();
-    switch(xSource)
+    recentRowData = rowData;
+    int minCnt = colorSet.size() > rowData.size() ? rowData.size() : colorSet.size();
+    switch(customPlot->getxAxisSource())
     {
     case XAxis_Cnt:
         for(int i = 0; i < minCnt; i++){
@@ -237,13 +244,18 @@ bool QCustomPlotControl::addDataToPlotter(QVector<double> rowData, qint32 xSourc
         xAxisCnt++;
         break;
     default:
-        for(int i = 0; i < minCnt; i++){
-            customPlot->graph(i)->addData(rowData.at(xSource - 1), rowData.at(i)); //注意 xSource - 1是因为xSource=1时表示选择第0条曲线，xSource = 0 时表示时间
+        for(int i = 0; i < minCnt; i++)
+        {
+            customPlot->graph(i)->addData(rowData.at(customPlot->getxAxisSource() - 1), 
+                                          rowData.at(i)); 
+                                          //注意 customPlot->getxAxisSource() - 1是因为customPlot->getxAxisSource()=1时表示选择第0条曲线，customPlot->getxAxisSource() = 0 时表示时间
         }
         if(enableTimeStampMode)
         {
-            customPlot->xAxis->setRange(rowData.at(xSource - 1), xRange.upper - xRange.lower, Qt::AlignRight);
-            rightEdge = rowData.at(xSource - 1);
+            customPlot->xAxis->setRange(rowData.at(customPlot->getxAxisSource() - 1), 
+                                        xRange.upper - xRange.lower, 
+                                        Qt::AlignRight);
+            rightEdge = rowData.at(customPlot->getxAxisSource() - 1);
         }
         break;
     }
@@ -409,7 +421,6 @@ void QCustomPlotControl::setupLineStyle(QCPGraph::LineStyle style)
     customPlot->replot();
 }
 
-
 void QCustomPlotControl::setupLineType(LineType_e type)
 {
     switch(type){
@@ -431,6 +442,11 @@ void QCustomPlotControl::setupLineType(LineType_e type)
     }
 
     customPlot->replot();
+}
+
+LineType_e QCustomPlotControl::getLineType(void)
+{
+    return lineType;
 }
 
 void QCustomPlotControl::setupLegendVisible(bool visible)

@@ -79,6 +79,7 @@ SOURCES += \
     plotter/dataprotocol.cpp \
     plotter/myqcustomplot.cpp \
     plotter/mytracer.cpp \
+    plotter/plotter_manager.cpp \
     plotter/qcustomplot.cpp \
     plotter/qcustomplotcontrol.cpp \
     sources/baseconversion.cpp \
@@ -156,6 +157,7 @@ HEADERS += \
     plotter/dataprotocol.h \
     plotter/myqcustomplot.h \
     plotter/mytracer.h \
+    plotter/plotter_manager.h \
     plotter/qcustomplot.h \
     plotter/qcustomplotcontrol.h \
     sources/baseconversion.h \

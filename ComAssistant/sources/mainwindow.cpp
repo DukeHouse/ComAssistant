@@ -12,7 +12,6 @@ bool    g_agree_statement = false;  //同意相关声明标志
 bool    g_log_record      = false;  //日志记录开关
 bool    g_debugger        = false;  //调试开关
 
-static qint32   g_xAxisSource = XAxis_Cnt;
 static qint32   g_multiStr_cur_index = -1;  // -1 means closed this function
 static QColor   g_background_color;
 static QFont    g_font;
@@ -66,8 +65,7 @@ bool MainWindow::registPopupHotKey(QString keySequence)
 */
 void MainWindow::readConfig()
 {
-    //先写入版本号和启动时间
-    Config::setVersion();
+    //写入启动时间
     Config::setStartTime(QDateTime::currentDateTime().toString("yyyyMMddhhmmss"));
 
     //文本解析引擎
@@ -109,8 +107,8 @@ void MainWindow::readConfig()
     }
 
     //tab页面和匹配字符串
-    ui->regMatchEdit->setText(Config::getConfigString(SECTION_GLOBAL, KEY_REG_MATCH_STR));
-    QString activatedTabName = Config::getConfigString(SECTION_GLOBAL, KEY_ACTIVATED_TAB);
+    ui->regMatchEdit->setText(Config::getConfigString(SECTION_GLOBAL, KEY_REG_MATCH_STR, ""));
+    QString activatedTabName = Config::getConfigString(SECTION_GLOBAL, KEY_ACTIVATED_TAB, "");
     for(int32_t i = 0; i < ui->tabWidget->count(); i++){
         if(ui->tabWidget->tabText(i) == activatedTabName){
             ui->tabWidget->setCurrentIndex(i);
@@ -198,32 +196,24 @@ void MainWindow::readConfig()
     //轴标签
     ui->customPlot->xAxis->setLabel(Config::getXAxisName());
     ui->customPlot->yAxis->setLabel(Config::getYAxisName());
+    //图像名字集
+    ui->customPlot->plotControl->setNameSet(
+        Config::getPlotterGraphNames(ui->customPlot->plotControl->getMaxValidGraphNumber()));
+    //线形
+    ui->customPlot->plotControl->setupLineType(Config::getLineType());
+    //OpenGL
+    ui->customPlot->useOpenGL(Config::getOpengGLState());
+
     //数值显示器
     ui->actionValueDisplay->setChecked(Config::getValueDisplayState());
     on_actionValueDisplay_triggered(Config::getValueDisplayState());
-    //图像名字集
-    ui->customPlot->plotControl->setNameSet(Config::getPlotterGraphNames(ui->customPlot->plotControl->getMaxValidGraphNumber()));
-    //OpenGL
-    ui->actionOpenGL->setChecked(Config::getOpengGLState());
-    on_actionOpenGL_triggered(Config::getOpengGLState());
 
+#if SHOW_PLOTTER_SETTING
     //refreshYAxis
     on_actionAutoRefreshYAxis_triggered(Config::getRefreshYAxisState());
-    //line type
-    switch (Config::getLineType()) {
-    case LineType_e::Line:
-        on_actionLinePlot_triggered();
-        break;
-    case LineType_e::Scatter_Line:
-        on_actionScatterLinePlot_triggered();
-        break;
-    case LineType_e::Scatter:
-        on_actionScatterPlot_triggered();
-        break;
-    default:
-        on_actionLinePlot_triggered();
-        break;
-    }
+#else
+    ui->plotterSetting->menuAction()->setVisible(false);
+#endif
 
     //注册全局呼出快捷键
     registPopupHotKey(Config::getPopupHotKey());
@@ -290,7 +280,8 @@ void MainWindow::layoutConfig()
 
 int32_t MainWindow::firstRunNotify()
 {
-    if(Config::getFirstRun()){
+    if(Config::getFirstRun())
+    {
         Config::setFirstStartTime(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
 //        QMessageBox::information(this, tr("提示"),
 //                                 tr("欢迎使用纸飞机串口调试助手。") + "\n\n" +
@@ -323,6 +314,18 @@ int32_t MainWindow::firstRunNotify()
     else
     {
         g_agree_statement = true;
+        if(Config::versionCompare(Config::readVersion(), "0.5.3") > 0)
+        {
+            QMessageBox::information(this, 
+                                    tr("提示"),
+                                    tr("纸飞机串口助手现已支持多窗口绘图！") + "\n\n" +
+                                    tr("请关注ASCII协议变化：") + "\n" +
+                                    tr("请修改{:1,2,3}为{plotter:1,2,3}") + "\n" +
+                                    tr("其中plotter可以是任意英文字符。") + "\n" +
+                                    tr("如发送{plotter:1,2,3}{vol:4,5,6}将可以出现2个绘图窗口。") + "\n\n" +
+                                    tr("详情请重新了解帮助文档，感谢阁下的使用！"),
+                                    QMessageBox::Ok);
+        }
     }
     return 0;
 }
@@ -382,11 +385,34 @@ MainWindow::MainWindow(QWidget *parent) :
     //fft
     fft_window = new FFT_Dialog(ui->actionFFTShow, this);
 
-    //初始化绘图控制器
-    ui->customPlot->init(ui->plotterSetting,
-                         ui->actionSavePlotData, ui->actionSavePlotAsPicture,
-                         &g_xAxisSource, &autoRefreshYAxisFlag,
-                         fft_window);
+    //初始化绘图解析器
+    plotProtocol = new DataProtocol();
+    plotProtocol_thread = new QThread(this);
+    plotProtocol->moveToThread(plotProtocol_thread);
+    qRegisterMetaType<qint32>("qint32&");
+    connect(plotProtocol_thread, SIGNAL(finished()), plotProtocol, SLOT(deleteLater()));
+    connect(this, SIGNAL(protocol_appendData(const QByteArray &)),
+            plotProtocol, SLOT(appendData(const QByteArray &)));
+    connect(this, SIGNAL(protocol_parseData(bool)),
+            plotProtocol, SLOT(parseData(bool)));
+    connect(this, SIGNAL(protocol_clearBuff(const QString &)),
+            plotProtocol, SLOT(clearBuff(const QString &)));
+    plotProtocol->setDefaultPlotterTitle(Config::getConfigString(SECTION_GLOBAL, KEY_DEFAULT_PLOT_TITLE, DEFAULT_PLOT_TITLE_MACRO));
+    plotProtocol_thread->start();
+
+    //初始化绘图器(要放在绘图解析器后面初始化)
+    ui->customPlot->init(ui->actionSavePlotData, ui->actionSavePlotAsPicture,
+                         XAxis_Cnt, 
+                         Config::getRefreshYAxisState(),
+                         fft_window, 
+                         plotProtocol,
+                         plotProtocol->getDefaultPlotterTitle());
+    ui->customPlot->setAutoRescaleYAxis(Config::getRefreshYAxisState());
+    ui->tabWidget_plotter->setTabText(0, plotProtocol->getDefaultPlotterTitle());
+    plotterManager.setDefaultPlotter(ui->customPlot);
+
+    //初始化完成后ui->customPlot不再建议使用，建议通过plotterManager进行管理
+    plotterManager.addPlotter(plotProtocol->getDefaultPlotterTitle(), ui->customPlot);
 
     //文本提取引擎初始化
     qDebug() << "Main threadID :" << QThread::currentThreadId();
@@ -530,7 +556,7 @@ void MainWindow::quickHelp()
         helpText = "Data display area"
                 "\n\n"
                 "Quick Guide：\n\n"
-                "# ASCII protocol(text string): \n"
+                "# ASCII plotProtocol(text string): \n"
                 "  \"{tag:hello world}\\n\"\n"
                 "  'tag' is any name you like\n"
                 "  'hello world' is any text containt\n"
@@ -906,12 +932,10 @@ QString MainWindow::formatTime(qint32 ms)
     return hou + ":" + min + ":" + sec ;
 }
 
-void MainWindow::secTimerSlot()
+void MainWindow::TxRxSpeedStatisticAndDisplay()
 {
-    static int64_t secCnt = 0;
-    static qint32 msgIndex = 0;
     double idealSpeed = 0;
-    qint32 txLoad, rxLoad;
+    int32_t txLoad, rxLoad;
 
     //传输速度统计与显示
     rxSpeedKB = static_cast<double>(statisticRxByteCnt) / 1024.0;
@@ -922,14 +946,13 @@ void MainWindow::secTimerSlot()
     idealSpeed = (double)serial.baudRate()/(serial.stopBits()+serial.parity()+serial.dataBits()+1)/1024.0;
     txLoad = 100 * txSpeedKB / idealSpeed;
     rxLoad = 100 * rxSpeedKB / idealSpeed;
-    if(txLoad>100)txLoad = 100;//由于电脑串口是先放进缓冲再发送，因此会出现使用率大于100%的情况
-    if(rxLoad>100)rxLoad = 100;
+    if(txLoad > 100)txLoad = 100;//由于电脑串口是先放进缓冲再发送，因此会出现使用率大于100%的情况
+    if(rxLoad > 100)rxLoad = 100;
 
-    //收发速度显示与颜色控制
     QString txSpeedStr;
     QString rxSpeedStr;
     #define HIGH_LOAD_WARNING    90
-    if(txSpeedKB==0)
+    if(txSpeedKB == 0)
     {
         txSpeedStr = " T:" + QString::number(txSpeedKB) + "KB/s(" + QString::number(txLoad) + "%)";
     }
@@ -944,7 +967,7 @@ void MainWindow::secTimerSlot()
     {
         txSpeedStr = "<font color=#FF5A5A>" + txSpeedStr + "</font>";
     }
-    if(rxSpeedKB==0)
+    if(rxSpeedKB == 0)
     {
         rxSpeedStr = " R:" + QString::number(rxSpeedKB) + "KB/s(" + QString::number(rxLoad) + "%)";
     }
@@ -960,21 +983,34 @@ void MainWindow::secTimerSlot()
         rxSpeedStr = "<font color=#FF5A5A>" + rxSpeedStr + "</font>";
     }
     statusSpeedLabel->setText(txSpeedStr + rxSpeedStr);
+}
+
+void MainWindow::secTimerSlot()
+{
+    static int64_t secCnt = 0;
+    static int32_t msgIndex = 0;
+
+    //收发速度显示与颜色控制
+    TxRxSpeedStatisticAndDisplay();
 
     //显示远端下载的信息
     if(http)
     {
-        if(http->getMsgList().size() > 0 && secCnt % 10 == 0){
+        if(http->getMsgList().size() > 0 && secCnt % 10 == 0)
+        {
             statusRemoteMsgLabel->setText(http->getMsgList().at(msgIndex++));
             if(msgIndex == http->getMsgList().size())
                 msgIndex = 0;
         }
     }
 
-    if(ui->comSwitch->isChecked()){
+    if(ui->comSwitch->isChecked())
+    {
         qint64 consumedTime = QDateTime::currentSecsSinceEpoch() - g_lastSecsSinceEpoch;
         statusTimer->setText("Timer:" + formatTime(consumedTime * 1000));
-    }else{
+    }
+    else
+    {
         g_lastSecsSinceEpoch = QDateTime::currentSecsSinceEpoch();
     }
 
@@ -1017,7 +1053,7 @@ void MainWindow::debugTimerSlot()
     num4 = static_cast<float>(1.2 * qSin(2 * PI * (FRQ-4) * (debugTimerSlotCnt / DEBUG_TIMER_FRQ))) +
            static_cast<float>(1.2 * qSin(2 * PI * (FRQ+4) * (debugTimerSlotCnt / DEBUG_TIMER_FRQ)));
     if(ui->actionAscii->isChecked()){
-        if(ui->actionTimeStampMode->isChecked())
+        if(plotterManager.getDefaultPlotter()->plotControl->getEnableTimeStampMode())
             num1 = debugTimerSlotCnt;
         QString tmp;
         tmp = "{plotter:" +
@@ -1127,27 +1163,21 @@ MainWindow::~MainWindow()
             else
                 Config::setPlotterType(ProtocolType_e::MAD);
         }
-
-        Config::setPlotterGraphNames(ui->customPlot->plotControl->getNameSets());
-        if(g_xAxisSource == XAxis_Cnt)  //暂时不支持存储XY图模式的X轴名字
-            Config::setXAxisName(ui->customPlot->xAxis->label());
-        Config::setYAxisName(ui->customPlot->yAxis->label());
         Config::setValueDisplayState(ui->actionValueDisplay->isChecked());
-        Config::setOpengGLState(ui->actionOpenGL->isChecked());
-        Config::setRefreshYAxisState(ui->actionAutoRefreshYAxis->isChecked());
-        if(ui->actionLinePlot->isChecked())
+        //保存默认绘图器配置，不能用ui->customPlot了
+        MyQCustomPlot* defaultPlotter = plotterManager.selectPlotter(plotProtocol->getDefaultPlotterTitle());
+        if(defaultPlotter)
         {
-            Config::setLineType(LineType_e::Line);
-        }else if(ui->actionScatterLinePlot->isChecked())
-        {
-            Config::setLineType(LineType_e::Scatter_Line);
-        }else if(ui->actionScatterPlot->isChecked())
-        {
-            Config::setLineType(LineType_e::Scatter);
-        }else
-        {
-            Config::setLineType(LineType_e::Line);
+            Config::setPlotterGraphNames(defaultPlotter->plotControl->getNameSets());
+            if(defaultPlotter->getxAxisSource() == XAxis_Cnt)  //暂时不支持存储XY图模式的X轴名字
+                Config::setXAxisName(defaultPlotter->xAxis->label());
+            Config::setYAxisName(defaultPlotter->yAxis->label());
+            Config::setRefreshYAxisState(defaultPlotter->getAutoRescaleYAxis());    
+            Config::setLineType(defaultPlotter->plotControl->getLineType());
+            Config::setOpengGLState(defaultPlotter->getUseOpenGLState());
         }
+        //默认绘图器名称
+        Config::setConfigString(SECTION_GLOBAL, KEY_DEFAULT_PLOT_TITLE, plotProtocol->getDefaultPlotterTitle());
 
         //static
         Config::setLastRunTime(currentRunTime);
@@ -1191,6 +1221,11 @@ MainWindow::~MainWindow()
         p_logger->logger_buff_flush(GRAPH_DATA_LOG);
     }
 
+    plotProtocol_thread->quit();
+    plotProtocol_thread->wait();
+//    delete plotProtocol_thread; //deleteLater自动删除？
+    delete plotProtocol_thread;
+
     p_textExtractThread->quit();
     p_textExtractThread->wait();
 //    delete p_textExtract; //deleteLater自动删除？
@@ -1221,6 +1256,7 @@ MainWindow::~MainWindow()
     {
         recoveryFile.remove();
     }
+    Config::writeCommentMsgAtFileTop();
     qDebug()<<"~MainWindow";
 }
 
@@ -1452,7 +1488,7 @@ void MainWindow::readSerialPort()
        ui->actionValueDisplay->isChecked() ||
        ui->actionFFTShow->isChecked())
     {
-        ui->customPlot->appendDataWaitToParse(tmpReadBuff);
+        emit protocol_appendData(tmpReadBuff);
     }
 
     emit logger_append(RECOVERY_LOG, tmpReadBuff);
@@ -1715,7 +1751,7 @@ void MainWindow::parsePlotterAndTee()
        ui->actionValueDisplay->isChecked() ||
        ui->actionFFTShow->isChecked())
     {
-        ui->customPlot->startParse(g_enableSumCheck);
+        emit protocol_parseData(g_enableSumCheck);
     }
 }
 
@@ -1923,7 +1959,7 @@ void MainWindow::on_clearWindows_clicked()
     ui->regMatchBrowser->clear();
     //文本提取区
     emit tee_clearData("");//clear temp buff
-    for(qint32 i = 0; i < ui->tabWidget->count(); i++)
+    for(int32_t i = 0; i < ui->tabWidget->count(); i++)
     {
         if(ui->tabWidget->tabText(i) != MAIN_TAB_NAME &&
            ui->tabWidget->tabText(i) != REGMATCH_TAB_NAME )
@@ -1938,28 +1974,36 @@ void MainWindow::on_clearWindows_clicked()
         }
     }
 
-    //绘图器相关
-    ui->customPlot->plotControl->resetRightEdge();
-    ui->customPlot->protocol->clearBuff();
-    ui->customPlot->plotControl->clearPlotter(-1);
-    while(ui->customPlot->graphCount()>1){
-        ui->customPlot->removeGraph(ui->customPlot->graphCount()-1);
-    }
-    if(g_xAxisSource == XAxis_Cnt)
+    //绘图器相关，这个宏用于控制点击清空后是只清除数据还是把绘图器对象也删掉
+#ifdef  CLEAR_AND_DELETE_PLOTTER
+    QString selectName;
+    MyQCustomPlot* plotter = nullptr;
+    for(int32_t i = 0; i < ui->tabWidget_plotter->count(); i++)
     {
-        //关闭自动刷新Y轴时不重置Y轴
-        if(autoRefreshYAxisFlag)
+        selectName = ui->tabWidget_plotter->tabText(i);
+        if(selectName != plotProtocol->getDefaultPlotterTitle())
         {
-            ui->customPlot->yAxis->setRange(0, 5);
+            emit protocol_clearBuff(selectName);
+            plotterManager.removePlotter(selectName);
+            if(ui->tabWidget_plotter->widget(i) != nullptr)
+            {
+                delete ui->tabWidget_plotter->widget(i);
+            }
+//            ui->tabWidget_plotter->removeTab(i);
+            i = 0;//重置计数器
         }
-        ui->customPlot->xAxis->setRange(0, ui->customPlot->plotControl->getXAxisLength(), Qt::AlignRight);
     }
-    else
+    plotter = selectCurrentPlotter();
+    if(plotter)
     {
-        ui->customPlot->yAxis->rescale(true);
-        ui->customPlot->xAxis->rescale(true);
+        emit protocol_clearBuff(plotter->getPlotterTitle());
+        plotterManager.clearPlotter(plotter->getPlotterTitle());
+        plotter->replot();
     }
-    ui->customPlot->replot();
+#else
+    plotterManager.clearAllPlotter();
+    emit protocol_clearBuff("");
+#endif
 
     //fft
     fft_window->clearGraphs();
@@ -1976,23 +2020,27 @@ void MainWindow::on_clearWindows_clicked()
 
 void MainWindow::on_cycleSendCheck_clicked(bool checked)
 {
-    if(ui->sendInterval->text().toInt() < 15 && checked){
-        QMessageBox::warning(this,tr("警告"),tr("发送间隔较小可能不够准确"));
+    if(ui->sendInterval->text().toInt() < 15 && checked)
+    {
+        QMessageBox::warning(this, tr("警告"), tr("发送间隔较小可能不够准确"));
     }
 
-    if(!serial.isOpen()){
-        QMessageBox::information(this,tr("提示"),tr("串口未打开"));
+    if(!serial.isOpen())
+    {
+        QMessageBox::information(this, tr("提示"), tr("串口未打开"));
         ui->cycleSendCheck->setChecked(false);
         return;
     }
 
     //启停定时器
-    if(checked){
+    if(checked)
+    {
         ui->cycleSendCheck->setChecked(true);
         cycleSendTimer.setTimerType(Qt::PreciseTimer);
         cycleSendTimer.start(ui->sendInterval->text().toInt());
     }
-    else {
+    else
+    {
         ui->cycleSendCheck->setChecked(false);
         cycleSendTimer.stop();
     }
@@ -2150,7 +2198,9 @@ void MainWindow::on_actionSaveOriginData_triggered()
     //打开保存文件对话框
     QString savePath = QFileDialog::getSaveFileName(this,
                                                     tr("保存原始数据-选择文件路径"),
-                                                    lastFileDialogPath + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + "-[" + tabName + "]" +".dat",
+                                                    lastFileDialogPath + 
+                                                    "[" + tabName + "]-" +
+                                                    QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".dat",
                                                     "Dat File(*.dat);;All File(*.*)");
     //检查路径格式
     if(!savePath.endsWith(".dat")){
@@ -2344,7 +2394,9 @@ void MainWindow::on_actionSaveShowedData_triggered()
     QString savePath = QFileDialog::getSaveFileName(
                 this,
                 tr("保存显示数据-选择文件路径"),
-                lastFileDialogPath + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + "-[" + tabName + "]" +".txt",
+                lastFileDialogPath + 
+                "[" + tabName + "]-" +
+                QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".txt",
                 "Text File(*.txt);;All File(*.*)");
 
     //检查路径
@@ -2690,7 +2742,7 @@ void MainWindow::setVisualizerTitle(void)
 
 void MainWindow::resetVisualizerTitle(void)
 {
-    if(ui->customPlot->isVisible() ||
+    if(ui->tabWidget_plotter->isVisible() ||
        ui->valueDisplay->isVisible() ||
        (fft_window && fft_window->isVisible()))
     {
@@ -2706,83 +2758,168 @@ void MainWindow::resetVisualizerTitle(void)
 void MainWindow::on_actionPlotterSwitch_triggered(bool checked)
 {   
     if(checked){
-        ui->customPlot->show();
+        ui->tabWidget_plotter->show();
         setVisualizerTitle();
         statisticPlotterUseCnt++;
     }else{
-        ui->customPlot->hide();
+        ui->tabWidget_plotter->hide();
         resetVisualizerTitle();
     }
 
     adjustLayout();
 }
 
-void MainWindow::plotterShowTimerSlot()
+MyQCustomPlot* MainWindow::createNewPlotter(QString plotterTitle)
 {
-    QVector<double> oneRowData;
-
-    if(!ui->actionPlotterSwitch->isChecked() &&
-       !ui->actionValueDisplay->isChecked() &&
-        (fft_window && !fft_window->isVisible())){
-        return;
-    }
-
-    if(ui->customPlot->protocol->parsedBuffSize() == 0)
+    MyQCustomPlot* plotter = nullptr;
+    MyQCustomPlot* defaultPlotter = nullptr;
+    defaultPlotter = plotterManager.getDefaultPlotter();
+    if(!defaultPlotter)
     {
-        return;
+        qDebug() << "defaultPlotter is null at" << __FUNCTION__;
+        return nullptr;
     }
 
-    //数据填充与统计
-    while(ui->customPlot->protocol->parsedBuffSize()>0){
-        oneRowData = ui->customPlot->protocol->popOneRowData();
-        statisticPlotterNumCnt += oneRowData.size();
-        //数据记录
-        if(!graphDataRecordPath.isEmpty())
+    plotter = new MyQCustomPlot();
+    plotter->init(ui->actionSavePlotData,
+                    ui->actionSavePlotAsPicture,
+                    defaultPlotter->getxAxisSource(),
+                    defaultPlotter->getAutoRescaleYAxis(),
+                    fft_window,
+                    plotProtocol,
+                    plotterTitle);
+    //线型设置
+    plotter->plotControl->setupLineType(defaultPlotter->plotControl->getLineType());
+    //GPU设置
+    plotter->useOpenGL(defaultPlotter->getUseOpenGLState());
+    plotter->plotControl->setupFont(g_font);
+
+    return plotter;
+}
+
+int32_t MainWindow::recordGraphDataToFile(const QString& recordPlotTitle, const QString& plotterTitle, const QVector<double>& oneRowData)
+{
+    MyQCustomPlot * plotter = nullptr;
+    if(!graphDataRecordPath.isEmpty())
+    {
+        if(recordPlotTitle != plotterTitle)
         {
-            //添加表头
-            if(graphDataNeedHead)
+            return -1;
+        }
+
+        plotter = plotterManager.selectPlotter(recordPlotTitle);
+        if(!plotter)
+        {
+            return -1;
+        }
+        //如果没找到指定的绘图器
+        if(plotter->getPlotterTitle() != recordPlotTitle)
+        {
+            ui->statusBar->showMessage(tr("错误：未找到要记录的绘图名称！"), 2000);
+            return -1;
+        }
+        //添加表头
+        if(!QFile(graphDataRecordPath).exists())
+        {
+            QString head;
+            QVector<QString> nameSet;
+            plotter = nullptr;
+            plotter = plotterManager.selectPlotter(recordPlotTitle);
+            if(plotter)
             {
-                graphDataNeedHead = false;
-                QString head;
-                QVector<QString> nameSet = ui->customPlot->plotControl->getNameSets();
+                nameSet = plotter->plotControl->getNameSets();
                 for(int32_t i = 0; i < oneRowData.size(); i++)
                 {
                     head.append(nameSet.at(i));
                     head.append(",");
                 }
                 head.replace(head.lastIndexOf(','), 1, '\n');//把最后一个逗号换成换行符
-                emit logger_append(GRAPH_DATA_LOG, head.toLocal8Bit());
+                //文件头需要立刻写
+                p_logger->append_data_logger_buff(GRAPH_DATA_LOG, head.toLocal8Bit());
+                p_logger->logger_buff_flush(GRAPH_DATA_LOG);
             }
-            //添加数据
-            QString dataLine;
-            foreach(double num, oneRowData)
-            {
-                dataLine.append(QString::number(num, 'f'));
-                dataLine.append(",");
-            }
-            dataLine.replace(dataLine.lastIndexOf(','), 1, '\n');//把最后一个逗号换成换行符
-            emit logger_append(GRAPH_DATA_LOG, dataLine.toLocal8Bit());
         }
+        //添加数据
+        QString dataLine;
+        foreach(double num, oneRowData)
+        {
+            dataLine.append(QString::number(num, 'f'));
+            dataLine.append(",");
+        }
+        dataLine.replace(dataLine.lastIndexOf(','), 1, '\n');//把最后一个逗号换成换行符
+        emit logger_append(GRAPH_DATA_LOG, dataLine.toLocal8Bit());
+    }
+    return 0;
+}
+
+void MainWindow::plotterShowTimerSlot()
+{
+    QVector<double> oneRowData;
+    QVector<double> currentRowData; //当前激活窗口的最新数据
+    QString plotterTitle;
+    QString currentPlotterTitle;    //当前激活的绘图窗口名字
+    MyQCustomPlot *plotter = nullptr;
+
+    if(!ui->actionPlotterSwitch->isChecked() &&
+       !ui->actionValueDisplay->isChecked() &&
+        (fft_window && !fft_window->isVisible()))
+    {
+        return;
+    }
+
+    if(plotProtocol->hasParsedBuff() == 0)
+    {
+        return;
+    }
+
+    //寻找当前激活的绘图窗口
+    currentPlotterTitle = ui->tabWidget_plotter->tabText(ui->tabWidget_plotter->currentIndex());
+
+    //数据填充与统计
+    while(plotProtocol->hasParsedBuff() > 0)
+    {
+        plotProtocol->popOneRowData(plotterTitle, oneRowData);
+        statisticPlotterNumCnt += oneRowData.size();
+        if(currentPlotterTitle == plotterTitle)
+        {
+            currentRowData = oneRowData;
+        }
+        //实时数据记录仪
+        recordGraphDataToFile(recordPlotTitle, plotterTitle, oneRowData);
         //FFT处理
-        if(fft_window->isVisible())
+        if(fft_window->isVisible() && 
+           fft_window->getFFTPlotterTitle() == plotterTitle)
         {
             fft_window->appendData(oneRowData);
         }
         //绘图显示器
-        if(ui->actionPlotterSwitch->isChecked()){
-            //关闭刷新，数据全部填充完后统一刷新，提高效率
-            if(false == ui->customPlot->plotControl->addDataToPlotter(oneRowData, g_xAxisSource))
-                ui->statusBar->showMessage(tr("出现一组异常绘图数据，已丢弃。"), 2000);
+        if(ui->actionPlotterSwitch->isChecked())
+        {
+            //把数据添加进绘图对象中或者创建新的绘图对象
+            plotter = nullptr;
+            plotter = plotterManager.selectPlotter(plotterTitle);
+            if(!plotter)
+            {
+                plotter = createNewPlotter(plotterTitle);
+                plotterManager.addPlotter(plotterTitle, plotter);
+                ui->tabWidget_plotter->addTab(plotter, plotterTitle);
+            }
+            plotter->plotControl->addDataToPlotter(oneRowData);
         }
     }
     //曲线刷新
 	if(ui->actionPlotterSwitch->isChecked())
 	{
-        if(ui->actionAutoRefreshYAxis->isChecked())
+        plotter = nullptr;
+        plotter = plotterManager.selectPlotter(currentPlotterTitle);
+        if(plotter)
         {
-            ui->customPlot->yAxis->rescale(true);
+            if(plotter->getAutoRescaleYAxis())
+            {
+                plotter->yAxis->rescale(true);
+            }
+            plotter->replot();   //<20ms
         }
-        ui->customPlot->replot();   //<20ms
     }
     if(fft_window->isVisible())
     {
@@ -2790,29 +2927,51 @@ void MainWindow::plotterShowTimerSlot()
     }
 
     //数值显示器
-    if(ui->actionValueDisplay->isChecked()){
-        //判断是否添加行
-        if(ui->valueDisplay->rowCount() < oneRowData.size()){
-            //设置行
-            ui->valueDisplay->setRowCount(oneRowData.size());
-            //设置列，固定的
-            ui->valueDisplay->setColumnCount(2);
-            ui->valueDisplay->setHorizontalHeaderItem(0, new QTableWidgetItem(tr("名称")));
-            ui->valueDisplay->setHorizontalHeaderItem(1, new QTableWidgetItem(tr("值")));
-            ui->valueDisplay->horizontalHeader()->setStretchLastSection(true);
-            ui->valueDisplay->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Interactive);
-            ui->valueDisplay->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-        }
-        //添加数据
-        qint32 min = oneRowData.size() < ui->customPlot->plotControl->getNameSets().size() ? oneRowData.size() : ui->customPlot->plotControl->getNameSets().size();
-        for(qint32 i=0; i < min; i++){
-            //这里会重复new对象导致内存溢出吗
-            ui->valueDisplay->setItem(i, 0, new QTableWidgetItem(ui->customPlot->plotControl->getNameSets().at(i)));
-            ui->valueDisplay->setItem(i, 1, new QTableWidgetItem(QString::number(oneRowData.at(i),'g')));
-            //不可编辑
-            ui->valueDisplay->item(i,0)->setFlags(ui->valueDisplay->item(i,0)->flags() & (~Qt::ItemIsEditable));
-            ui->valueDisplay->item(i,1)->setFlags(ui->valueDisplay->item(i,1)->flags() & (~Qt::ItemIsEditable));
-        }
+    plotter = nullptr;
+    plotter = plotterManager.selectPlotter(currentPlotterTitle);
+    if(ui->actionValueDisplay->isChecked() && plotter)
+    {
+        fillDataToValueDisplay(plotter);
+    }
+}
+
+void MainWindow::fillDataToValueDisplay(MyQCustomPlot *plotter)
+{
+    if(!plotter)
+        return;
+        
+    QVector<double> recentRowData = plotter->plotControl->getRecentRowData();
+    //判断是否添加行
+    if(ui->valueDisplay->rowCount() < recentRowData.size())
+    {
+        //设置行
+        ui->valueDisplay->setRowCount(recentRowData.size());
+        //设置列，固定的
+        ui->valueDisplay->setColumnCount(2);
+        ui->valueDisplay->setHorizontalHeaderItem(0, new QTableWidgetItem(tr("名称")));
+        ui->valueDisplay->setHorizontalHeaderItem(1, new QTableWidgetItem(tr("值")));
+        ui->valueDisplay->horizontalHeader()->setStretchLastSection(true);
+        ui->valueDisplay->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Interactive);
+        ui->valueDisplay->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    }
+    //添加数据
+    int32_t min = recentRowData.size() < plotter->plotControl->getNameSets().size()
+                ? recentRowData.size() : plotter->plotControl->getNameSets().size();
+    for(int32_t i = 0; i < min; i++)
+    {
+        //这里会重复new对象导致内存溢出吗
+        ui->valueDisplay->setItem(i, 0, new QTableWidgetItem(plotter->plotControl->getNameSets().at(i)));
+        ui->valueDisplay->setItem(i, 1, new QTableWidgetItem(QString::number(recentRowData.at(i),'g')));
+        //不可编辑
+        ui->valueDisplay->item(i,0)->setFlags(ui->valueDisplay->item(i,0)->flags() & (~Qt::ItemIsEditable));
+        ui->valueDisplay->item(i,1)->setFlags(ui->valueDisplay->item(i,1)->flags() & (~Qt::ItemIsEditable));
+    }
+    while(ui->valueDisplay->rowCount() > min)
+    {
+        //TODO:注意下有没有内存泄漏或者非法访问
+        delete ui->valueDisplay->takeItem(ui->valueDisplay->rowCount()-1 , 0);
+        delete ui->valueDisplay->takeItem(ui->valueDisplay->rowCount()-1 , 1);
+        ui->valueDisplay->removeRow(ui->valueDisplay->rowCount()-1);
     }
 }
 
@@ -2823,8 +2982,9 @@ void MainWindow::on_actionAscii_triggered(bool checked)
     if(ui->actionAscii->isChecked())
         statisticASCIIUseCnt++;
 
-    ui->customPlot->protocol->clearBuff();
-    ui->customPlot->protocol->setProtocolType(DataProtocol::Ascii);
+    QString empty;
+    emit protocol_clearBuff(empty);
+    plotProtocol->setProtocolType(DataProtocol::Ascii);
     ui->actionAscii->setChecked(true);
     ui->actionFloat->setChecked(false);
     ui->actionCSV->setChecked(false);
@@ -2840,8 +3000,9 @@ void MainWindow::on_actionFloat_triggered(bool checked)
     if(ui->actionFloat->isChecked())
         statisticFLOATUseCnt++;
 
-    ui->customPlot->protocol->clearBuff();
-    ui->customPlot->protocol->setProtocolType(DataProtocol::Float);
+    QString empty;
+    emit protocol_clearBuff(empty);
+    plotProtocol->setProtocolType(DataProtocol::Float);
     ui->actionAscii->setChecked(false);
     ui->actionFloat->setChecked(true);
     ui->actionCSV->setChecked(false);
@@ -2852,12 +3013,15 @@ void MainWindow::on_actionFloat_triggered(bool checked)
 
 void MainWindow::on_actiondebug_triggered(bool checked)
 {
-    if(checked){
+    if(checked)
+    {
         debugTimerSlotCnt = 0;
         debugTimer.setTimerType(Qt::PreciseTimer);
         debugTimer.start(1000/DEBUG_TIMER_FRQ);
         connect(&debugTimer, SIGNAL(timeout()), this, SLOT(debugTimerSlot()));
-    }else{
+    }
+    else
+    {
         debugTimer.stop();
         disconnect(&debugTimer, SIGNAL(timeout()), this, SLOT(debugTimerSlot()));
     }
@@ -2922,10 +3086,23 @@ void MainWindow::verticalScrollBarActionTriggered(qint32 action)
 
 }
 
-
+#if SHOW_PLOTTER_SETTING
 void MainWindow::on_actionLinePlot_triggered()
 {
-    if(ui->customPlot->selectedGraphs().size() == 0)
+    QVector<MyQCustomPlot*> list = plotterManager.getAllPlotters();
+    foreach(MyQCustomPlot* plotter, list)
+    {
+        if(!plotter)
+            continue;
+        plotter->plotControl->setupLineType(Line);
+    }
+    MyQCustomPlot* plotter = selectCurrentPlotter();
+    if(!plotter)
+    {
+        qDebug() << "null ptr of plotter at " << __FUNCTION__ << "()";
+        return;
+    }
+    if(plotter->selectedGraphs().size() == 0)
     {
         ui->actionLinePlot->setChecked(true);
         ui->actionScatterLinePlot->setChecked(false);
@@ -2937,12 +3114,24 @@ void MainWindow::on_actionLinePlot_triggered()
         ui->actionScatterLinePlot->setChecked(false);
         ui->actionScatterPlot->setChecked(false);
     }
-    ui->customPlot->plotControl->setupLineType(QCustomPlotControl::Line);
 }
 
 void MainWindow::on_actionScatterLinePlot_triggered()
 {
-    if(ui->customPlot->selectedGraphs().size() == 0)
+    QVector<MyQCustomPlot*> list = plotterManager.getAllPlotters();
+    foreach(MyQCustomPlot* plotter, list)
+    {
+        if(!plotter)
+            continue;
+        plotter->plotControl->setupLineType(ScatterLine);
+    }
+    MyQCustomPlot* plotter = selectCurrentPlotter();
+    if(!plotter)
+    {
+        qDebug() << "null ptr of plotter at " << __FUNCTION__ << "()";
+        return;
+    }
+    if(plotter->selectedGraphs().size() == 0)
     {
         ui->actionLinePlot->setChecked(false);
         ui->actionScatterLinePlot->setChecked(true);
@@ -2954,12 +3143,24 @@ void MainWindow::on_actionScatterLinePlot_triggered()
         ui->actionScatterLinePlot->setChecked(false);
         ui->actionScatterPlot->setChecked(false);
     }
-    ui->customPlot->plotControl->setupLineType(QCustomPlotControl::ScatterLine);
 }
 
 void MainWindow::on_actionScatterPlot_triggered()
 {
-    if(ui->customPlot->selectedGraphs().size() == 0)
+    QVector<MyQCustomPlot*> list = plotterManager.getAllPlotters();
+    foreach(MyQCustomPlot* plotter, list)
+    {
+        if(!plotter)
+            continue;
+        plotter->plotControl->setupLineType(Scatter);
+    }
+    MyQCustomPlot* plotter = selectCurrentPlotter();
+    if(!plotter)
+    {
+        qDebug() << "null ptr of plotter at " << __FUNCTION__ << "()";
+        return;
+    }
+    if(plotter->selectedGraphs().size() == 0)
     {
         ui->actionLinePlot->setChecked(false);
         ui->actionScatterLinePlot->setChecked(false);
@@ -2971,8 +3172,163 @@ void MainWindow::on_actionScatterPlot_triggered()
         ui->actionScatterLinePlot->setChecked(false);
         ui->actionScatterPlot->setChecked(false);
     }
-    ui->customPlot->plotControl->setupLineType(QCustomPlotControl::Scatter);
 }
+
+void MainWindow::on_actionAutoRefreshYAxis_triggered(bool checked)
+{
+    ui->actionAutoRefreshYAxis->setChecked(checked);
+}
+
+void MainWindow::on_actionOpenGL_triggered(bool checked)
+{
+    //使能OpenGL
+    QVector<MyQCustomPlot*> list = plotterManager.getAllPlotters();
+    foreach(MyQCustomPlot* plotter, list)
+    {
+        if(!plotter)
+            continue;
+        if(checked)
+        {
+            plotter->setOpenGl(true);
+            fft_window->setupPlotterOpenGL(true); //实际未使能
+        }
+        else
+        {
+            plotter->setOpenGl(false);
+            fft_window->setupPlotterOpenGL(false);
+        }
+    }
+
+    //重绘
+    MyQCustomPlot* plotter = nullptr;
+    plotter = selectCurrentPlotter();
+    if(!plotter)
+    {
+        return;
+    }
+    plotter->replot();
+}
+
+void MainWindow::on_actionSelectXAxis_triggered(bool checked)
+{
+    Q_UNUSED(checked)
+
+    //TODO:各自维护一个副本或者统一设置，这个不用保存可以考虑各自维护一个副本，但是维护副本的话清空后又没了，也许还是统一设置比较好
+    MyQCustomPlot* plotter = nullptr;
+    plotter = selectCurrentPlotter();
+    if(!plotter)
+    {
+        qDebug() << "null plotter pointer at" << __FUNCTION__;
+        return;
+    }
+    //TODO:这里有个static注意一下
+    static QString defaultXAxisLabel = plotter->xAxis->label();
+    bool ok;
+    QString name;
+    QVector<QString> nameSets = plotter->plotControl->getNameSets();
+    QStringList list;
+    list.append(tr("递增计数值"));
+    for (int32_t i = 0; i < plotter->graphCount(); i++)
+    {
+        list.append(nameSets.at(i));
+    }
+    name = QInputDialog::getItem(this, tr("选择X轴"), tr("名称"),
+                                    list, 0, false, &ok, Qt::WindowCloseButtonHint);
+    if(!ok)
+        return;
+
+    if(name == tr("递增计数值") && ui->actionTimeStampMode->isChecked())
+    {
+        QMessageBox::information(this, tr("提示"), tr("递增计数值模式下将关闭时间戳模式"));
+        ui->actionTimeStampMode->setChecked(false);
+        plotter->plotControl->setEnableTimeStampMode(false);
+    }
+
+    //选择了新的X轴,更新plotter->getxAxisSource()
+    for (int32_t i = 0; i < list.size(); i++)
+    {
+        if(list.at(i) == name)
+        {
+            plotter->setxAxisSource(i);
+            //更改X轴标签和隐藏被选为X轴的曲线
+            if(plotter->getxAxisSource() != XAxis_Cnt)
+            {
+                plotter->xAxis->setLabel(name);
+                int32_t j = 0;
+                for (j = 0; j < plotter->graphCount(); j++)
+                {
+                    if(plotter->graph(j)->name() == name)
+                    {
+                        plotter->graph(j)->setVisible(false);
+                        plotter->legend->item(j)->setTextColor(Qt::gray);
+                        continue;
+                    }
+                    plotter->graph(j)->setVisible(true);
+                    plotter->legend->item(j)->setTextColor(Qt::black);
+                }
+            }
+            else
+            {
+                //时域模式显示所有曲线
+                int32_t j = 0;
+                for (j = 0; j < plotter->graphCount(); j++)
+                {
+                    plotter->graph(j)->setVisible(true);
+                    plotter->legend->item(j)->setTextColor(Qt::black);
+                }
+                plotter->xAxis->setLabel(defaultXAxisLabel);
+            }
+            //并清空图像(不删除句柄)
+            QString empty;
+            emit protocol_clearBuff(empty);
+            plotter->plotControl->clearPlotter(-1);
+//            while(plotter->graphCount()>1){
+//                plotter->removeGraph(plotter->graphCount() - 1);
+//            }
+            plotter->yAxis->rescale(true);
+            plotter->xAxis->rescale(true);
+            //TODO:目前是会刷新非激活的窗口
+            plotter->replot();
+            break;
+        }
+    }
+}
+
+void MainWindow::on_actionTimeStampMode_triggered(bool checked)
+{
+    MyQCustomPlot* plotter = nullptr;
+    plotter = selectCurrentPlotter();
+    if(!plotter)
+    {
+        qDebug() << "null plotter pointer at" << __FUNCTION__;
+        return;
+    }
+
+    if(checked && plotter->getxAxisSource() == XAxis_Cnt)
+    {
+        QMessageBox::StandardButton button;
+        button = QMessageBox::information(this, tr("提示"), tr("需要选择一条曲线作为时间戳数据"), QMessageBox::Ok, QMessageBox::Cancel);
+        if(button != QMessageBox::Ok)
+        {
+            ui->actionTimeStampMode->setChecked(!checked);
+            plotter->plotControl->setEnableTimeStampMode(!checked);
+            return;
+        }
+        on_actionSelectXAxis_triggered(checked);
+        if(plotter->getxAxisSource() == XAxis_Cnt)//弹出窗口但是没有选择
+        {
+            ui->actionTimeStampMode->setChecked(!checked);
+            plotter->plotControl->setEnableTimeStampMode(!checked);
+            return;
+        }
+    }
+    ui->actionTimeStampMode->setChecked(checked);
+    plotter->plotControl->setEnableTimeStampMode(checked);
+
+    return;
+}
+
+#endif
 
 void MainWindow::on_actionResetDefaultConfig_triggered(bool checked)
 {
@@ -3003,7 +3359,96 @@ void MainWindow::on_actionManual_triggered()
 
 void MainWindow::on_actionSavePlotData_triggered()
 {
-    if(ui->customPlot->graph(0)->data()->size() == 0)
+    //判断是通过右键绘图窗口触发的还是点击菜单栏触发的
+    bool click_by_file_menu = ui->file->underMouse();
+
+    QString selectName;
+    MyQCustomPlot* plotter = nullptr;
+    plotter = selectCurrentPlotter();
+    //如果有多个绘图器且是通过菜单栏触发该功能则进行选择。
+    if(ui->tabWidget_plotter->count() > 1 && click_by_file_menu)
+    {
+        //选择绘图名称
+        bool ok;
+        QString label;
+        label = tr("请选择需要保存的绘图器。");
+        QVector<MyQCustomPlot*> plotters = plotterManager.getAllPlotters();
+        QStringList items;
+        foreach(MyQCustomPlot* plotter, plotters)
+        {
+            if(plotter)
+            {
+                items << plotter->getPlotterTitle();
+            }
+        }
+        items.sort();
+
+        //增加一个选项用于自动保存所有绘图器
+        QString save_all = "SAVE ALL!";
+        while(items.indexOf(save_all) != -1)
+        {
+            save_all.insert(0, '0');
+        }
+        items.insert(0, save_all);
+
+        selectName = QInputDialog::getItem(this, tr("提示"),
+                                    label,
+                                    items,
+                                    0,
+                                    false,
+                                    &ok);
+        if(!ok)
+        {
+            return;
+        }
+
+        //判断是否保存所有数据
+        if(selectName != save_all)
+        {
+            plotter = nullptr;
+            plotter = plotterManager.selectPlotter(selectName);
+            if(!plotter)
+            {
+                return;
+            }
+        }
+        else
+        {
+            //自动保存所有数据
+            QString saveFolder = QFileDialog::getExistingDirectory(this,
+                                                                   tr("保存全部绘图数据-选择文件夹"),
+                                                                   lastFileDialogPath);
+            QDir saveDir(saveFolder);
+            QString saveFile;
+            QString savePath;
+            QString timeStamp = QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss");
+            foreach(MyQCustomPlot* plotter, plotters)
+            {
+                if(plotter)
+                {
+                    plotter->replot();
+                    saveFile = "[" + plotter->getPlotterTitle() + "]-" +
+                               timeStamp + ".xlsx";
+                    savePath = saveDir.absoluteFilePath(saveFile);
+                    if(MyXlsx::write(plotter, savePath))
+                    {
+                        //打印成功信息
+                        QString str = "\nSave successful in " + savePath + "\n";
+                        BrowserBuff.append(str);
+                        hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
+                        printToTextBrowser();
+                    }
+                }
+            }
+            //记录路径
+            lastFileDialogPath = savePath;
+            lastFileDialogPath = lastFileDialogPath.mid(0, lastFileDialogPath.lastIndexOf('/') + 1);
+            return;
+        }
+    }
+    plotter->replot();
+    
+    if(plotter->graph(0)->data()->size() == 0)
     {
         QMessageBox::information(this, tr("提示"), tr("绘图器数据容器为空，无法保存。"));
         return;
@@ -3011,32 +3456,35 @@ void MainWindow::on_actionSavePlotData_triggered()
     //打开保存文件对话框
     QString savePath = QFileDialog::getSaveFileName(this,
                                                     tr("保存绘图数据-选择文件路径"),
-                                                    lastFileDialogPath + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss")+".xlsx",
+                                                    lastFileDialogPath + 
+                                                    "[" + plotter->getPlotterTitle() + "]-" + 
+                                                    QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss")+".xlsx",
                                                     "XLSX File(*.xlsx);;CSV File(*.csv);;TXT File(*.txt);;All File(*.*)");
     //检查路径格式
     if(!savePath.endsWith(".xlsx") &&
        !savePath.endsWith(".csv") &&
        !savePath.endsWith(".txt")){
         if(!savePath.isEmpty())
-            QMessageBox::information(this,tr("提示"),tr("尚未支持的文件格式。请选择xlsx或者csv或者txt格式文件。"));
+            QMessageBox::information(this, tr("提示"),
+                                     tr("尚未支持的文件格式。请选择xlsx或者csv或者txt格式文件。"));
         return;
+    }
+
+    bool ok = false;
+    if(savePath.endsWith(".xlsx")){
+        if(MyXlsx::write(plotter, savePath))
+            ok = true;
+    }else if(savePath.endsWith(".csv")){
+        if(plotter->saveGraphAsTxt(savePath,','))
+            ok = true;
+    }else if(savePath.endsWith(".txt")){
+        if(plotter->saveGraphAsTxt(savePath,' '))
+            ok = true;
     }
 
     //记录路径
     lastFileDialogPath = savePath;
-    lastFileDialogPath = lastFileDialogPath.mid(0, lastFileDialogPath.lastIndexOf('/')+1);
-
-    bool ok = false;
-    if(savePath.endsWith(".xlsx")){
-        if(MyXlsx::write(ui->customPlot, savePath))
-            ok = true;
-    }else if(savePath.endsWith(".csv")){
-        if(ui->customPlot->saveGraphAsTxt(savePath,','))
-            ok = true;
-    }else if(savePath.endsWith(".txt")){
-        if(ui->customPlot->saveGraphAsTxt(savePath,' '))
-            ok = true;
-    }
+    lastFileDialogPath = lastFileDialogPath.mid(0, lastFileDialogPath.lastIndexOf('/') + 1);
 
     if(ok){
         QString str = "\nSave successful in " + savePath + "\n";
@@ -3051,7 +3499,108 @@ void MainWindow::on_actionSavePlotData_triggered()
 
 void MainWindow::on_actionSavePlotAsPicture_triggered()
 {
-    if(!ui->customPlot->isVisible())
+    //判断是通过右键绘图窗口触发的还是点击菜单栏触发的
+    bool click_by_file_menu = ui->file->underMouse();
+
+    //如果有多个绘图器则进行选择
+    QString selectName;
+    MyQCustomPlot* plotter = nullptr;
+    plotter = selectCurrentPlotter();
+    //如果有多个绘图器且是通过菜单栏触发该功能则进行选择。
+    if(ui->tabWidget_plotter->count() > 1 && click_by_file_menu)
+    {
+        //选择绘图名称
+        bool ok;
+        QString label;
+        label = tr("请选择需要保存的绘图器。");
+        QVector<MyQCustomPlot*> plotters = plotterManager.getAllPlotters();
+        QStringList items;
+        foreach(MyQCustomPlot* plotter, plotters)
+        {
+            if(plotter)
+            {
+                items << plotter->getPlotterTitle();
+            }
+        }
+        items.sort();
+
+        //增加一个选项用于自动保存所有绘图器
+        QString save_all = "SAVE ALL!";
+        while(items.indexOf(save_all) != -1)
+        {
+            save_all.insert(0, '0');
+        }
+        items.insert(0, save_all);
+
+        selectName = QInputDialog::getItem(this, tr("提示"),
+                                    label,
+                                    items,
+                                    0,
+                                    false,
+                                    &ok);
+        if(!ok)
+        {
+            return;
+        }
+        //判断是否保存所有图片
+        if(selectName != save_all)
+        {
+            plotter = nullptr;
+            plotter = plotterManager.selectPlotter(selectName);
+            if(!plotter)
+            {
+                return;
+            }
+        }
+        else
+        {
+            //保存所有图片
+            QString saveFolder = QFileDialog::getExistingDirectory(this,
+                                                                   tr("保存全部绘图图像-选择文件夹"),
+                                                                   lastFileDialogPath);
+            QDir saveDir(saveFolder);
+            QString saveFile;
+            QString savePath;
+            QString timeStamp = QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss");
+            foreach(MyQCustomPlot* plotter, plotters)
+            {
+                if(plotter)
+                {
+                    //这里要setCurrentIndex以“激活适配”窗口，否则图片是正方形
+                    int32_t currentIndex = ui->tabWidget_plotter->currentIndex();
+                    for(int32_t index = 0; index < ui->tabWidget_plotter->count(); index++)
+                    {
+                        if(ui->tabWidget_plotter->tabText(index) == plotter->getPlotterTitle())
+                        {
+                            ui->tabWidget_plotter->setCurrentIndex(index);
+                            plotter->replot();
+                            break;
+                        }
+                    }
+                    ui->tabWidget_plotter->setCurrentIndex(currentIndex);
+
+                    saveFile = "[" + plotter->getPlotterTitle() + "]-" +
+                               timeStamp + ".bmp";
+                    savePath = saveDir.absoluteFilePath(saveFile);
+                    if(plotter->saveBmp(savePath))
+                    {
+                        //打印成功信息
+                        QString str = "\nSave successful in " + savePath + "\n";
+                        BrowserBuff.append(str);
+                        hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
+                        printToTextBrowser();
+                    }
+                }
+            }
+            //记录路径
+            lastFileDialogPath = savePath;
+            lastFileDialogPath = lastFileDialogPath.mid(0, lastFileDialogPath.lastIndexOf('/') + 1);
+            return;
+        }
+    }
+    plotter->replot();
+
+    if(!ui->tabWidget_plotter->isVisible())
     {
         QMessageBox::information(this, tr("提示"), tr("绘图器未开启，无法保存图片。"));
         return;
@@ -3060,7 +3609,9 @@ void MainWindow::on_actionSavePlotAsPicture_triggered()
     //打开保存文件对话框
     QString savePath = QFileDialog::getSaveFileName(this,
                                                     tr("曲线保存图片-选择文件路径"),
-                                                    lastFileDialogPath + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss"),
+                                                    lastFileDialogPath + 
+                                                    "[" + plotter->getPlotterTitle() + "]-" + 
+                                                    QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss"),
                                                     "Bmp File(*.bmp);;Pdf File(*.pdf);;Jpeg File(*.jpg);;Png File(*.png);;All File(*.*)");
     //检查路径格式
     if(!savePath.endsWith(".jpg") &&
@@ -3071,9 +3622,6 @@ void MainWindow::on_actionSavePlotAsPicture_triggered()
             QMessageBox::information(this,tr("提示"),tr("尚未支持的文件格式。请选择jpg/bmp/png/pdf文件。"));
         return;
     }
-    //记录上次路径
-    lastFileDialogPath = savePath;
-    lastFileDialogPath = lastFileDialogPath.mid(0, lastFileDialogPath.lastIndexOf('/')+1);
 
     //保存
     bool ok = false;
@@ -3093,6 +3641,10 @@ void MainWindow::on_actionSavePlotAsPicture_triggered()
         if(ui->customPlot->savePdf(savePath))
             ok = true;
     }
+
+    //记录上次路径
+    lastFileDialogPath = savePath;
+    lastFileDialogPath = lastFileDialogPath.mid(0, lastFileDialogPath.lastIndexOf('/') + 1);
 
     if(ok){
         QString str = "\nSave successful in " + savePath + "\n";
@@ -3633,17 +4185,26 @@ void MainWindow::on_timeStampTimeOut_textChanged(const QString &arg1)
     timeStampTimer.start(arg1.toInt());
 }
 
-void MainWindow::on_actionOpenGL_triggered(bool checked)
+MyQCustomPlot* MainWindow::selectCurrentPlotter()
 {
-    if(checked){
-        ui->customPlot->setOpenGl(true);
-        fft_window->setupPlotterOpenGL(true); //实际未使能
+    MyQCustomPlot* plotter = nullptr;
+    QString currentPlotterTitle;
+    currentPlotterTitle = ui->tabWidget_plotter->tabText(
+                            ui->tabWidget_plotter->currentIndex());
+    plotter = plotterManager.selectPlotter(currentPlotterTitle);
+    //如果未找到绘图器则使用默认绘图器
+    if(!plotter)
+    {
+        plotter = plotterManager.getDefaultPlotter();
+        if(!plotter)
+        {
+            qDebug() << "do not find current plotter and default plotter is null!!!";
+            return nullptr;
+        }
+        qDebug() << "do not find current plotter and return default plotter(" 
+                 << plotter->getPlotterTitle() << ")";
     }
-    else{
-        ui->customPlot->setOpenGl(false);
-        fft_window->setupPlotterOpenGL(false);
-    }
-    ui->customPlot->replot();
+    return plotter;
 }
 
 void MainWindow::on_actionFontSetting_triggered()
@@ -3686,7 +4247,7 @@ void MainWindow::updateUIPanelFont(QFont font)
 {
     ui->textBrowser->document()->setDefaultFont(font);
     ui->textEdit->document()->setDefaultFont(font);
-    ui->customPlot->plotControl->setupFont(font);
+    plotterManager.updateAllPlotterFont(font);
     fft_window->setupPlotterFont(font);
     ui->regMatchBrowser->document()->setDefaultFont(font);
 //    ui->multiString->setFont(font);
@@ -3830,22 +4391,51 @@ void MainWindow::splitterMovedSlot(int pos, int index)
 
 void MainWindow::on_tabWidget_tabCloseRequested(int index)
 {
+    QString selectName;
+    selectName = ui->tabWidget->tabText(index);
     //禁止删除主窗口
-    if(ui->tabWidget->tabText(index) == MAIN_TAB_NAME){
-        ui->statusBar->showMessage(tr("不允许删除主窗口"), 2000);
+    if(selectName == MAIN_TAB_NAME)
+    {
+        ui->statusBar->showMessage(tr("不允许删除该窗口"), 2000);
         return;
     }
     //禁止删除匹配窗口
-    if(ui->tabWidget->tabText(index) == REGMATCH_TAB_NAME){
-        ui->statusBar->showMessage(tr("不允许删除匹配窗口"), 2000);
+    if(selectName == REGMATCH_TAB_NAME)
+    {
+        ui->statusBar->showMessage(tr("不允许删除该窗口"), 2000);
         return;
     }
-    emit tee_clearData(ui->tabWidget->tabText(index));
-    if(ui->tabWidget->widget(index) != nullptr)
+    emit tee_clearData(selectName);
+    if(selectName != nullptr)
     {
         delete ui->tabWidget->widget(index);
     }
-//    ui->tabWidget->removeTab(index);
+//    ui->tabWidget->removeTab(index);//removeTab不会释放对象
+}
+
+void MainWindow::on_tabWidget_plotter_tabCloseRequested(int index)
+{
+    QString selectName;
+    selectName = ui->tabWidget_plotter->tabText(index);
+    //禁止删除主窗口
+    if(selectName == plotProtocol->getDefaultPlotterTitle())
+    {
+        ui->statusBar->showMessage(tr("不允许删除该窗口"), 2000);
+        return;
+    }
+    emit protocol_clearBuff(selectName);
+    plotterManager.removePlotter(selectName);
+    if(ui->tabWidget_plotter->widget(index) != nullptr)
+    {
+        delete ui->tabWidget_plotter->widget(index);
+    }
+    MyQCustomPlot* plotter = nullptr;
+    plotter = selectCurrentPlotter();
+    if(plotter)
+    {
+        plotter->replot();
+    }
+//    ui->tabWidget->removeTab(index);//removeTab不会释放对象
 }
 
 void MainWindow::on_tabWidget_tabBarClicked(int index)
@@ -3859,11 +4449,31 @@ void MainWindow::on_tabWidget_tabBarClicked(int index)
     }
 }
 
-void MainWindow::on_actionAutoRefreshYAxis_triggered(bool checked)
+void MainWindow::on_tabWidget_plotter_tabBarClicked(int index)
 {
+    ui->tabWidget_plotter->setCurrentIndex(index);
+    QString selectName = ui->tabWidget_plotter->tabText(index);
+    MyQCustomPlot *plotter = nullptr;
+    plotter = plotterManager.selectPlotter(selectName);
 
-    ui->actionAutoRefreshYAxis->setChecked(checked);
-    autoRefreshYAxisFlag = checked;
+    if(!plotter)
+    {
+        return;
+    }
+
+    //曲线刷新
+    if(ui->actionPlotterSwitch->isChecked())
+    {
+        if(plotter->getAutoRescaleYAxis())
+        {
+            plotter->yAxis->rescale(true);
+        }
+        plotter->replot();   //<20ms
+    }
+    if(ui->actionValueDisplay->isChecked())
+    {
+        fillDataToValueDisplay(plotter);
+    }
 }
 
 //拖拽进入时
@@ -3909,75 +4519,6 @@ void MainWindow::dropEvent(QDropEvent *e)
     parseDatFile(path, false);
 }
 
-void MainWindow::on_actionSelectXAxis_triggered(bool checked)
-{
-    Q_UNUSED(checked)
-
-    static QString defaultXAxisLabel = ui->customPlot->xAxis->label();
-    bool ok;
-    QString name;
-    QVector<QString> nameSets = ui->customPlot->plotControl->getNameSets();
-    QStringList list;
-    list.append(tr("递增计数值"));
-    for (qint32 i = 0;i < ui->customPlot->graphCount(); i++) {
-        list.append(nameSets.at(i));
-    }
-    name = QInputDialog::getItem(this, tr("选择X轴"), tr("名称"),
-                                    list, 0, false, &ok, Qt::WindowCloseButtonHint);
-    if(!ok)
-        return;
-
-    if(name == tr("递增计数值") && ui->actionTimeStampMode->isChecked())
-    {
-        QMessageBox::information(this, tr("提示"), tr("递增计数值模式下将关闭时间戳模式"));
-        ui->actionTimeStampMode->setChecked(false);
-        ui->customPlot->plotControl->setEnableTimeStampMode(false);
-    }
-
-    //选择了新的X轴,更新g_xAxisSource
-    for (qint32 i = 0; i < list.size(); i++) {
-        if(list.at(i) == name)
-        {
-            g_xAxisSource = i;
-            //更改X轴标签和隐藏被选为X轴的曲线
-            if(g_xAxisSource != XAxis_Cnt)
-            {
-                ui->customPlot->xAxis->setLabel(name);
-                qint32 j = 0;
-                for (j = 0; j < ui->customPlot->graphCount(); j++) {
-                    if(ui->customPlot->graph(j)->name() == name)
-                    {
-                        ui->customPlot->graph(j)->setVisible(false);
-                        ui->customPlot->legend->item(j)->setTextColor(Qt::gray);
-                        continue;
-                    }
-                    ui->customPlot->graph(j)->setVisible(true);
-                    ui->customPlot->legend->item(j)->setTextColor(Qt::black);
-                }
-            }else
-            {
-                //时域模式显示所有曲线
-                qint32 j = 0;
-                for (j = 0; j < ui->customPlot->graphCount(); j++) {
-                    ui->customPlot->graph(j)->setVisible(true);
-                    ui->customPlot->legend->item(j)->setTextColor(Qt::black);
-                }
-                ui->customPlot->xAxis->setLabel(defaultXAxisLabel);
-            }
-            //并清空图像(不删除句柄)
-            ui->customPlot->protocol->clearBuff();
-            ui->customPlot->plotControl->clearPlotter(-1);
-//            while(ui->customPlot->graphCount()>1){
-//                ui->customPlot->removeGraph(ui->customPlot->graphCount() - 1);
-//            }
-            ui->customPlot->yAxis->rescale(true);
-            ui->customPlot->xAxis->rescale(true);
-            ui->customPlot->replot();
-            break;
-        }
-    }
-}
-
 void MainWindow::on_actionFFTShow_triggered(bool checked)
 {
     ui->actionFFTShow->setChecked(checked);
@@ -3985,9 +4526,35 @@ void MainWindow::on_actionFFTShow_triggered(bool checked)
         return;
     if(checked)
     {
+
+        //手动选择FFT窗口或者自动选择当前窗口进行FFT
+#ifdef SELECT_PLOTTER_TO_FFT
+        QVector<MyQCustomPlot*> plotters = plotterManager.getAllPlotters();
+        QStringList list;
+        foreach(MyQCustomPlot* plotter, plotters)
+        {
+            if(plotter)
+            {
+                list << plotter->getPlotterTitle();
+            }
+        }
+        bool ok;
+        QString item = QInputDialog::getItem(this, tr("提示"),
+                                            tr("选择要进行FFT的绘图名称："),
+                                            list, 0, true, &ok);
+        if(!ok)
+        {
+            ui->actionFFTShow->setChecked(false);
+            return;
+        }
+#else
+        QString item = selectCurrentPlotter()->getPlotterTitle();
+#endif
+
         QPoint pos = QPoint(this->pos().x() + this->geometry().width(), this->pos().y());
         fft_window->move(pos);
         fft_window->setVisible(true);
+        fft_window->setFFTPlotterTitle(item);
         setVisualizerTitle();
         statisticFFTUseCnt++;
         return;
@@ -4024,31 +4591,6 @@ void MainWindow::on_actionTeeSupport_triggered(bool checked)
     {
         statisticTeeUseCnt++;
     }
-}
-
-void MainWindow::on_actionTimeStampMode_triggered(bool checked)
-{
-    if(checked && g_xAxisSource == XAxis_Cnt)
-    {
-        QMessageBox::StandardButton button;
-        button = QMessageBox::information(this, tr("提示"), tr("需要选择一条曲线作为时间戳数据"), QMessageBox::Ok, QMessageBox::Cancel);
-        if(button != QMessageBox::Ok)
-        {
-            ui->actionTimeStampMode->setChecked(!checked);
-            ui->customPlot->plotControl->setEnableTimeStampMode(!checked);
-            return;
-        }
-        on_actionSelectXAxis_triggered(checked);
-        if(g_xAxisSource == XAxis_Cnt)//弹出窗口但是没有选择
-        {
-            ui->actionTimeStampMode->setChecked(!checked);
-            ui->customPlot->plotControl->setEnableTimeStampMode(!checked);
-            return;
-        }
-    }
-    ui->actionTimeStampMode->setChecked(checked);
-    ui->customPlot->plotControl->setEnableTimeStampMode(checked);
-    return;
 }
 
 void MainWindow::on_actionASCIITable_triggered()
@@ -4091,7 +4633,7 @@ void MainWindow::on_actionRecordRawData_triggered(bool checked)
             p_logger->init_logger(RAW_DATA_LOG, rawDataRecordPath);
             QMessageBox::information(this,
                                      tr("提示"),
-                                     tr("接下来的数据将被记录到程序所在目录下的") + savePath + tr("文件中") + "\n" +
+                                     tr("接下来的数据将被记录到程序所在目录：") + savePath + "\n\n" +
                                      tr("如需更改数据记录位置，请先关闭串口再使用本功能。"));
         }
         else
@@ -4171,16 +4713,48 @@ void MainWindow::on_actionRecordGraphData_triggered(bool checked)
         //串口开启状态下则默认保存到程序所在目录，因为选择文件路径的对话框是阻塞型的，串口开启下会影响接收
         if(serial.isOpen())
         {
-            savePath = "Recorder[Graph]-" + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".csv";
+            recordPlotTitle = plotProtocol->getDefaultPlotterTitle();
+            savePath = "Recorder[" + recordPlotTitle + "]-" + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".csv";
             graphDataRecordPath = QCoreApplication::applicationDirPath() + "/" + savePath;
             p_logger->init_logger(GRAPH_DATA_LOG, graphDataRecordPath);
             QMessageBox::information(this,
                                      tr("提示"),
-                                     tr("接下来的数据将被记录到程序所在目录下的") + savePath + tr("文件中") + "\n" +
-                                     tr("如需更改数据记录位置，请先关闭串口再使用本功能。"));
+                                     tr("默认绘图名称") + "[" + recordPlotTitle + "]" +
+                                     tr("将被记录到程序所在目录：") + "\n\n" +
+                                     savePath + "\n\n" +
+                                     tr("如需更改记录位置或绘图名称，请先关闭串口再使用本功能。"));
         }
         else
         {
+            //选择绘图名称
+            bool ok;
+            QString label;
+            label = tr("请选择需要记录的绘图名称。若使用非ASCII协议请选择默认绘图名称。") + "\n\n" +
+                    tr("当前默认绘图名称为：") + plotProtocol->getDefaultPlotterTitle();
+            QVector<MyQCustomPlot*> plotters = plotterManager.getAllPlotters();
+            QStringList items;
+            foreach(MyQCustomPlot* plotter, plotters)
+            {
+                if(plotter)
+                {
+                    items << plotter->getPlotterTitle();
+                }
+            }
+            items.sort();
+            QString text;
+            text = QInputDialog::getItem(this, tr("提示"),
+                                        label,
+                                        items,
+                                        0,
+                                        true,
+                                        &ok);
+            recordPlotTitle = text;
+            if(!ok)
+            {
+                ui->actionRecordGraphData->setChecked(false);
+                return;
+            }
+
             //如果上次文件记录路径是空则用保存数据的上次路径
             if(lastGraphDataRecordPath.isEmpty())
             {
@@ -4189,7 +4763,8 @@ void MainWindow::on_actionRecordGraphData_triggered(bool checked)
             //打开保存文件对话框(由于xlsx文件被office打开后导致纸飞机无法写入数据造成数据漏存等因素，因此不推荐用于流式保存)
             savePath = QFileDialog::getSaveFileName(this,
                                                     tr("记录曲线数据到文件-选择文件路径"),
-                                                    lastGraphDataRecordPath + "Recorder[Graph]-" + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".csv",
+                                                    lastGraphDataRecordPath +
+                                                    "Recorder[" + recordPlotTitle + "]-" + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".csv",
                                                     "CSV File(*.csv);;TXT File(*.txt);;XLSX File[NOT Recommended](*.xlsx);;All File(*.*)");
             //检查路径格式
             if(!savePath.endsWith(".xlsx") && !savePath.endsWith(".csv") && !savePath.endsWith(".txt")){
@@ -4200,7 +4775,6 @@ void MainWindow::on_actionRecordGraphData_triggered(bool checked)
                 return;
             }
             graphDataRecordPath = savePath;
-            graphDataNeedHead = true;
             p_logger->init_logger(GRAPH_DATA_LOG, graphDataRecordPath);
         }
         updateFunctionButtonTitle();
@@ -4236,8 +4810,9 @@ void MainWindow::on_actionCSV_triggered(bool checked)
     if(ui->actionCSV->isChecked())
         statisticCSVUseCnt++;
 
-    ui->customPlot->protocol->clearBuff();
-    ui->customPlot->protocol->setProtocolType(DataProtocol::CSV);
+    QString empty;
+    emit protocol_clearBuff(empty);
+    plotProtocol->setProtocolType(DataProtocol::CSV);
     ui->actionAscii->setChecked(false);
     ui->actionFloat->setChecked(false);
     ui->actionCSV->setChecked(true);
@@ -4253,8 +4828,9 @@ void MainWindow::on_actionMAD_triggered(bool checked)
     if(ui->actionMAD->isChecked())
         statisticMADUseCnt++;
 
-    ui->customPlot->protocol->clearBuff();
-    ui->customPlot->protocol->setProtocolType(DataProtocol::MAD);
+    QString empty;
+    emit protocol_clearBuff(empty);
+    plotProtocol->setProtocolType(DataProtocol::MAD);
     ui->actionAscii->setChecked(false);
     ui->actionFloat->setChecked(false);
     ui->actionCSV->setChecked(false);
@@ -4293,4 +4869,38 @@ void MainWindow::on_actionSimpleMode_triggered(bool checked)
                 << static_cast<int32_t>(length*0.2);
         splitter_io->setSizes(lengthList);
     }
+}
+
+
+void MainWindow::on_actionSetDefaultPlotterTitle_triggered()
+{
+    bool ok;
+    QString text;
+    QString label;
+    label = tr("# 请选择常用的绘图名称作为默认绘图名称。") + "\n" +
+            tr("# 具有默认名称的绘图窗口将会常驻并且可以保存配置。") + "\n" +
+            tr("# 后续创建的绘图窗口配置将以默认绘图窗口配置为准。") + "\n" +
+            tr("# 若列表没有所想要的名称请先进行绘图操作。") + "\n\n" +
+            tr("更改默认绘图名称：");
+    QVector<MyQCustomPlot*> plotters = plotterManager.getAllPlotters();
+    QStringList items;
+    foreach(MyQCustomPlot* plotter, plotters)
+    {
+        if(plotter)
+        {
+            items << plotter->getPlotterTitle();
+        }
+    }
+    text = QInputDialog::getItem(this, tr("提示"),
+                                 label,
+                                 items,
+                                 0,
+                                 false,//不可编辑
+                                 &ok);
+    if(!ok)
+    {
+        return;
+    }
+    plotProtocol->setDefaultPlotterTitle(text);
+    plotterManager.setDefaultPlotter(text);
 }

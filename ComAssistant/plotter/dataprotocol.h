@@ -11,7 +11,9 @@
 #include <QElapsedTimer>
 #include <QThread>
 #include <QMutex>
+#include "math.h"
 
+#define DEFAULT_PLOT_TITLE_MACRO "plotter"
 //可视协议：{保留:数据1,数据2,...}
 //透传协议: float数据转为小端模式传输，以00 00 80 7F结尾
 
@@ -35,27 +37,37 @@ public:
     typedef QVector<RowData_t> DataPool_t;
     //定义数据包和数据包流
     typedef QByteArray          Pack_t;
+    //定义数据组和数据集合
+    typedef struct{
+        QString name;
+        DataPool_t dataPool;
+    }DataPoolGroup_t;
+    typedef QVector<DataPoolGroup_t> DataPoolSets;
 
 public:
     explicit DataProtocol(QObject *parent = nullptr);
     ~DataProtocol();
-    void clearBuff();
-    int parsedBuffSize();//判断数据池剩余大小
-    QVector<double> popOneRowData();//弹出一行数据，没有数据则为空
+    int32_t hasParsedBuff();//判断数据池剩余大小
+    int32_t popOneRowData(QString &outName, QVector<double> &outRowData);//弹出一行数据，没有数据则为空
     void setProtocolType(ProtocolType_e type, bool clearbuff=true);
     ProtocolType_e getProtocolType();
+    QString getDefaultPlotterTitle();
+    int32_t setDefaultPlotterTitle(QString title);
 public slots:
+    void clearBuff(const QString &name);
     void appendData(const QByteArray &data);
     void parseData(bool enableSumCheck=false);
 private:
+    QString defaultPlotTitle = DEFAULT_PLOT_TITLE_MACRO;
+    int32_t hasParsedBuffCnt = 0;
     QMutex dataPoolLock;
     QMutex tempDataPoolLock;
     //从pack中提取合法数据行
-    RowData_t extractRowData(const Pack_t& pack);
+    RowData_t extractRowData(const Pack_t &pack, QString &outName, RowData_t &outRowData);
     //将合法数据行添加进数据池
-    void addToDataPool(RowData_t &rowData, bool enableSumCheck);
+    void addToDataPool(QString &name, RowData_t &rowData, bool enableSumCheck);
     //数据池
-    DataPool_t dataPool;
+    DataPoolSets dataPoolSets;
     QByteArray tempDataPool;
     //协议类型
     ProtocolType_e protocolType = Ascii;

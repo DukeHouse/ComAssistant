@@ -491,53 +491,6 @@ p, li { white-space: pre-wrap; }
      </item>
     </layout>
    </widget>
-   <widget class="QSplitter" name="splitter_visulize">
-    <property name="geometry">
-     <rect>
-      <x>9</x>
-      <y>45</y>
-      <width>680</width>
-      <height>189</height>
-     </rect>
-    </property>
-    <property name="sizePolicy">
-     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-      <horstretch>0</horstretch>
-      <verstretch>0</verstretch>
-     </sizepolicy>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Horizontal</enum>
-    </property>
-    <property name="handleWidth">
-     <number>1</number>
-    </property>
-    <widget class="MyQCustomPlot" name="customPlot" native="true">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-       <horstretch>0</horstretch>
-       <verstretch>1</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="baseSize">
-      <size>
-       <width>0</width>
-       <height>0</height>
-      </size>
-     </property>
-    </widget>
-    <widget class="QTableWidget" name="valueDisplay">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="contextMenuPolicy">
-      <enum>Qt::CustomContextMenu</enum>
-     </property>
-    </widget>
-   </widget>
    <widget class="QSplitter" name="splitter_display">
     <property name="geometry">
      <rect>
@@ -700,6 +653,79 @@ p, li { white-space: pre-wrap; }
      </property>
     </widget>
    </widget>
+   <widget class="QSplitter" name="splitter_visulize">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>50</y>
+      <width>551</width>
+      <height>161</height>
+     </rect>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Horizontal</enum>
+    </property>
+    <widget class="QTabWidget" name="tabWidget_plotter">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <property name="tabsClosable">
+      <bool>true</bool>
+     </property>
+     <property name="movable">
+      <bool>true</bool>
+     </property>
+     <widget class="QWidget" name="tab">
+      <attribute name="title">
+       <string>main</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout">
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <item row="0" column="0">
+        <widget class="MyQCustomPlot" name="customPlot" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>1</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="baseSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+    <widget class="QTableWidget" name="valueDisplay">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="contextMenuPolicy">
+      <enum>Qt::CustomContextMenu</enum>
+     </property>
+    </widget>
+   </widget>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <widget class="QMenuBar" name="menuBar">
@@ -776,7 +802,7 @@ p, li { white-space: pre-wrap; }
     </property>
     <widget class="QMenu" name="menu_realTimeRecorder">
      <property name="title">
-      <string>实时记录仪</string>
+      <string>实时数据记录</string>
      </property>
      <addaction name="actionRecordRawData"/>
      <addaction name="actionRecordGraphData"/>
@@ -813,7 +839,7 @@ p, li { white-space: pre-wrap; }
      <property name="title">
       <string>设置</string>
      </property>
-     <widget class="QMenu" name="lineStyle_2">
+     <widget class="QMenu" name="lineStyle">
       <property name="title">
        <string>线型</string>
       </property>
@@ -821,19 +847,20 @@ p, li { white-space: pre-wrap; }
       <addaction name="actionScatterLinePlot"/>
       <addaction name="actionScatterPlot"/>
      </widget>
-     <addaction name="lineStyle_2"/>
+     <addaction name="lineStyle"/>
      <addaction name="actionAutoRefreshYAxis"/>
      <addaction name="actionOpenGL"/>
      <addaction name="separator"/>
      <addaction name="actionSelectXAxis"/>
      <addaction name="actionTimeStampMode"/>
+     <addaction name="separator"/>
     </widget>
     <addaction name="actionPlotterSwitch"/>
     <addaction name="plotterSetting"/>
-    <addaction name="separator"/>
     <addaction name="actionValueDisplay"/>
     <addaction name="actionFFTShow"/>
     <addaction name="separator"/>
+    <addaction name="actionSetDefaultPlotterTitle"/>
     <addaction name="protocol"/>
     <addaction name="separator"/>
     <addaction name="actiondebug"/>
@@ -951,6 +978,9 @@ p, li { white-space: pre-wrap; }
    <property name="text">
     <string>多字符串</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+M</string>
+   </property>
   </action>
   <action name="actionPlotterSwitch">
    <property name="checkable">
@@ -961,6 +991,9 @@ p, li { white-space: pre-wrap; }
    </property>
    <property name="text">
     <string>绘图器</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+D</string>
    </property>
    <property name="iconVisibleInMenu">
     <bool>true</bool>
@@ -1092,6 +1125,9 @@ p, li { white-space: pre-wrap; }
    <property name="text">
     <string>数值显示器</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+T</string>
+   </property>
   </action>
   <action name="actionAutoRefreshYAxis">
    <property name="checkable">
@@ -1173,6 +1209,9 @@ p, li { white-space: pre-wrap; }
    <property name="statusTip">
     <string/>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+F</string>
+   </property>
   </action>
   <action name="actionTeeLevel2NameSupport">
    <property name="checkable">
@@ -1223,12 +1262,18 @@ p, li { white-space: pre-wrap; }
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>记录原始数据到文件</string>
+    <string>原始数据</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+R</string>
    </property>
   </action>
   <action name="actionHexConverter">
    <property name="text">
     <string>HEX转换</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+H</string>
    </property>
   </action>
   <action name="actionRecordGraphData">
@@ -1236,7 +1281,10 @@ p, li { white-space: pre-wrap; }
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>记录曲线数据到文件</string>
+    <string>曲线数据</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+R</string>
    </property>
   </action>
   <action name="actionLogRecord">
@@ -1278,6 +1326,11 @@ p, li { white-space: pre-wrap; }
    </property>
    <property name="text">
     <string>简洁模式</string>
+   </property>
+  </action>
+  <action name="actionSetDefaultPlotterTitle">
+   <property name="text">
+    <string>设置默认名称</string>
    </property>
   </action>
  </widget>

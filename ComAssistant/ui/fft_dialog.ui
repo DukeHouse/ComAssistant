@@ -105,7 +105,7 @@
        <item>
         <widget class="QLabel" name="label_sample_frq">
          <property name="text">
-          <string>采样频率</string>
+          <string>采样频率(Hz)</string>
          </property>
          <property name="buddy">
           <cstring>cal_point</cstring>

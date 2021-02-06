@@ -446,6 +446,16 @@ void FFT_Dialog::disableRePlot(bool flag)
     disableReplotFlag = flag;
 }
 
+void FFT_Dialog::setFFTPlotterTitle(QString title)
+{
+    fftPlotterTitle = title;
+    this->setWindowTitle("Actived FFT(beta): " + title);
+}
+QString FFT_Dialog::getFFTPlotterTitle()
+{
+    return fftPlotterTitle;
+}
+
 //寻找最接近的2的幂
 int32_t FFT_Dialog::find_num_closest_power_of_2(int a)
 {

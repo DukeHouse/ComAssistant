@@ -11,6 +11,7 @@
 #include <QDateTime>
 #include <QFont>
 #include <QColor>
+#include "dataprotocol.h"
 
 //保存路径
 #define SAVE_PATH   "ComAssistantConfig.ini"
@@ -45,6 +46,7 @@
 #define KEY_ACTIVATED_TAB       QString("ActivatedTab")
 #define KEY_REG_MATCH_STR       QString("RegMatchStr")
 #define KEY_SIMPLE_MODE         QString("SimpleMode")
+#define KEY_DEFAULT_PLOT_TITLE  QString("DefaultPlotTitle")
 
 //serial键
 #define KEY_PORTNAME        QString("PortName")
@@ -103,17 +105,17 @@
 #define KEY_EMAIL       QString("Email")
 
 //值
-enum CodeRule_e{
+typedef enum {
     GBK,
     UTF8
-};
+}CodeRule_e;
 
-enum EnterStyle_e{
+typedef enum {
     WinStyle = 0,
     UnixStyle = 1
-};
+}EnterStyle_e;
 
-enum ProtocolType_e{
+typedef enum {
     Ascii = 0,
     Ascii_SumCheck,
     Float,
@@ -122,13 +124,13 @@ enum ProtocolType_e{
     CSV_SumCheck,
     MAD,
     MAD_SumCheck,
-};
+}ProtocolType_e;
 
-enum LineType_e{
+typedef enum {
     Line = 0,
-    Scatter_Line,
+    ScatterLine,
     Scatter,
-};
+}LineType_e;
 
 extern int32_t version_to_number(QString str);
 
@@ -137,9 +139,10 @@ class Config
 public:
     #define defualtGraphName  "Graph 1;Graph 2;Graph 3;Graph 4;Graph 5;Graph 6;Graph 7;Graph 8;Graph 9;Graph 10;Graph 11;Graph 12;Graph 13;Graph 14;Graph 15;"
     //版本
-    #define VERSION_STRING  "0.5.2"
+    #define VERSION_STRING  "0.5.3"
 
     Config();
+    static void writeCommentMsgAtFileTop();
     static void writeDefault();
     static void createDefaultIfNotExist();
     static bool isFileExist(QString path);
@@ -148,8 +151,10 @@ public:
     static bool getFirstRun();
 
     static void setVersion(void);
-    static QString getVersion();
+    static QString getVersion();//这个是从软件本身读版本号
+    static QString readVersion(void);//这个是从配置文件中读版本号
     static int32_t getVersionNumber();
+    static int32_t versionCompare(QString oldVersion, QString newVersion);
     //serial
     static void setPortName(QString name);
     static QString getPortName();
@@ -220,7 +225,7 @@ public:
     static void setRefreshYAxisState(bool isOn);
     static bool getRefreshYAxisState();
     static void setLineType(LineType_e type);
-    static qint32 getLineType();
+    static LineType_e getLineType();
 
     //static
     static void setFirstStartTime(QString time);
@@ -246,7 +251,7 @@ public:
     static void addCurrentStatistic(QString key, int64_t cnt);
     static int64_t getTotalStatistic(QString key);
     static void setConfigString(QString section, QString key, QString containt);
-    static QString getConfigString(QString section, QString key);
+    static QString getConfigString(QString section, QString key, QString defaultStr);
     static void setConfigBool(QString section, QString key, bool flag);
     static bool getConfigBool(QString section, QString key, bool defaultBool);
     static void setConfigNumber(QString section, QString key, int64_t num);

@@ -108,14 +108,14 @@ void Data_Logger::logger_buff_flush(uint8_t type)
         {
             if(!appendToXlsx(it->buff, it->file->fileName()))
             {
-                qDebug() << it->file->fileName() << " saved failed.";
+                qDebug() << it->file->fileName() << " saved failed at" << __FUNCTION__;
             }
             it->buff.clear();
             return;
         }
         if(!it->file->open(QFile::WriteOnly|QFile::Append))
         {
-            qDebug() << __FUNCTION__ << "file open failed.";
+            qDebug() << it->file->fileName() << "file open failed at" << __FUNCTION__;
             return;
         }
         QTextStream stream(it->file);

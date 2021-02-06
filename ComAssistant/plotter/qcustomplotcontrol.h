@@ -10,33 +10,36 @@
 #include <algorithm>
 #include "axistag.h"
 #include "fft_dialog.h"
+#include "config.h"
 
 using namespace std;
 
 class MyQCustomPlot;
 
+//typedef enum {
+//    Line,
+//    ScatterLine,
+//    Scatter
+//}LineType_e;
+
 class QCustomPlotControl
 {
 
 public:
-    typedef enum {
-        Line,
-        ScatterLine,
-        Scatter
-    }LineType_e;
+
     QCustomPlotControl();
     ~QCustomPlotControl();
     QCustomPlotControl(MyQCustomPlot* plot, FFT_Dialog *window);//不知道为啥用了会崩溃
     void setEnableTimeStampMode(bool enable);
     bool getEnableTimeStampMode();
-    bool addGraph(int num=1);
+    bool addGraph(int num = 1);
     //清除指定曲线，-1清除所有曲线
     void clearPlotter(int index);
     //调整x轴范围
 //    void adjustXRange(const QCPRange& qcpRange);
 //    void adjustXRange(bool enlarge);
     //把数据添加到绘图器里（不刷新图像）
-    bool addDataToPlotter(QVector<double> rowData, qint32 xSource);
+    bool addDataToPlotter(QVector<double> rowData);
 //    设置字体
     void setupFont(QFont font);
     //设置openGL
@@ -51,6 +54,7 @@ public:
     bool setupPlotName(QVector<QString> nameStr=QVector<QString>());
     //设置线型（线图、点线图、点图）: 点风格+线风格
     void setupLineType(LineType_e type);
+    LineType_e getLineType(void);
     //设置图例可见性
     void setupLegendVisible(bool visible=true);
     //设置图像可见性
@@ -76,6 +80,7 @@ public:
     int64_t getRightEdge();
     void resetRightEdge();
     QCPRange getXRange();
+    QVector<double> getRecentRowData();
 
 private slots:
 
@@ -92,6 +97,7 @@ private:
     LineType_e lineType = Line; //线型种类
     bool enableTimeStampMode = false;
     int64_t rightEdge = -1;  //YT模式的右边沿数据
+    QVector<double> recentRowData;
 
     //设置点风格
     void setupScatterStyle(bool enable=false);

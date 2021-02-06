@@ -268,7 +268,7 @@ void HTTP::httpFinishedSlot(QNetworkReply *reply)
             localVersion = Config::getVersion();
 
             //版本号比较
-            if(version_to_number(remoteVersion) > version_to_number(localVersion))
+            if(Config::versionCompare(localVersion, remoteVersion) > 0)
             {
                 if(cur_task == GetVersion || GetVersion_failed > 0)
                 {

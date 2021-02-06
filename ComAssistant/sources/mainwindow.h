@@ -29,6 +29,7 @@
 #include "myqcustomplot.h"
 #include "dataprotocol.h"
 //自定义类
+#include "dataprotocol.h"
 #include "myxlsx.h"
 #include "highlighter.h"
 #include "myserialport.h"
@@ -37,6 +38,7 @@
 #include "http.h"
 #include "data_logger.h"
 #include "reg_match_engine.h"
+#include "plotter_manager.h"
 //界面类
 #include "stm32isp_dialog.h"
 #include "about_me_dialog.h"
@@ -57,8 +59,13 @@ extern bool g_agree_statement;
 extern bool g_log_record;
 extern bool g_debugger;
 
-#define TRY_REFRESH_BROWSER_CNT    (10)    //500ms内持续刷新
-#define DO_NOT_REFRESH_BROWSER     (0)
+#define TRY_REFRESH_BROWSER_CNT     (10)    //500ms内持续刷新
+#define DO_NOT_REFRESH_BROWSER      (0)
+
+//菜单栏的设置按钮的实现宏，保留功能：点击后可以自动对所有绘图器进行设置。
+//由于感觉必要性不是很强，在考虑是删除还是使用
+//先暂时保留，里面的代码也没怎么调。
+#define SHOW_PLOTTER_SETTING        (0)     
 
 class MainWindow : public QMainWindow
 {
@@ -97,7 +104,9 @@ private slots:
     void verticalScrollBarActionTriggered(int action);
     void splitterMovedSlot(int pos, int index);
     void on_tabWidget_tabCloseRequested(int index);
+    void on_tabWidget_plotter_tabCloseRequested(int index);
     void on_tabWidget_tabBarClicked(int index);
+    void on_tabWidget_plotter_tabBarClicked(int index);
     void on_timeStampCheckBox_stateChanged(int arg1);
     void on_timeStampTimeOut_textChanged(const QString &arg1);
     void disableRefreshWindow_triggered(bool checked);
@@ -140,9 +149,6 @@ private slots:
     
     //visualization
     void on_actionPlotterSwitch_triggered(bool checked);
-    void on_actionLinePlot_triggered();
-    void on_actionScatterLinePlot_triggered();
-    void on_actionScatterPlot_triggered();
     void on_actionValueDisplay_triggered(bool checked);
     void on_actionFFTShow_triggered(bool checked);
     void on_actionAscii_triggered(bool checked);
@@ -151,10 +157,16 @@ private slots:
     void on_actionMAD_triggered(bool checked);
     void on_actiondebug_triggered(bool checked);
     void on_actionSumCheck_triggered(bool checked);
-    void on_actionOpenGL_triggered(bool checked);
+#if SHOW_PLOTTER_SETTING
+    void on_actionLinePlot_triggered();
+    void on_actionScatterLinePlot_triggered();
+    void on_actionScatterPlot_triggered();
     void on_actionAutoRefreshYAxis_triggered(bool checked);
+    void on_actionOpenGL_triggered(bool checked);
     void on_actionSelectXAxis_triggered(bool checked);
     void on_actionTimeStampMode_triggered(bool checked);
+#endif
+    void on_actionSetDefaultPlotterTitle_triggered();
 
     //help
     void on_actionManual_triggered();
@@ -214,8 +226,19 @@ private:
     QString sta_ConvertHuman_Byte(double num);
     QString sta_ConvertHuman_Time(double sec);
     QString statisticConvertRank(double totalTx, double totalRx);
+    MyQCustomPlot* selectCurrentPlotter();
+    MyQCustomPlot* createNewPlotter(QString plotterTitle);
+    void fillDataToValueDisplay(MyQCustomPlot *plotter);
+    void TxRxSpeedStatisticAndDisplay();
+    int32_t recordGraphDataToFile(const QString& recordPlotTitle, 
+                                  const QString& plotterTitle, 
+                                  const QVector<double>& oneRowData);
     Ui::MainWindow *ui;
     mySerialPort serial;
+
+    //绘图解析器
+    DataProtocol *plotProtocol = nullptr;
+    QThread *plotProtocol_thread = nullptr;
 
     QProgressBar *progressBar;
     QLabel *statusSpeedLabel, *statusStatisticLabel, *statusRemoteMsgLabel, *statusTimer; //状态栏标签
@@ -263,9 +286,9 @@ private:
     //数据记录
     QString rawDataRecordPath       = "";
     QString lastRawDataRecordPath   = "";
-    bool    graphDataNeedHead       = true;
     QString graphDataRecordPath     = "";
     QString lastGraphDataRecordPath = "";
+    QString recordPlotTitle         = "";
     QThread *p_logger_thread;
     Data_Logger *p_logger;
 
@@ -319,7 +342,13 @@ private:
     //fft window
     FFT_Dialog *fft_window = nullptr;
 
+    //绘图器集合管理
+    PlotterManager plotterManager;
+
 signals:
+    void protocol_appendData(const QByteArray &data);
+    void protocol_parseData(bool enableSumCheck = false);
+    void protocol_clearBuff(const QString &name);
     void tee_appendData(const QByteArray &str);
     void tee_parseData(void);
     void tee_clearData(const QString &name);
