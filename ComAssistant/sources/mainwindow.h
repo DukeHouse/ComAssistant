@@ -326,7 +326,7 @@ private:
 
     //窗口显示字符统计
     QSize windowSize;
-    int characterCount = 0; //可显示字符数
+    int32_t characterCount = 0; //可显示字符数
 
     //文本提取引擎
     bool textExtractEnable = true;
@@ -338,6 +338,8 @@ private:
     const QString REGMATCH_TAB_NAME = "asciiMatch";
     QThread *p_regMatchThread;
     RegMatchEngine *p_regMatch;
+    QByteArray regMatchBuffer;//正则匹配缓冲（防止高频刷新带来的CPU压力）
+    QMutex regMatchBufferLock;
 
     //fft window
     FFT_Dialog *fft_window = nullptr;

@@ -106,7 +106,7 @@ void MainWindow::readConfig()
         multi.pop_front();
     }
 
-    //tab页面和匹配字符串
+    //tab页面和正则匹配字符串
     ui->regMatchEdit->setText(Config::getConfigString(SECTION_GLOBAL, KEY_REG_MATCH_STR, ""));
     QString activatedTabName = Config::getConfigString(SECTION_GLOBAL, KEY_ACTIVATED_TAB, "");
     for(int32_t i = 0; i < ui->tabWidget->count(); i++){
@@ -115,6 +115,7 @@ void MainWindow::readConfig()
             break;
         }
     }
+    on_regMatchEdit_textChanged(ui->regMatchEdit->text());
 
     //文件对话框路径
     lastFileDialogPath = Config::getLastFileDialogPath();
@@ -831,8 +832,10 @@ void MainWindow::regM_dataUpdated(const QByteArray &packData)
                       gbk->toUnicode(newPackData)
                       );
     }
-    ui->regMatchBrowser->appendPlainText(newPackData);
-    ui->regMatchBrowser->moveCursor(QTextCursor::End);
+    regMatchBufferLock.lock();
+    regMatchBuffer.append(newPackData);
+    regMatchBuffer.append('\n');
+    regMatchBufferLock.unlock();
 
     statisticRegParseCnt += packData.size();
 }
@@ -887,6 +890,20 @@ void MainWindow::tee_textGroupsUpdate(const QString &name, const QByteArray &dat
 
 void MainWindow::printToTextBrowserTimerSlot()
 {
+    //更新收发统计(可能会占用一点点点loading)
+    statusStatisticLabel->setText(serial.getTxRxString_with_color());
+
+    //打印正则匹配数据
+    if(!regMatchBuffer.isEmpty())
+    {
+        regMatchBufferLock.lock();
+        regMatchBuffer.remove(regMatchBuffer.size() - 1, 1);
+        ui->regMatchBrowser->appendPlainText(regMatchBuffer);
+        ui->regMatchBrowser->moveCursor(QTextCursor::End);
+        regMatchBuffer.clear();
+        regMatchBufferLock.unlock();
+    }
+
     //characterCount=0时或者窗口大小改变时重算窗口并重新显示
     if(characterCount == 0 || windowSize != ui->textBrowser->size())
     {
@@ -1487,7 +1504,8 @@ void MainWindow::readSerialPort()
         emit tee_appendData(tmpReadBuff);
 
     //数据交付正则匹配引擎
-    emit regM_appendData(tmpReadBuff);
+    if(!ui->regMatchEdit->text().isEmpty())
+        emit regM_appendData(tmpReadBuff);
 
     //数据交付绘图解析引擎
     if(ui->actionPlotterSwitch->isChecked() ||
@@ -1530,8 +1548,6 @@ void MainWindow::readSerialPort()
         BrowserBuff.append(QString::fromLocal8Bit(tmpReadBuff));
     }
 
-    //更新收发统计
-    statusStatisticLabel->setText(serial.getTxRxString_with_color());
 
     //允许数据刷新
     TryRefreshBrowserCnt = TRY_REFRESH_BROWSER_CNT;
@@ -1577,12 +1593,8 @@ void MainWindow::printToTextBrowser()
     }
 
     //多显示一点
-    if(ui->hexDisplay->isChecked())
-        PAGING_SIZE = characterCount * 1.2; //hex模式性能慢
-    else
-        PAGING_SIZE = characterCount * 1.2;
-
-    //且满足gbk/utf8编码长度的倍数
+    PAGING_SIZE = characterCount * 1.2;
+    //满足gbk/utf8编码长度的倍数
     if(ui->actionGBK->isChecked()){
         PAGING_SIZE = PAGING_SIZE - PAGING_SIZE % 2;
     }else if(ui->actionUTF8->isChecked()){
@@ -1612,6 +1624,31 @@ void MainWindow::printToTextBrowser()
 
     ui->textBrowser->verticalScrollBar()->setValue(ui->textBrowser->verticalScrollBar()->maximum());
     ui->textBrowser->moveCursor(QTextCursor::End);
+
+    //逐步减少刷新内容以改善资源消耗
+    #define MAX_BAR_VALUE (25)
+    if(ui->textBrowser->verticalScrollBar()->maximum() > MAX_BAR_VALUE)
+    {
+        float coef = ui->textBrowser->verticalScrollBar()->maximum() / MAX_BAR_VALUE;
+        if(coef > 1)
+        {
+            characterCount = characterCount / coef;
+        }
+        else
+        {
+            characterCount -= 6;
+        }
+    }
+    PAGING_SIZE = characterCount * 1.2;
+    if(ui->actionGBK->isChecked())
+    {
+        PAGING_SIZE = PAGING_SIZE - PAGING_SIZE % 2;
+    }
+    else if(ui->actionUTF8->isChecked())
+    {
+        PAGING_SIZE = PAGING_SIZE - PAGING_SIZE % 3;
+    }
+
 }
 
 void MainWindow::serialBytesWritten(qint64 bytes)
@@ -1619,11 +1656,13 @@ void MainWindow::serialBytesWritten(qint64 bytes)
     //发送速度统计
     statisticTxByteCnt += bytes;
 
-    if(SendFileBuff.size() > 0 && SendFileBuffIndex != SendFileBuff.size()){
+    if(SendFileBuff.size() > 0 && SendFileBuffIndex != SendFileBuff.size())
+    {
         double percent = 100.0 * (SendFileBuffIndex + 1) / SendFileBuff.size();
         updateProgressBar(tr("发送进度："), percent);
         serial.write(SendFileBuff.at(SendFileBuffIndex++));
-        if(SendFileBuffIndex == SendFileBuff.size()){
+        if(SendFileBuffIndex == SendFileBuff.size())
+        {
             SendFileBuffIndex = 0;
             SendFileBuff.clear();
             sendFile = false;
@@ -1634,9 +1673,6 @@ void MainWindow::serialBytesWritten(qint64 bytes)
             ui->clearWindows_simple->setText(ui->clearWindows->text());
         }
     }
-
-    //更新收发统计
-    statusStatisticLabel->setText(serial.getTxRxString_with_color());
 }
 
 void MainWindow::handleSerialError(QSerialPort::SerialPortError errCode)
@@ -1819,7 +1855,8 @@ void MainWindow::on_sendButton_clicked()
     QByteArray tmp;
     QString tail;
 
-    if(!serial.isOpen()){
+    if(!serial.isOpen())
+    {
         QMessageBox::information(this,tr("提示"),tr("串口未打开"));
         return;
     }
@@ -1827,7 +1864,8 @@ void MainWindow::on_sendButton_clicked()
     tmp = ui->textEdit->toPlainText().toLocal8Bit();
 
     //回车风格转换，win风格补上'\r'，默认unix风格
-    if(ui->action_winLikeEnter->isChecked()){
+    if(ui->action_winLikeEnter->isChecked())
+    {
         //win风格
         while (tmp.indexOf('\n') != -1) {
             tmp = tmp.replace('\n', '\t');
@@ -1836,7 +1874,8 @@ void MainWindow::on_sendButton_clicked()
             tmp = tmp.replace('\t', "\r\n");
         }
     }
-    else{
+    else
+    {
         //unix风格
         while (tmp.indexOf('\r') != -1) {
             tmp = tmp.remove(tmp.indexOf('\r'),1);
@@ -1845,7 +1884,8 @@ void MainWindow::on_sendButton_clicked()
 
     //十六进制检查
     QByteArray sendArr; //真正发送出去的数据
-    if(ui->hexSend->isChecked()){
+    if(ui->hexSend->isChecked())
+    {
         //以hex发送数据
         //HexStringToByteArray函数必须传入格式化后的字符串，如"02 31"
         bool ok;
@@ -1866,7 +1906,8 @@ void MainWindow::on_sendButton_clicked()
         serial.flush();
 
     //若添加了时间戳则把发送的数据也显示在接收区
-    if(ui->timeStampCheckBox->isChecked()){
+    if(ui->timeStampCheckBox->isChecked())
+    {
         QString timeString;
         timeString = QDateTime::currentDateTime().toString("hh:mm:ss.zzz");
         timeString = "\n["+timeString+"]Tx-> ";
@@ -1884,8 +1925,9 @@ void MainWindow::on_sendButton_clicked()
     }
     is_multi_str_double_click = false;
 
-    //更新收发统计
-    statusStatisticLabel->setText(serial.getTxRxString_with_color());
+    //更新收发统计(周期发送时收发统计直接通过周期定时器刷新以减少资源消耗)
+    if(!ui->cycleSendCheck->isChecked())
+        statusStatisticLabel->setText(serial.getTxRxString_with_color());
 
     //多字符串序列发送
     if(g_multiStr_cur_index != -1)
@@ -1961,9 +2003,14 @@ void MainWindow::on_clearWindows_clicked()
     BrowserBuff.clear();
     BrowserBuffIndex = 0;
     unshowedRxBuff.clear();
+
     //正则匹配区
     emit regM_clearData();
     ui->regMatchBrowser->clear();
+    regMatchBufferLock.lock();
+    regMatchBuffer.clear();
+    regMatchBufferLock.unlock();
+
     //文本提取区
     emit tee_clearData("");//clear temp buff
     for(int32_t i = 0; i < ui->tabWidget->count(); i++)
@@ -4708,6 +4755,9 @@ void MainWindow::on_regMatchEdit_textChanged(const QString &arg1)
     }
     emit regM_clearData();
     ui->regMatchBrowser->clear();
+    regMatchBufferLock.lock();
+    regMatchBuffer.clear();
+    regMatchBufferLock.unlock();
     p_regMatch->updateRegMatch(arg1);
 }
 
