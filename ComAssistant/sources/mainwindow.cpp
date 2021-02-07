@@ -556,18 +556,18 @@ void MainWindow::quickHelp()
         helpText = "Data display area"
                 "\n\n"
                 "Quick Guide：\n\n"
-                "# ASCII plotProtocol(text string): \n"
-                "  \"{tag:hello world}\\n\"\n"
-                "  'tag' is any name you like\n"
-                "  'hello world' is any text containt\n"
+                "# ASCII Protocol(text string): \n"
+                "  \"{title:string}\\n\"\n"
+                "  'title' can be any word. Dart will show data in windows according to title\n"
+                "  'string' can be any text containt. It's the data in windows\n"
                 "  '\\n' is wrap symbol\n\n"
                 "# Guide with C language\n"
                 "  1.Define macro function to simplify work\n"
-                "    #define PRINT(tag, fmt, ...) printf(\"{\"#tag\":\"fmt\"}\\n\", __VA_ARGS__)\n"
+                "    #define PRINT(title, fmt, ...) printf(\"{\"#title\":\"fmt\"}\\n\", __VA_ARGS__)\n"
                 "  2.To draw graph, use it like this: \n"
-                "    PRINT(plot, \"%f,%f,%f\", data1, data2, data3); It means 3 graphs.\n"
+                "    PRINT(plotter, \"%f,%f,%f\", data1, data2, data3); It means 3 graphs.\n"
                 "  3.To classify text, use it like this: \n"
-                "    PRINT(name, \"one year has %d days\", var); It means text associate with name\n";
+                "    PRINT(voltage, \"current voltage is %d V\", var); It means text associate with voltage\n";
         ui->textBrowser->setPlaceholderText(helpText);
         helpText = "Show the string contained the key word"
                 "\n\n"
@@ -581,17 +581,17 @@ void MainWindow::quickHelp()
             "\n\n"
             "快速教程：\n\n"
             "# ASCII协议规则(字符串)：\n"
-            "  \"{tag:hello world}\\n\"\n"
-            "  tag为自定义名称标签\n"
-            "  hello world为自定义内容\n"
+            "  \"{title:string}\\n\"\n"
+            "  title为自定义英文标题，纸飞机将根据title对数据进行分窗显示。\n"
+            "  string为自定义英文字符串，这是被分窗显示的内容\n"
             "  \\n为换行符，不可省\n\n"
             "# C语言使用方法：\n"
             "  1.定义宏函数可简化后期工作：\n"
-            "    #define PRINT(tag, fmt, ...) printf(\"{\"#tag\":\"fmt\"}\\n\", __VA_ARGS__)\n"
+            "    #define PRINT(title, fmt, ...) printf(\"{\"#title\":\"fmt\"}\\n\", __VA_ARGS__)\n"
             "  2.若要绘图可这样使用：\n"
-            "    PRINT(plot, \"%f,%f,%f\", data1, data2, data3);即可，表示3条曲线数据\n"
+            "    PRINT(plotter, \"%f,%f,%f\", data1, data2, data3);即可，表示3条曲线数据\n"
             "  3.若要分类显示可这样使用：\n"
-            "    PRINT(name, \"one year has %d days\", var);即可，表示跟name有关的数据\n";
+            "    PRINT(voltage, \"current voltage is %d V\", var);即可，表示跟voltage有关的数据\n";
     ui->textBrowser->setPlaceholderText(helpText);
     helpText = "该窗口显示包含关键字符的字符串"
             "\n\n"
@@ -1449,29 +1449,34 @@ void MainWindow::readSerialPort()
     unshowedRxBuff.clear();
 
     //'\r'若单独结尾则可能被误切断，放到下一批数据中
-    if(tmpReadBuff.endsWith('\r')){
-        unshowedRxBuff.append(tmpReadBuff.at(tmpReadBuff.size()-1));
-        tmpReadBuff.remove(tmpReadBuff.size()-1,1);
-        if(tmpReadBuff.size()==0)
+    if(tmpReadBuff.endsWith('\r'))
+    {
+        unshowedRxBuff.append(tmpReadBuff.at(tmpReadBuff.size() - 1));
+        tmpReadBuff.remove(tmpReadBuff.size() - 1, 1);
+        if(tmpReadBuff.size() == 0)
             return;
     }
 
     //如果不是hex显示则要考虑中文处理
-    if(ui->hexDisplay->isChecked()==false){
+    if(ui->hexDisplay->isChecked() == false)
+    {
         //只需要保证上屏的最后一个字节的高位不是1即可
-        if(tmpReadBuff.back() & 0x80){
-            qint32 reversePos = tmpReadBuff.size()-1;
-            while(tmpReadBuff.at(reversePos)&0x80){//不超过3次循环
+        if(tmpReadBuff.back() & 0x80)
+        {
+            qint32 reversePos = tmpReadBuff.size() - 1;
+            while(tmpReadBuff.at(reversePos) & 0x80)//不超过3次循环
+            {
                 reversePos--;
-                if(reversePos<0)
+                if(reversePos < 0)
                     break;
             }
-            unshowedRxBuff = tmpReadBuff.mid(reversePos+1);
-            tmpReadBuff = tmpReadBuff.mid(0,reversePos+1);
+            unshowedRxBuff = tmpReadBuff.mid(reversePos + 1);
+            tmpReadBuff = tmpReadBuff.mid(0,reversePos + 1);
         }
         //如果unshowedRxBuff正好是相关编码长度的倍数，则可以上屏
-        if((ui->actionGBK->isChecked() && unshowedRxBuff.size()%2==0) ||
-           (ui->actionUTF8->isChecked() && unshowedRxBuff.size()%3==0)){
+        if((ui->actionGBK->isChecked() && unshowedRxBuff.size() % 2 == 0) ||
+           (ui->actionUTF8->isChecked() && unshowedRxBuff.size() % 3 == 0))
+        {
             tmpReadBuff.append(unshowedRxBuff);
             unshowedRxBuff.clear();
         }
@@ -1484,6 +1489,7 @@ void MainWindow::readSerialPort()
     //数据交付正则匹配引擎
     emit regM_appendData(tmpReadBuff);
 
+    //数据交付绘图解析引擎
     if(ui->actionPlotterSwitch->isChecked() ||
        ui->actionValueDisplay->isChecked() ||
        ui->actionFFTShow->isChecked())
@@ -1564,7 +1570,8 @@ void MainWindow::printToTextBrowser()
     }
 
     //暂停刷新则不刷新
-    if(disableRefreshWindow)
+    if(disableRefreshWindow ||
+       ui->tabWidget->tabText(ui->tabWidget->currentIndex()) != MAIN_TAB_NAME)
     {
         return;
     }
@@ -4420,7 +4427,7 @@ void MainWindow::on_tabWidget_plotter_tabCloseRequested(int index)
     //禁止删除主窗口
     if(selectName == plotProtocol->getDefaultPlotterTitle())
     {
-        ui->statusBar->showMessage(tr("不允许删除该窗口"), 2000);
+        ui->statusBar->showMessage(tr("不允许删除默认绘图窗口，请先指定其他默认绘图窗口。"), 2000);
         return;
     }
     emit protocol_clearBuff(selectName);
@@ -4877,11 +4884,11 @@ void MainWindow::on_actionSetDefaultPlotterTitle_triggered()
     bool ok;
     QString text;
     QString label;
-    label = tr("# 请选择常用的绘图名称作为默认绘图名称。") + "\n" +
-            tr("# 具有默认名称的绘图窗口将会常驻并且可以保存配置。") + "\n" +
+    label = tr("# 请选择常用的绘图窗口作为默认绘图窗口。") + "\n" +
+            tr("# 默认绘图窗口将会常驻并且支持保存配置等完整功能。") + "\n" +
             tr("# 后续创建的绘图窗口配置将以默认绘图窗口配置为准。") + "\n" +
             tr("# 若列表没有所想要的名称请先进行绘图操作。") + "\n\n" +
-            tr("更改默认绘图名称：");
+            tr("更改默认绘图窗口：");
     QVector<MyQCustomPlot*> plotters = plotterManager.getAllPlotters();
     QStringList items;
     foreach(MyQCustomPlot* plotter, plotters)
