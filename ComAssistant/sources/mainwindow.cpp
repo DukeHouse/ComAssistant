@@ -1592,12 +1592,15 @@ void MainWindow::printToTextBrowser()
         return;
     }
 
-    //多显示一点
+    //多显示一点并对齐到characterCount_Col的倍数
     PAGING_SIZE = characterCount * 1.2;
+    PAGING_SIZE = PAGING_SIZE - PAGING_SIZE % characterCount_Col;
     //满足gbk/utf8编码长度的倍数
-    if(ui->actionGBK->isChecked()){
+    if(ui->actionGBK->isChecked())
+    {
         PAGING_SIZE = PAGING_SIZE - PAGING_SIZE % 2;
-    }else if(ui->actionUTF8->isChecked()){
+    }else if(ui->actionUTF8->isChecked())
+    {
         PAGING_SIZE = PAGING_SIZE - PAGING_SIZE % 3;
     }
 
@@ -1639,7 +1642,10 @@ void MainWindow::printToTextBrowser()
             characterCount -= 6;
         }
     }
+    //多显示一点并对齐到characterCount_Col的倍数
     PAGING_SIZE = characterCount * 1.2;
+    //满足gbk/utf8编码长度的倍数
+    PAGING_SIZE = PAGING_SIZE - PAGING_SIZE % characterCount_Col;
     if(ui->actionGBK->isChecked())
     {
         PAGING_SIZE = PAGING_SIZE - PAGING_SIZE % 2;
@@ -1648,7 +1654,6 @@ void MainWindow::printToTextBrowser()
     {
         PAGING_SIZE = PAGING_SIZE - PAGING_SIZE % 3;
     }
-
 }
 
 void MainWindow::serialBytesWritten(qint64 bytes)
@@ -4370,12 +4375,10 @@ void MainWindow::keyReleaseEvent(QKeyEvent *e)
     emit sendKeyToPlotter(e, false);
 }
 
+//用于估计窗口能显示多少字符
 void MainWindow::resizeEvent(QResizeEvent* event)
 {
-    //消除警告
-    if(event){
-       event->size();
-    }
+    Q_UNUSED(event)
 
     //只响应显示主窗口时的窗口改变动作，其他类型的窗口只做记录，下次显示主窗口时进行响应
     if(ui->tabWidget->tabText(ui->tabWidget->currentIndex()) != MAIN_TAB_NAME)
@@ -4385,7 +4388,8 @@ void MainWindow::resizeEvent(QResizeEvent* event)
 
     //首次启动不运行，防止卡死
     static uint8_t first_run = 1;
-    if(first_run){
+    if(first_run)
+    {
         first_run = 0;
         return;
     }
@@ -4394,11 +4398,12 @@ void MainWindow::resizeEvent(QResizeEvent* event)
     //若MainWindow尺寸未变，内部控件尺寸变化的情况使用轮询解决
     ui->textBrowser->setPlainText("");
     //获取列数
-    while (ui->textBrowser->document()->lineCount()<2) {
+    while (ui->textBrowser->document()->lineCount() < 2)
+    {
         ui->textBrowser->insertPlainText("0");
     }
     //获取行数
-    while(ui->textBrowser->verticalScrollBar()->maximum()==0)
+    while(ui->textBrowser->verticalScrollBar()->maximum() == 0)
     {
         ui->textBrowser->appendPlainText("0");
     }
@@ -4406,12 +4411,16 @@ void MainWindow::resizeEvent(QResizeEvent* event)
     ui->textBrowser->moveCursor(QTextCursor::Start);
     ui->textBrowser->moveCursor(QTextCursor::Down);
     ui->textBrowser->moveCursor(QTextCursor::Left);
+
 //    qDebug()<<"resizeEvent"
 //            <<ui->textBrowser->document()->characterCount()
 //            <<ui->textBrowser->document()->lineCount()
 //            <<ui->textBrowser->textCursor().columnNumber();
-    characterCount = (ui->textBrowser->textCursor().columnNumber() + 1) *
-                     (ui->textBrowser->document()->lineCount() - 1);
+
+    characterCount_Row = ui->textBrowser->document()->lineCount() - 1;
+    characterCount_Col = ui->textBrowser->textCursor().columnNumber() + 1;
+    characterCount = characterCount_Col * characterCount_Row;
+
     ui->textBrowser->setPlainText("");
 
     printToTextBrowser();

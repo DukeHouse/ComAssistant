@@ -328,6 +328,8 @@ private:
     //窗口显示字符统计
     QSize windowSize;
     int32_t characterCount = 0; //可显示字符数
+    int32_t characterCount_Row = 0;
+    int32_t characterCount_Col = 0;
 
     //文本提取引擎
     bool textExtractEnable = true;
