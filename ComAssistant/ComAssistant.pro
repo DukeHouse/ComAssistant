@@ -161,6 +161,7 @@ HEADERS += \
     plotter/qcustomplot.h \
     plotter/qcustomplotcontrol.h \
     sources/baseconversion.h \
+    sources/common.h \
     sources/config.h \
     sources/data_logger.h \
     sources/fft.h \

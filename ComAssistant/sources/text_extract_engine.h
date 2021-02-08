@@ -14,6 +14,7 @@
 #include <QMessageBox>
 #include <QTimer>
 #include <QMutex>
+#include "common.h"
 
 /*
  * TODO:

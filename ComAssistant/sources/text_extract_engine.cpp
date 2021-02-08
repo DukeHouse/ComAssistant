@@ -52,7 +52,6 @@ void inline TextExtractEngine::appendPackDataToTextGroups(QByteArray& name, QByt
 //从包数据中提取名字（支持二级名字（数据段中的第一组{name}））、数据、时间戳，若名字提取失败则不再提取数据
 bool inline TextExtractEngine::parseNameAndDataFromPack(QByteArray& pack, bool enable_name2)
 {
-
     if(pack.isEmpty())
         return false;
 
@@ -60,12 +59,25 @@ bool inline TextExtractEngine::parseNameAndDataFromPack(QByteArray& pack, bool e
     QByteArray name2;
     QByteArray data;
 
+    //检查{name:}这种不规范数据，由于不能完全修复所以不做处理仅报警。
+    if(pack.indexOf(":}\r\n") != -1 || pack.indexOf(":}\n") != -1)
+    {
+        qDebug() << "find ambiguous pack" << pack << "at" << __FUNCTION__;
+    }
+
     //匹配{name:data}风格的数据中的name。
     name = pack;
     name = name.mid(0, name.indexOf(PACK_SEPARATE));
     name = name.remove(name.indexOf(PACK_PREFIX), PACK_PREFIX.size());
     if(name.isEmpty())
         return false;
+
+    //这两种名字软件独占不允许用户使用
+    if(name == MAIN_TAB_NAME || name == REGMATCH_TAB_NAME)
+    {
+        qDebug() << "find conflicting pack name:" << name << "at" << __FUNCTION__;
+        return false;
+    }
 
     //匹配{name:data}风格的数据中的data。
     data = pack;

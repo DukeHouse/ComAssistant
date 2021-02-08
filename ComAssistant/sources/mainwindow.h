@@ -29,6 +29,7 @@
 #include "myqcustomplot.h"
 #include "dataprotocol.h"
 //自定义类
+#include "common.h"
 #include "dataprotocol.h"
 #include "myxlsx.h"
 #include "highlighter.h"
@@ -330,12 +331,10 @@ private:
 
     //文本提取引擎
     bool textExtractEnable = true;
-    const QString MAIN_TAB_NAME     = "main";
     QThread *p_textExtractThread;
     TextExtractEngine *p_textExtract;
 
     //正则匹配引擎
-    const QString REGMATCH_TAB_NAME = "asciiMatch";
     QThread *p_regMatchThread;
     RegMatchEngine *p_regMatch;
     QByteArray regMatchBuffer;//正则匹配缓冲（防止高频刷新带来的CPU压力）

@@ -4937,7 +4937,7 @@ void MainWindow::on_actionSetDefaultPlotterTitle_triggered()
     label = tr("# 请选择常用的绘图窗口作为默认绘图窗口。") + "\n" +
             tr("# 默认绘图窗口将会常驻并且支持保存配置等完整功能。") + "\n" +
             tr("# 后续创建的绘图窗口配置将以默认绘图窗口配置为准。") + "\n" +
-            tr("# 若列表没有所想要的名称请先进行绘图操作。") + "\n\n" +
+            tr("# 若列表没有所想要的窗口名称请先进行绘图操作。") + "\n\n" +
             tr("更改默认绘图窗口：");
     QVector<MyQCustomPlot*> plotters = plotterManager.getAllPlotters();
     QStringList items;
