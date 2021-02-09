@@ -234,6 +234,8 @@ private:
     int32_t recordGraphDataToFile(const QString& recordPlotTitle, 
                                   const QString& plotterTitle, 
                                   const QVector<double>& oneRowData);
+    void reduceShowedText();
+    void calcCharacterNumberInWindow();
     Ui::MainWindow *ui;
     mySerialPort serial;
 
@@ -328,6 +330,7 @@ private:
     //窗口显示字符统计
     QSize windowSize;
     int32_t characterCount = 0; //可显示字符数
+    int32_t characterCount_bak = 0;
     int32_t characterCount_Row = 0;
     int32_t characterCount_Col = 0;
 

@@ -1575,14 +1575,15 @@ void MainWindow::parseFileSlot()
     }
 }
 
-static qint32 PAGING_SIZE = 4096; //TextBrowser显示大小
+static int32_t PAGING_SIZE = 4096; //TextBrowser显示大小
 void MainWindow::printToTextBrowser()
 {
     //当前窗口显示字符调整
     if(characterCount == 0 || windowSize != ui->textBrowser->size())
     {
         windowSize = ui->textBrowser->size();
-        resizeEvent(nullptr);
+        calcCharacterNumberInWindow();
+        printToTextBrowser();
     }
 
     //暂停刷新则不刷新
@@ -1628,7 +1629,12 @@ void MainWindow::printToTextBrowser()
     ui->textBrowser->verticalScrollBar()->setValue(ui->textBrowser->verticalScrollBar()->maximum());
     ui->textBrowser->moveCursor(QTextCursor::End);
 
-    //逐步减少刷新内容以改善资源消耗
+    reduceShowedText();
+}
+
+void MainWindow::reduceShowedText()
+{
+    //逐步减少刷新内容以改善资源消耗，可能导致出现大量留白问题
     #define MAX_BAR_VALUE (25)
     if(ui->textBrowser->verticalScrollBar()->maximum() > MAX_BAR_VALUE)
     {
@@ -1639,13 +1645,13 @@ void MainWindow::printToTextBrowser()
         }
         else
         {
-            characterCount -= 6;
+            characterCount -= (2 * 3);
         }
     }
     //多显示一点并对齐到characterCount_Col的倍数
     PAGING_SIZE = characterCount * 1.2;
-    //满足gbk/utf8编码长度的倍数
     PAGING_SIZE = PAGING_SIZE - PAGING_SIZE % characterCount_Col;
+    //满足gbk/utf8编码长度的倍数
     if(ui->actionGBK->isChecked())
     {
         PAGING_SIZE = PAGING_SIZE - PAGING_SIZE % 2;
@@ -1653,6 +1659,24 @@ void MainWindow::printToTextBrowser()
     else if(ui->actionUTF8->isChecked())
     {
         PAGING_SIZE = PAGING_SIZE - PAGING_SIZE % 3;
+    }
+    //修复大量留白的问题：当缓冲数量大于窗口可显示数量但是却没有滚动条
+    if(ui->textBrowser->verticalScrollBar()->maximum() == 0)
+    {
+        if(ui->hexDisplay->isChecked())
+        {
+            if(hexBrowserBuff.size() > characterCount_bak)
+            {
+                calcCharacterNumberInWindow();
+            }
+        }
+        else
+        {
+            if(BrowserBuff.size() > characterCount_bak)
+            {
+                calcCharacterNumberInWindow();
+            }
+        }
     }
 }
 
@@ -2075,6 +2099,9 @@ void MainWindow::on_clearWindows_clicked()
 
     //更新收发统计
     statusStatisticLabel->setText(serial.getTxRxString_with_color());
+
+    //估计窗口容纳字符数量
+    calcCharacterNumberInWindow();
 }
 
 void MainWindow::on_cycleSendCheck_clicked(bool checked)
@@ -4375,24 +4402,12 @@ void MainWindow::keyReleaseEvent(QKeyEvent *e)
     emit sendKeyToPlotter(e, false);
 }
 
-//用于估计窗口能显示多少字符
-void MainWindow::resizeEvent(QResizeEvent* event)
+//计算当前窗口能显示多少字符
+void MainWindow::calcCharacterNumberInWindow()
 {
-    Q_UNUSED(event)
+    QByteArray saveCurrentDataInBrowser;
 
-    //只响应显示主窗口时的窗口改变动作，其他类型的窗口只做记录，下次显示主窗口时进行响应
-    if(ui->tabWidget->tabText(ui->tabWidget->currentIndex()) != MAIN_TAB_NAME)
-    {
-        return;
-    }
-
-    //首次启动不运行，防止卡死
-    static uint8_t first_run = 1;
-    if(first_run)
-    {
-        first_run = 0;
-        return;
-    }
+    saveCurrentDataInBrowser = ui->textBrowser->toPlainText().toLocal8Bit();
 
     //MainWindow尺寸改变时计算当前窗口能显示多少字符。
     //若MainWindow尺寸未变，内部控件尺寸变化的情况使用轮询解决
@@ -4412,18 +4427,39 @@ void MainWindow::resizeEvent(QResizeEvent* event)
     ui->textBrowser->moveCursor(QTextCursor::Down);
     ui->textBrowser->moveCursor(QTextCursor::Left);
 
-//    qDebug()<<"resizeEvent"
-//            <<ui->textBrowser->document()->characterCount()
-//            <<ui->textBrowser->document()->lineCount()
-//            <<ui->textBrowser->textCursor().columnNumber();
+//    qDebug()<< __FUNCTION__
+//            << ui->textBrowser->document()->characterCount()
+//            << ui->textBrowser->document()->lineCount()
+//            << ui->textBrowser->textCursor().columnNumber();
 
     characterCount_Row = ui->textBrowser->document()->lineCount() - 1;
     characterCount_Col = ui->textBrowser->textCursor().columnNumber() + 1;
     characterCount = characterCount_Col * characterCount_Row;
+    characterCount_bak = characterCount;
 
-    ui->textBrowser->setPlainText("");
+    ui->textBrowser->setPlainText(saveCurrentDataInBrowser);
+}
 
-    printToTextBrowser();
+//用于估计窗口能显示多少字符
+void MainWindow::resizeEvent(QResizeEvent* event)
+{
+    Q_UNUSED(event)
+
+    //首次启动不运行，防止卡死
+    static uint8_t first_run = 1;
+    if(first_run)
+    {
+        first_run = 0;
+        return;
+    }
+
+    //只响应显示主窗口时的窗口改变动作，其他类型的窗口只做记录，下次显示主窗口时进行响应
+    if(ui->tabWidget->tabText(ui->tabWidget->currentIndex()) != MAIN_TAB_NAME)
+    {
+        return;
+    }
+
+    calcCharacterNumberInWindow();
 }
 
 void MainWindow::splitterMovedSlot(int pos, int index)
@@ -4449,7 +4485,8 @@ void MainWindow::splitterMovedSlot(int pos, int index)
     }
 
     //计算可显示字符并刷新显示
-    resizeEvent(nullptr);
+    calcCharacterNumberInWindow();
+    printToTextBrowser();
 }
 
 void MainWindow::on_tabWidget_tabCloseRequested(int index)
@@ -4504,10 +4541,10 @@ void MainWindow::on_tabWidget_plotter_tabCloseRequested(int index)
 void MainWindow::on_tabWidget_tabBarClicked(int index)
 {
     ui->tabWidget->setCurrentIndex(index);
-    if(ui->tabWidget->tabText(index) == MAIN_TAB_NAME ||
-       ui->tabWidget->tabText(index) == REGMATCH_TAB_NAME )
+    if(ui->tabWidget->tabText(index) == MAIN_TAB_NAME)
     {
-        resizeEvent(nullptr);
+        calcCharacterNumberInWindow();
+        printToTextBrowser();
         TryRefreshBrowserCnt = TRY_REFRESH_BROWSER_CNT;
     }
 }
