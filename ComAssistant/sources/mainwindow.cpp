@@ -1031,6 +1031,7 @@ void MainWindow::secTimerSlot()
         g_lastSecsSinceEpoch = QDateTime::currentSecsSinceEpoch();
     }
 
+    //点击暂停刷新后能及时保持和更新statusBar信息
     if(disableRefreshWindow)
     {
         disableRefreshWindow_triggered(true);
@@ -3132,6 +3133,10 @@ void MainWindow::verticalScrollBarActionTriggered(qint32 action)
         qint32 newValue;
         bool res;
 
+        //暂停刷新时关闭上滑显示更多数据的功能，因为size在变
+        if(disableRefreshWindow)
+            return;
+
         //是否显示完了
         if(ui->hexDisplay->isChecked()){
             res = hexBrowserBuffIndex != hexBrowserBuff.size();
@@ -3139,22 +3144,26 @@ void MainWindow::verticalScrollBarActionTriggered(qint32 action)
             res = BrowserBuffIndex != BrowserBuff.size();
         }
         //翻到顶部了，加载更多内容
-        if(value == 0 && res){
-
+        if(value == 0 && res)
+        {
             //直接显示全部
 //            BrowserBuffIndex = BrowserBuff.size();
 //            hexBrowserBuffIndex = hexBrowserBuff.size();
             //显示内容指数型增加
-            if(BrowserBuffIndex*2 < BrowserBuff.size()){
+            if(BrowserBuffIndex * 2 < BrowserBuff.size())
+            {
                 BrowserBuffIndex = BrowserBuffIndex*2;
             }
-            else{
+            else
+            {
                 BrowserBuffIndex = BrowserBuff.size();
             }
-            if(hexBrowserBuffIndex*2 < hexBrowserBuff.size()){
+            if(hexBrowserBuffIndex*2 < hexBrowserBuff.size())
+            {
                 hexBrowserBuffIndex = hexBrowserBuffIndex*2;
             }
-            else{
+            else
+            {
                 hexBrowserBuffIndex = hexBrowserBuff.size();
             }
 
@@ -3165,11 +3174,10 @@ void MainWindow::verticalScrollBarActionTriggered(qint32 action)
             }
 
             //保持bar位置不动
-            newValue = bar->maximum()-oldMax;
+            newValue = bar->maximum() - oldMax;
             bar->setValue(newValue);
         }
     }
-
 }
 
 #if SHOW_PLOTTER_SETTING
@@ -4075,15 +4083,33 @@ void MainWindow::on_actionValueDisplay_triggered(bool checked)
 
 void MainWindow::disableRefreshWindow_triggered(bool checked)
 {
+    static bool displayedAllData = false;
     disableRefreshWindow = checked;
     fft_window->disableRePlot(checked);
     if(disableRefreshWindow)
     {
         ui->statusBar->showMessage(tr("已暂停刷新数据。"));
+        //显示所有数据
+        if(!displayedAllData)
+        {
+            displayedAllData = true;
+            //setPlainText速度慢，BrowserBuff有可能在这期间发生增长，用缓冲改善这个问题
+            QByteArray buffer;
+            int32_t index = 0;
+            if(ui->hexDisplay->isChecked()){
+                index = hexBrowserBuff.size();
+                ui->textBrowser->setPlainText(hexBrowserBuff.mid(0, index + 1));
+            }else{
+                index = BrowserBuff.size();
+                ui->textBrowser->setPlainText(BrowserBuff.mid(0, index + 1));
+            }
+            ui->textBrowser->moveCursor(QTextCursor::End);
+        }
     }
     else
     {
         ui->statusBar->showMessage("");
+        displayedAllData = false;
     }
 }
 
