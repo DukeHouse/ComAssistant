@@ -255,9 +255,9 @@ private:
 
     QByteArray RxBuff, TxBuff;      //原始数据的收发缓冲
     QByteArray hexBrowserBuff;      //十六进制格式的浏览器缓冲
-    int hexBrowserBuffIndex = 0;
+    int hexBrowserBuffIndex = 0;    //显示指示(逆序)
     QByteArray BrowserBuff;         //浏览器缓冲
-    int BrowserBuffIndex = 0;       //显示指示
+    int BrowserBuffIndex = 0;       //显示指示(逆序)
     QByteArray unshowedRxBuff;      //未上屏的接收缓冲
 
     const int32_t PLOTTER_SHOW_PERIOD = 40;  //绘图器显示频率25FPS（解析频率由parseTimer100hz控制）
@@ -295,8 +295,10 @@ private:
     QThread *p_logger_thread;
     Data_Logger *p_logger;
 
-    //暂停刷新flag
+    //暂停刷新flag与暂停刷新时的Index
     bool disableRefreshWindow = false;
+    int32_t disableRefreshBrowserSize = 0;
+    int32_t disableRefreshHexBrowserSize = 0;
 
     //统计
     int64_t currentRunTime = 0; //运行时间

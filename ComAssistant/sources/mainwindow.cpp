@@ -1293,7 +1293,7 @@ void MainWindow::refreshCom()
         ui->comList->addItem(info);
     }
     if(ui->comList->count() == 0)
-        ui->comList->addItem(tr("未找到可用串口!"));
+        ui->comList->addItem(tr("未找到可用串口，点我刷新！"));
 
     //恢复刷新前的选择
     ui->comList->setCurrentIndex(0);
@@ -1339,7 +1339,7 @@ void MainWindow::tryOpenSerial()
     //只存在一个串口时且串口未被占用自动打开
     if(ui->comList->count() == 1 &&
        ui->comList->currentText().indexOf(tr("BUSY")) == -1 &&
-       ui->comList->currentText() != tr("未找到可用串口!点我刷新"))
+       ui->comList->currentText() != tr("未找到可用串口，点我刷新！"))
     {
         //同时还要没检测到恢复文件
         QFile recoveryFile(RECOVERY_FILE_PATH);
@@ -3133,44 +3133,83 @@ void MainWindow::verticalScrollBarActionTriggered(qint32 action)
         qint32 newValue;
         bool res;
 
-        //暂停刷新时关闭上滑显示更多数据的功能，因为size在变
         if(disableRefreshWindow)
-            return;
-
-        //是否显示完了
-        if(ui->hexDisplay->isChecked()){
-            res = hexBrowserBuffIndex != hexBrowserBuff.size();
-        }else{
-            res = BrowserBuffIndex != BrowserBuff.size();
+        {
+            //是否显示完了
+            if(ui->hexDisplay->isChecked()){
+                res = hexBrowserBuffIndex != disableRefreshHexBrowserSize;
+            }else{
+                res = BrowserBuffIndex != disableRefreshBrowserSize;
+            }
         }
+        else
+        {
+            //是否显示完了
+            if(ui->hexDisplay->isChecked()){
+                res = hexBrowserBuffIndex != hexBrowserBuff.size();
+            }else{
+                res = BrowserBuffIndex != BrowserBuff.size();
+            }
+        }
+
         //翻到顶部了，加载更多内容
         if(value == 0 && res)
         {
-            //直接显示全部
-//            BrowserBuffIndex = BrowserBuff.size();
-//            hexBrowserBuffIndex = hexBrowserBuff.size();
-            //显示内容指数型增加
-            if(BrowserBuffIndex * 2 < BrowserBuff.size())
+            if(disableRefreshWindow)
             {
-                BrowserBuffIndex = BrowserBuffIndex*2;
+                //显示内容指数型增加
+                if(BrowserBuffIndex * 2 < disableRefreshBrowserSize)
+                {
+                    BrowserBuffIndex = BrowserBuffIndex * 2;
+                }
+                else
+                {
+                    BrowserBuffIndex = disableRefreshBrowserSize;
+                }
+                if(hexBrowserBuffIndex * 2 < disableRefreshHexBrowserSize)
+                {
+                    hexBrowserBuffIndex = hexBrowserBuffIndex * 2;
+                }
+                else
+                {
+                    hexBrowserBuffIndex = disableRefreshHexBrowserSize;
+                }
+                if(ui->hexDisplay->isChecked()){
+                    ui->textBrowser->setPlainText(
+                                hexBrowserBuff.mid(
+                                    disableRefreshHexBrowserSize - hexBrowserBuffIndex,
+                                    hexBrowserBuffIndex));
+                }else{
+                    ui->textBrowser->setPlainText(
+                                BrowserBuff.mid(
+                                    disableRefreshBrowserSize - BrowserBuffIndex,
+                                    BrowserBuffIndex));
+                }
             }
             else
             {
-                BrowserBuffIndex = BrowserBuff.size();
-            }
-            if(hexBrowserBuffIndex*2 < hexBrowserBuff.size())
-            {
-                hexBrowserBuffIndex = hexBrowserBuffIndex*2;
-            }
-            else
-            {
-                hexBrowserBuffIndex = hexBrowserBuff.size();
-            }
-
-            if(ui->hexDisplay->isChecked()){
-                ui->textBrowser->setPlainText(hexBrowserBuff.mid(hexBrowserBuff.size() - hexBrowserBuffIndex));
-            }else{
-                ui->textBrowser->setPlainText(BrowserBuff.mid(BrowserBuff.size() - BrowserBuffIndex));
+                //显示内容指数型增加
+                if(BrowserBuffIndex * 2 < BrowserBuff.size())
+                {
+                    BrowserBuffIndex = BrowserBuffIndex * 2;
+                }
+                else
+                {
+                    BrowserBuffIndex = BrowserBuff.size();
+                }
+                if(hexBrowserBuffIndex * 2 < hexBrowserBuff.size())
+                {
+                    hexBrowserBuffIndex = hexBrowserBuffIndex * 2;
+                }
+                else
+                {
+                    hexBrowserBuffIndex = hexBrowserBuff.size();
+                }
+                if(ui->hexDisplay->isChecked()){
+                    ui->textBrowser->setPlainText(hexBrowserBuff.mid(hexBrowserBuff.size() - hexBrowserBuffIndex));
+                }else{
+                    ui->textBrowser->setPlainText(BrowserBuff.mid(BrowserBuff.size() - BrowserBuffIndex));
+                }
             }
 
             //保持bar位置不动
@@ -4089,21 +4128,12 @@ void MainWindow::disableRefreshWindow_triggered(bool checked)
     if(disableRefreshWindow)
     {
         ui->statusBar->showMessage(tr("已暂停刷新数据。"));
-        //显示所有数据
+        //记录此刻缓冲区的大小，取size速度相对较快，高频接收时暂停点更加准确
         if(!displayedAllData)
         {
             displayedAllData = true;
-            //setPlainText速度慢，BrowserBuff有可能在这期间发生增长，用缓冲改善这个问题
-            QByteArray buffer;
-            int32_t index = 0;
-            if(ui->hexDisplay->isChecked()){
-                index = hexBrowserBuff.size();
-                ui->textBrowser->setPlainText(hexBrowserBuff.mid(0, index + 1));
-            }else{
-                index = BrowserBuff.size();
-                ui->textBrowser->setPlainText(BrowserBuff.mid(0, index + 1));
-            }
-            ui->textBrowser->moveCursor(QTextCursor::End);
+            disableRefreshBrowserSize = BrowserBuff.size();
+            disableRefreshHexBrowserSize = hexBrowserBuff.size();
         }
     }
     else
@@ -4115,13 +4145,27 @@ void MainWindow::disableRefreshWindow_triggered(bool checked)
 
 void MainWindow::showAllTextBrowser_triggered()
 {
-    if(ui->hexDisplay->isChecked()){
-        ui->textBrowser->setPlainText(hexBrowserBuff);
-        hexBrowserBuffIndex = hexBrowserBuff.size();
-    }else{
-        ui->textBrowser->setPlainText(BrowserBuff);
-        BrowserBuffIndex = BrowserBuff.size();
+    if(disableRefreshWindow)
+    {
+        if(ui->hexDisplay->isChecked()){
+            ui->textBrowser->setPlainText(hexBrowserBuff.mid(0, disableRefreshHexBrowserSize));
+            hexBrowserBuffIndex = disableRefreshHexBrowserSize;
+        }else{
+            ui->textBrowser->setPlainText(BrowserBuff.mid(0, disableRefreshBrowserSize));
+            BrowserBuffIndex = disableRefreshBrowserSize;
+        }
     }
+    else
+    {
+        if(ui->hexDisplay->isChecked()){
+            ui->textBrowser->setPlainText(hexBrowserBuff);
+            hexBrowserBuffIndex = hexBrowserBuff.size();
+        }else{
+            ui->textBrowser->setPlainText(BrowserBuff);
+            BrowserBuffIndex = BrowserBuff.size();
+        }
+    }
+
     ui->textBrowser->moveCursor(QTextCursor::End);
 }
 
