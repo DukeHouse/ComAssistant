@@ -4,6 +4,9 @@
 #include <QDebug>
 #include "config.h"
 
+/**
+ * @brief     Debug重定向到文件
+ */
 void outputMessage(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
     Q_UNUSED(context)

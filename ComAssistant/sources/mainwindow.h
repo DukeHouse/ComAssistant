@@ -1,3 +1,11 @@
+/**
+ * @brief   主窗口交互处理文件
+ * @file    mainwindow.h
+ * @author  inhowe
+ * @version 0.0.1
+ * @date    2021-2月-11
+ * @note    各种UI交互和数据刷新
+ */
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
@@ -66,7 +74,7 @@ extern bool g_debugger;
 //菜单栏的设置按钮的实现宏，保留功能：点击后可以自动对所有绘图器进行设置。
 //由于感觉必要性不是很强，在考虑是删除还是使用
 //先暂时保留，里面的代码也没怎么调。
-#define SHOW_PLOTTER_SETTING        (0)     
+#define SHOW_PLOTTER_SETTING        (0)
 
 class MainWindow : public QMainWindow
 {
@@ -86,7 +94,7 @@ private slots:
     void readSerialPort();
     void serialBytesWritten(qint64 bytes);
     void handleSerialError(QSerialPort::SerialPortError errCode);
-    
+
     void printToTextBrowser();
 
     //main gui
@@ -122,7 +130,7 @@ private slots:
     void on_actionOpenOriginData_triggered();
     void on_actionSaveShowedData_triggered();
     void on_actionSavePlotData_triggered();
-    void on_actionSavePlotAsPicture_triggered();    
+    void on_actionSavePlotAsPicture_triggered();
     void on_actionSendFile_triggered();
 
     //function
@@ -147,7 +155,7 @@ private slots:
     void on_actionFontSetting_triggered();
     void on_actionBackGroundColorSetting_triggered();
     void on_actionResetDefaultConfig_triggered(bool checked);
-    
+
     //visualization
     void on_actionPlotterSwitch_triggered(bool checked);
     void on_actionValueDisplay_triggered(bool checked);
@@ -231,8 +239,8 @@ private:
     MyQCustomPlot* createNewPlotter(QString plotterTitle);
     void fillDataToValueDisplay(MyQCustomPlot *plotter);
     void TxRxSpeedStatisticAndDisplay();
-    int32_t recordGraphDataToFile(const QString& recordPlotTitle, 
-                                  const QString& plotterTitle, 
+    int32_t recordGraphDataToFile(const QString& recordPlotTitle,
+                                  const QString& plotterTitle,
                                   const QVector<double>& oneRowData);
     void reduceShowedText();
     void calcCharacterNumberInWindow();
@@ -245,7 +253,7 @@ private:
 
     QProgressBar *progressBar;
     QLabel *statusSpeedLabel, *statusStatisticLabel, *statusRemoteMsgLabel, *statusTimer; //状态栏标签
-    
+
     bool sendFile = false;
     bool parseFile = false;
     QByteArrayList parseFileBuff;   //解析文件分包缓冲

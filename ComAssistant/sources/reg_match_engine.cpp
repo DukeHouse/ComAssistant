@@ -13,6 +13,12 @@ RegMatchEngine::~RegMatchEngine()
 //    qDebug()<<"goodbye thread";
 }
 
+/**
+ * @brief 更新匹配字符串
+ * @note
+ * @param[in] 新的匹配字符串
+ * @return
+*/
 void RegMatchEngine::updateRegMatch(QString newStr)
 {
     if(newStr != RegMatchStr)
@@ -28,7 +34,14 @@ void RegMatchEngine::updateCodec(QString codec)
     QTextCodec::setCodecForLocale(QTextCodec::codecForName(codec.toLocal8Bit()));
 }
 
-//从缓存中提取所有包
+/**
+ * @brief 从数据流缓冲中提取所有包
+ * @note
+ * @param[in] 输入缓冲
+ * @param[in] 剩余未解析缓冲
+ * @param[in] 缓冲锁
+ * @return
+*/
 void RegMatchEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBuffer, QMutex &bufferLock)
 {
     if(buffer.isEmpty() || buffer == "\n")
@@ -77,6 +90,12 @@ void RegMatchEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBu
     bufferLock.unlock();
 }
 
+
+/**
+ * @brief 追加数据
+ * @note 仅追加数据，不进行解析
+ * @param[in] 新的数据
+*/
 void RegMatchEngine::appendData(const QByteArray &newData)
 {
     QByteArray tmp;
@@ -97,6 +116,10 @@ void RegMatchEngine::appendData(const QByteArray &newData)
     dataLock.unlock();
 }
 
+/**
+ * @brief 解析数据
+ * @note 仅解析数据
+*/
 void RegMatchEngine::parseData()
 {
     parsePacksFromBuffer(rawDataBuff, rawDataBuff, dataLock);
@@ -109,13 +132,21 @@ void RegMatchEngine::parseData()
     }
 }
 
+/**
+ * @brief 追加和解析数据
+ * @note 高频解析好像有性能问题不建议使用
+ * @deprecated 高频解析好像有性能问题不建议使用
+*/
 void RegMatchEngine::appendAndParseData(const QByteArray &newData)
 {
     appendData(newData);
     parseData();
 }
 
-//从文本组集合中清除指定名称的文本组
+/**
+ * @brief 清空缓冲
+ * @note 清空后会故意保留一个换行符
+*/
 void RegMatchEngine::clearData()
 {
     rawDataBuff.clear();
@@ -124,7 +155,10 @@ void RegMatchEngine::clearData()
     rawDataBuff = "\n";
 }
 
-//保存指定名字的文本组到指定路径
+/**
+ * @brief 保存匹配到的数据到指定路径中
+ * @param[in] 指定路径
+*/
 qint32 RegMatchEngine::saveData(const QString &path)
 {
     //保存数据

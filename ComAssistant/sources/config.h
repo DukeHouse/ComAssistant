@@ -1,3 +1,11 @@
+/**
+ * @brief   配置读写处理文件
+ * @file    config.h
+ * @author  inhowe
+ * @version 0.0.1
+ * @date    2021-2月-11
+ * @note    主要分了几个节和若干关键字
+ */
 #ifndef CONFIG_H
 #define CONFIG_H
 

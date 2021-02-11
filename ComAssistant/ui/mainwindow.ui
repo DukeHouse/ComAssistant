@@ -1224,7 +1224,7 @@ p, li { white-space: pre-wrap; }
     <string>提取二级名称</string>
    </property>
    <property name="statusTip">
-    <string>二级分类支持，例{name1:{name2}hello world}\n</string>
+    <string>二级分类支持，例{title1:{title2}string}\n</string>
    </property>
   </action>
   <action name="actionTeeSupport">

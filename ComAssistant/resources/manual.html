@@ -16,8 +16,8 @@
 <ul>
   <li><b>多字符串</b>：发送的数据均会记录下来供重复使用。</li>
   <li><b>多字符串序列发送</b>：在注释部分添加[num]即可，其中num为延时毫秒，num毫秒后自动发送下一个字符串，当num为0时停止发送，常用于多指令序列发送。</li>
-  <li><b>分类解析引擎</b>：分类解析引擎开关，关闭后将无法进行分类显示</li>
-  <li><b>提取二级名称</b>：分类文本显示支持二级名称的提取以进行二级分类，规则为进一步将text_data段中的花括号数据提取出来作为二级名称，如{name1:{name2}hello world}\n，注意绘图协议不支持二级名称，只能是形如{name:num1,num2,num3}的结构</li>
+  <li><b>分类解析引擎</b>：分类解析引擎开关，关闭后将无法进行分类显示。具体参考《分类文本显示》</li>
+  <li><b>提取二级名称</b>：分类文本显示支持二级名称的提取以进行二级分类，规则为进一步将text_data段中的花括号数据提取出来作为二级名称，如{title1:{title2}string}\n，注意绘图协议不支持二级名称，只能是形如{title:num1,num2,num3}的结构</li>
   <li><b>记录数据到文件</b>：将收到的数据写入文件保存</li>
   <li><b>STM32-ISP</b>：实现STM32F1和F4系列的芯片的一键下载功能。</li>
   <li><b>ASCII码表</b>：提供一个ASCII码表格进行查询</li>
@@ -42,198 +42,127 @@
 </ul>
 
 <h2>分类文本显示</h2>
-<p>
-分类文本显示需要按照协议发送数据，否则上位机将无法正确解析。
-</p>
 <ul>
-    协议为以下风格的字符串（不支持中文）:
+    分类文本显示需要按照协议发送数据，否则上位机将无法正确解析。<br>
+    分类文本显示协议为以下风格的字符串（不支持中文）:
     <pre style="background-color: rgb(235, 235, 235);">
-    
-    {name:text_data}\n
+
+    {title:string}\n
 
     以上表示一个数据包，其中
-    name 表示文本名称，由字母、数字、下划线组成
-    :为name和text_data之间的分隔符
-    text_data 表示文本数据，支持除去花括号以外的所有可见英文字符
-    \n为回车换行符，可以是\n也可以是\r\n，该字符不可遗漏。
-    单个数据包长限制为512字节
+    {和}为起始和结束字符。
+    title 表示窗口标题，由字母、数字、下划线组成，纸飞机将根据title划分不同的显示窗口。
+    :为 title 和 string 之间的分隔符。
+    string 表示文本字符串数据，支持大部分可见英文字符。
+    \n为换行符，可以是\n也可以是\r\n，该字符不可遗漏。
+    单个数据包长限制为512字节，超大的数据包将无法解析。
     </pre>
-    同一个文本名称的数据将会被分类到同一个界面下显示。<br>
     <br>
-    举例：<br>
-    若有电压和电流数据需要分开显示，发送的字符串形式如下：<br>
-    <pre style="background-color: rgb(235, 235, 235);">
-    
-    {voltage:the voltage is 3.32 V}\n
-    {current:the current is 0.23 A}\n
-    </pre>
     <p>
     C语言示例代码
     </p>
     <pre style="background-color: rgb(235, 235, 235);">
-    #define PRINT_VOL(fmt, ...) printf("{voltage:"#fmt"}\n", __VA_ARGS__)
-    #define PRINT_CUR(fmt, ...) printf("{current:"#fmt"}\n", __VA_ARGS__)
-
-    float vol = 3.32;
-    float cur = 0.23;
-    void fun()
-    {
-      PRINT_VOL("the voltage is %.2f V", vol);
-      PRINT_CUR("the current is %.2f A", cur);
-    }
+    1.首先定义宏函数简化后期工作：
+        #define PRINT(title, fmt, ...) printf("{"#title":"fmt"}\n", __VA_ARGS__);
+    2.若要将电压和电流数据分开显示，可这样调用：
+        PRINT(voltage, "the voltage is %d V", volVar);
+        PRINT(current, "the current is %d A", curVar);
     </pre>
 </ul>
 
 <h2>asciiMatch正则匹配</h2>
 <ul>
-输入要被匹配的关键字符即可提取包含指定字符的字符串。字符串末尾需要包含换行符\n，最长为512字节。匹配语法参考QT5正则语法。
+输入要被匹配的关键字符即可提取包含指定字符的字符串。字符串末尾需要包含换行符\n，最长为512字节。
 </ul>
 
 <h2>数据可视化</h2>
 <ul>
-  <li><b>线型</b>：支持线图、点线图、点图三种风格</li>
-  <li><b>数值显示器</b>：数值显示开关。与绘图器共用Ascii协议，不支持Float协议</li>
-  <li><b>协议类型</b>：绘图器支持三种简单的协议类型(Ascii、Float和CSV)，并支持和校验模式，可兼容整型与单精度浮点型。</li>
+    数据可视化包括多窗口绘图器、数值显示器、频谱图等组件。
+</ul>
+<h3>多窗口绘图器</h3>
+<ul>
+    多窗口绘图器有具有一个重要概念：默认绘图窗口（器）。
+    默认绘图窗口具有最完整的功能，可以保存配置，同时将常驻于纸飞机，不可删除。
+    尽管每个绘图窗口的配置都可以各自修改，但新生成的绘图窗口的初始配置将继承自默认绘图窗口，这也是默认绘图窗口概念的意义。
+</ul>
+<h4>支持的协议</h4>
+<ul>
+    多窗口绘图器支持ASCII协议、CSV协议、FLOAT协议，只有ASCII协议支持多窗口绘图，其余协议只能在默认窗口绘图
     <ul>
-      <li>
-        <b>Ascii协议的C语言规则为</b>：
-        <pre style="background-color: rgb(235, 235, 235);">
+        <li>ASCII协议的规则和分类文本显示协议几乎一致，具体参考分类文本显示功能<br>
+            <b>C语言示例</b>：
+            <pre style="background-color: rgb(235, 235, 235);">
+            1.首先定义宏函数简化后期工作：
+                #define PRINT(title, fmt, ...) printf("{"#title":"fmt"}\n", __VA_ARGS__);
+            2.若要把电压电流曲线绘制在一个窗口，可这样调用：
+                PRINT(plotter, "%d,%d", volVar,curVar);
+            3.若要把电压电流曲线绘制在两个窗口，可这样调用：
+                PRINT(voltage, "%d", volVar);
+                PRINT(current, "%d", curVar);
+            </pre>
+            plotter是纸飞机的默认绘图窗口，你可以修改为其他的值。不管哪种协议每个绘图窗口最多显示15条曲线。
+        </li>
+        <li>CSV协议把逗号分隔的数据提取并显示在默认绘图窗口上。<br>
+            <b>C语言示例</b>：
+            <pre style="background-color: rgb(235, 235, 235);">
+            1.若要显示电压和电流曲线，可直接使用格式化输出
+                printf("%d,%d\n", volVar,curVar);
+            </pre>
+            CSV协议不支持多窗口绘图，数据显示在默认绘图窗口上
+        </li>
+        <li>FLOAT协议把数据流当成float型进行解析而非字符串。对于下位机，只需要将float类型数据按小端顺序拆成4个字节依次发送，并以0x00, 0x00, 0x80, 0x7F四个字节作为一组数据的结尾（0x7F800000是float型能表示的极小值），因此FLOAT协议的数据包总是4的倍数，且每4个数据表示一条曲线。<br>
+            <b>C语言示例</b>：
+            <pre style="background-color: rgb(235, 235, 235);">
+            //float转byte宏
+            #define BYTE0(dwTemp)       (*(char *)(&dwTemp))
+            #define BYTE1(dwTemp)       (*((char *)(&dwTemp) + 1))
+            #define BYTE2(dwTemp)       (*((char *)(&dwTemp) + 2))
+            #define BYTE3(dwTemp)       (*((char *)(&dwTemp) + 3))
+            //发送函数
+            void SendCurve(float data1, float data2)
+            {
+                u8 dataBuff[4+4+4];           //3个float型变量
+                u8 cnt = 0;
+                dataBuff[cnt++]=BYTE0(data1); //第一个变量
+                dataBuff[cnt++]=BYTE1(data1);
+                dataBuff[cnt++]=BYTE2(data1);
+                dataBuff[cnt++]=BYTE3(data1);
+                dataBuff[cnt++]=BYTE0(data2); //第二个变量
+                dataBuff[cnt++]=BYTE1(data2);
+                dataBuff[cnt++]=BYTE2(data2);
+                dataBuff[cnt++]=BYTE3(data2);
+                dataBuff[cnt++]=0x00;         //结束标志
+                dataBuff[cnt++]=0x00;
+                dataBuff[cnt++]=0x80;
+                dataBuff[cnt++]=0x7F;
 
-        printf("{plotter:%.3f,%.3f,%.3f}\n", data1, data2, data3);
-        </pre>
-        表示同一时刻，3条曲线的数据。曲线数量不能超过15个。字符串中的plotter也可以改为其他文本数据，参考分类文本显示功能
-      </li><br>
-      <li>
-        <b>带和校验的Ascii协议规则为</b>：字符串的最后一个数据为校验和。
-        <pre style="background-color: rgb(235, 235, 235);">
-
-        printf("{plotter:%d,%d,%d}\n", data1, data2, data1 + data2);
-        </pre>
-        该模式只支持整形数据<br>
-      </li><br>
-      <li>
-        <b>Float协议规则为</b>：直接将float类型数据按小端顺序拆成4个字节依次发送，并以0x00, 0x00, 0x80, 0x7F四个字节作为一组数据的结尾，其中第一个数据表示第一条曲线，依次类推，曲线数量不能超过15个。
-        <pre style="background-color: rgb(235, 235, 235);">
-
-        //float转byte宏
-        #define BYTE0(dwTemp)       (*(char *)(&dwTemp))
-        #define BYTE1(dwTemp)       (*((char *)(&dwTemp) + 1))
-        #define BYTE2(dwTemp)       (*((char *)(&dwTemp) + 2))
-        #define BYTE3(dwTemp)       (*((char *)(&dwTemp) + 3))
-        //发送函数
-        void SendCurve(float data1, float data2)
-        {
-          u8 dataBuff[4+4+4];           //3个float型变量
-          u8 cnt = 0;
-          dataBuff[cnt++]=BYTE0(data1); //第一个变量
-          dataBuff[cnt++]=BYTE1(data1);
-          dataBuff[cnt++]=BYTE2(data1);
-          dataBuff[cnt++]=BYTE3(data1);
-          dataBuff[cnt++]=BYTE0(data2); //第二个变量
-          dataBuff[cnt++]=BYTE1(data2);
-          dataBuff[cnt++]=BYTE2(data2);
-          dataBuff[cnt++]=BYTE3(data2);
-          dataBuff[cnt++]=0x00;         //结束标志
-          dataBuff[cnt++]=0x00;
-          dataBuff[cnt++]=0x80;
-          dataBuff[cnt++]=0x7F;
-
-          u8 size = cnt;
-          for(int i = 0; i &lt; cnt; i++){
-            printf("%c",dataBuff[i]);
-          }
-        }
-        </pre>
-      </li><br>
-      <li>
-        <b>带和校验的Float协议规则为</b>：同样是最后一个数据作为和校验 <br>
-        <pre style="background-color: rgb(235, 235, 235);">
-
-        //float转byte宏
-        #define BYTE0(dwTemp)       (*(char *)(&dwTemp))
-        #define BYTE1(dwTemp)       (*((char *)(&dwTemp) + 1))
-        #define BYTE2(dwTemp)       (*((char *)(&dwTemp) + 2))
-        #define BYTE3(dwTemp)       (*((char *)(&dwTemp) + 3))
-        //发送函数
-        void SendCurve(float data1, float data2)
-        {
-          u8 dataBuff[4+4+4+4];             //4个float型变量
-          u8 cnt = 0;
-          float sumCheck = data1 + data2;
-          dataBuff[cnt++]=BYTE0(data1);     //第一个变量
-          dataBuff[cnt++]=BYTE1(data1);
-          dataBuff[cnt++]=BYTE2(data1);
-          dataBuff[cnt++]=BYTE3(data1);
-          dataBuff[cnt++]=BYTE0(data2);     //第二个变量
-          dataBuff[cnt++]=BYTE1(data2);
-          dataBuff[cnt++]=BYTE2(data2);
-          dataBuff[cnt++]=BYTE3(data2);
-          dataBuff[cnt++]=BYTE0(sumCheck);  //和校验
-          dataBuff[cnt++]=BYTE1(sumCheck);
-          dataBuff[cnt++]=BYTE2(sumCheck);
-          dataBuff[cnt++]=BYTE3(sumCheck);
-          dataBuff[cnt++]=0x00;             //结束标志
-          dataBuff[cnt++]=0x00;
-          dataBuff[cnt++]=0x80;
-          dataBuff[cnt++]=0x7F;
-
-          u8 size = cnt;
-          for(int i = 0; i &lt; cnt; i++){
-            printf("%c",dataBuff[i]);
-          }
-        }
-        </pre>
-      </li><br>
-      <li>
-        <b>CSV协议</b>：
-        只需要发送满足CSV格式的文本即可：数字和数字之间使用逗号分隔，并在末尾使用\n进行换行。<br>
-        CSV协议的C语言规则为：
-        <pre style="background-color: rgb(235, 235, 235);">
-
-        printf("%f,%f,%f\n", data1, data2, data3);
-        </pre>
-        表示同一时刻，3条曲线的数据。曲线数量不能超过15个。
-      </li><br>
-      <li>
-        <b>带校验的CSV协议</b>：
-        同CSV协议，只是最后一个数字将作为前面数字的累加和进行校验计算<br>
-      </li><br>
-      <li>
-        <b>MAD协议</b>：
-        MAD协议即疯狗协议，它会把一行数据中所有可能的数字都进行绘图。<br>
-        MAD协议对数据规则约束最少，因此使用最简单，适用性最广，但也导致绘错数据的概率更高。<br>
-        下列是一些可以绘图的字符串举例。<br>
-        <pre style="background-color: rgb(235, 235, 235);">
-
-        "1,2,3\n"         //往第1~3条曲线后各添加一个点，数值大小分别为1,2,3
-        "AT=4.5\n"        //往第一条曲线后添加一个点，点的数值大小为4.5
-        "{tag:6,7}\n"     //往第1~2条曲线后各添加一个点，数值大小分别为6,7
-        "vol:2V,cur:4A\n" //往第1~3条曲线后各添加一个点，数值大小分别为2,4,6
-        </pre>
-      </li><br>
-      <li>
-        <b>带校验的MAD协议</b>：
-        同MAD协议，只是最后一个数字将作为前面数字的累加和进行校验计算<br>
-      </li><br>
+                u8 size = cnt;
+                for(int i = 0; i &lt; cnt; i++){
+                    printf("%c",dataBuff[i]);
+                }
+            }
+            </pre>
+            FLOAT协议不支持多窗口绘图，数据显示在默认绘图窗口上
+        </li>
+        <li>和校验：当勾选和校验时，绘图器会将最后一条曲线的数据作为前面曲线的累加和校验，校验不通过的数据将被丢弃。
+        </li>
     </ul>
-  <!--<li><b>绘图测试</b>：勾选后软件会生成不同波形数据并发送到串口，将TX和RX短接后，软件可以显示收到的数据</li>-->
-</ul><br>
+</ul>
+<h3>数值显示器</h3>
 <ul>
-  <b>注意</b>：
-  <li>时间戳模式：勾选时间戳模式后，点击更改X轴数据源，被选作X轴的曲线将被视为时间戳。</li>
-  <li>横轴为绘图点的数量，纵轴为绘图点的值，如要求数据点之间具有相同的时间间隔，请自行控制下位机的发送时间间隔。</li>
-  <li>无校验的绘图协议存在因误码导致数据绘制错误的可能，可考虑选用带和校验的模式，校验不通过的包会被丢弃。</li>
+    数值显示器可以将当前显示的绘图窗口的数据以表格的形式显示出来，若未开启绘图窗口，则将显示默认绘图窗口的数据。
+</ul>
+<h3>频谱图</h3>
+<ul>
+    频谱图可以提取指定绘图窗口的数据进行FFT运算。
+</ul>
+<h3>数据可视化注意事项</h3>
+<ul>
+    <li>横轴为绘图点的数量，纵轴为绘图点的值，如要求数据点之间具有相同的时间间隔，请自行控制下位机的发送时间间隔。</li>
+    <li>无校验的绘图协议在物理链路的受电磁干扰存在数据错误可能，因此绘图过程中出现少量的异常绘图点属正常现象。</li>
 </ul>
 
-<h2>操作指导</h2>
-<ul>
-  <li>选中曲线时可以：右键删除、隐藏选中曲线，以及坐标跟随</li>
-  <li>右键图例可以修改图例显示位置</li>
-  <li>选中轴时可以对选中的轴进行缩放</li>
-  <li>双击曲线名称可以修改曲线名称</li>
-  <li>双击轴标题可以修改轴标题名称</li>
-  <li>“数据显示区”、“多字符串”、“绘图器”、“数值显示器”之间均可以通过拖动自行调整大小</li>
-</ul>
+<h2>FAQ</h2>
 
 <h2>快捷键</h2>
 <ul>
@@ -249,21 +178,25 @@
   <li><code style="background-color: rgb(235, 235, 235);">Ctrl+Wheel</code>绘图器X和Y轴缩放</li>
   <li><code style="background-color: rgb(235, 235, 235);">X+Wheel</code>绘图器X轴缩放</li>
   <li><code style="background-color: rgb(235, 235, 235);">V+Wheel</code>绘图器Y轴缩放</li>
+  <li><code style="background-color: rgb(235, 235, 235);">Ctrl+E</code>简洁模式</li>
+  <li><code style="background-color: rgb(235, 235, 235);">Ctrl+M</code>多字符串</li>
+  <li><code style="background-color: rgb(235, 235, 235);">Ctrl+H</code>Hex工具</li>
+  <li><code style="background-color: rgb(235, 235, 235);">Ctrl+D</code>绘图器</li>
+  <li><code style="background-color: rgb(235, 235, 235);">Ctrl+T</code>数值显示器</li>
+  <li><code style="background-color: rgb(235, 235, 235);">Ctrl+F</code>频谱图</li>
 </ul>
 
-<h2>注意</h2>
+<h2>其他注意事项</h2>
 <ul>
-  <li>数据显示区最多只显示最近大约4096字节。更早的数据向上滑动滚轮即可加载。</li>
-  <li>运行多个纸飞机可能导致数据恢复功能不可用，是因为共用了恢复文件，可将纸飞机副本放入不同路径下运行。</li>
+  <li>运行多个纸飞机可能导致数据恢复功能不可用，这是因为共用了恢复文件，可将纸飞机放入不同路径下运行。</li>
   <li>记录数据到文件和数据恢复功能会定时往硬盘写入数据，写入频率约1Hz，即若软件意外崩溃，自崩溃起1秒内的数据可能丢失。</li>
   <li>部分USB转串口芯片（如FTDI）在高速收发下可能出现卡顿现象，可在设备管理器中检查该端口的属性，选择最高的缓冲大小和最小的收发延时计数器。</li>
-  <li>绘图协议前部的name标签仅用于分类识别，无法根据name标签进行多窗口绘图</li>
 </ul>
 
 <h2>隐私声明</h2>
-<p>
+<ul>
 本软件可能会收集部分使用统计信息上传至服务器，为了区分设备，需要上传网卡MAC地址作为唯一标识。若您无法接受，可使用防火墙阻拦本软件的网络请求，或者请勿使用本软件。
-</p>
+</ul>
 
 <br><br>
 <p style="text-align: center;">

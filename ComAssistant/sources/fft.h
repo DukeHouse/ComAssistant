@@ -1,3 +1,11 @@
+/**
+ * @brief   FFT处理文件
+ * @file    fft.h
+ * @author  inhowe
+ * @version 0.0.1
+ * @date    2021-2月-11
+ * @note    使用蝶形运算
+ */
 #ifndef FFT_H
 #define FFT_H
 

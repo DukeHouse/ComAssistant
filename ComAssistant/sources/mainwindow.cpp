@@ -19,7 +19,11 @@ static bool     g_enableSumCheck;
 static qint64   g_lastSecsSinceEpoch;
 static QString  g_popupHotKeySequence;
 static QHotkey  *g_popupHotkey = new QHotkey(nullptr);
-//注册全局快捷键
+
+/**
+ * @brief     注册全局快捷键
+ * @param[in] 要注册的按键
+ */
 bool MainWindow::registPopupHotKey(QString keySequence)
 {
     if(keySequence == g_popupHotKeySequence)
@@ -60,9 +64,9 @@ bool MainWindow::registPopupHotKey(QString keySequence)
     }
 }
 
-/*
- * Function:读取配置
-*/
+/**
+ * @brief     从文件读取配置
+ */
 void MainWindow::readConfig()
 {
     //写入启动时间
@@ -220,6 +224,9 @@ void MainWindow::readConfig()
     registPopupHotKey(Config::getPopupHotKey());
 }
 
+/**
+ * @brief     调整窗口布局
+ */
 void MainWindow::adjustLayout()
 {
     int32_t length;
@@ -262,6 +269,10 @@ void MainWindow::adjustLayout()
     }
 }
 
+
+/**
+ * @brief     配置窗口布局
+ */
 void MainWindow::layoutConfig()
 {
     //输入输出分裂器
@@ -279,6 +290,9 @@ void MainWindow::layoutConfig()
     ui->centralWidget->setLayout(central);
 }
 
+/**
+ * @brief     软件首次运行通知
+ */
 int32_t MainWindow::firstRunNotify()
 {
     if(Config::getFirstRun())
@@ -317,7 +331,7 @@ int32_t MainWindow::firstRunNotify()
         g_agree_statement = true;
         if(Config::versionCompare(Config::readVersion(), "0.5.3") > 0)
         {
-            QMessageBox::information(this, 
+            QMessageBox::information(this,
                                     tr("提示"),
                                     tr("纸飞机串口助手现已支持多窗口绘图！") + "\n\n" +
                                     tr("请关注ASCII协议变化：") + "\n" +
@@ -403,9 +417,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //初始化绘图器(要放在绘图解析器后面初始化)
     ui->customPlot->init(ui->actionSavePlotData, ui->actionSavePlotAsPicture,
-                         XAxis_Cnt, 
+                         XAxis_Cnt,
                          Config::getRefreshYAxisState(),
-                         fft_window, 
+                         fft_window,
                          plotProtocol,
                          plotProtocol->getDefaultPlotterTitle());
     ui->customPlot->setAutoRescaleYAxis(Config::getRefreshYAxisState());
@@ -549,6 +563,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
 }
 
+/**
+ * @brief     快速帮助
+ */
 void MainWindow::quickHelp()
 {
     QString helpText;
@@ -602,6 +619,10 @@ void MainWindow::quickHelp()
     ui->regMatchEdit->setPlaceholderText(helpText);
 }
 
+/**
+ * @brief     关闭事件
+ * @note      如果在收发时关闭软件则进行提醒防止误操作
+ */
 void MainWindow::closeEvent(QCloseEvent *event)
 {
     if(rxSpeedKB || txSpeedKB)
@@ -623,7 +644,9 @@ void MainWindow::closeEvent(QCloseEvent *event)
     }
 }
 
-//打开可交互控件
+/**
+ * @brief     使能这些可交互控件
+ */
 void MainWindow::openInteractiveUI()
 {
     ui->comSwitch->setEnabled(true);
@@ -634,7 +657,9 @@ void MainWindow::openInteractiveUI()
     ui->clearWindows_simple->setText(ui->clearWindows->text());
 }
 
-//关闭可交互控件
+/**
+ * @brief     失能这些可交互控件
+ */
 void MainWindow::closeInteractiveUI()
 {
     ui->comSwitch->setEnabled(false);
@@ -647,6 +672,11 @@ void MainWindow::closeInteractiveUI()
     ui->clearWindows_simple->setText(ui->clearWindows->text());
 }
 
+/**
+ * @brief     更新解析进度条
+ * @param[in] 预处理字符串
+ * @param[in] 进度值
+ */
 void MainWindow::updateProgressBar(QString preStr, double percent)
 {
     if(percent > 100)
@@ -668,7 +698,15 @@ void MainWindow::updateProgressBar(QString preStr, double percent)
     }
 }
 
-//文件分包函数，所有传入的参数都可能被修改
+/**
+ * @brief     文件分包
+ * @note      所有传入参数可能被修改
+ * @param[in] 输入文件数据
+ * @param[in] 输出文件数据
+ * @param[in] 分包大小
+ * @param[in] 分包标志位
+ * @return    成功标志位
+ */
 int32_t MainWindow::divideDataToPacks(QByteArray &input, QByteArrayList &output, int32_t pack_size, bool &divideFlag)
 {
     closeInteractiveUI();
@@ -697,6 +735,13 @@ int32_t MainWindow::divideDataToPacks(QByteArray &input, QByteArrayList &output,
     return 0;
 }
 
+/**
+ * @brief     解析文件
+ * @param[in] 文件路径
+ * @param[in] 解析完成后是否删除文件
+ *           （解析的是恢复文件则可能需要删除）
+ * @return    解析结果
+ */
 int32_t MainWindow::parseDatFile(QString path, bool removeAfterRead)
 {
     if(parseFile)
@@ -751,7 +796,10 @@ int32_t MainWindow::parseDatFile(QString path, bool removeAfterRead)
     return 0;
 }
 
-//启动时检测有无数据恢复文件
+/**
+ * @brief     读取恢复文件
+ * @note      主要是启动时检测
+ */
 void MainWindow::readRecoveryFile()
 {
     QFile recoveryFile(RECOVERY_FILE_PATH);
@@ -796,6 +844,13 @@ void MainWindow::readRecoveryFile()
     }
 }
 
+/**
+ * @brief     保存分类显示文本数据的结果的槽
+ * @param[in] 保存的结果
+ * @param[in] 保存的路径
+ * @param[in] 保存的文件大小
+ * @return
+ */
 void MainWindow::tee_saveDataResult(const qint32& result, const QString &path, const qint32 fileSize)
 {
     QString str;
@@ -817,6 +872,11 @@ void MainWindow::tee_saveDataResult(const qint32& result, const QString &path, c
     }
 }
 
+/**
+ * @brief     正则匹配引擎数据更新
+ * @note      该函数可能会高频被触发，不能放耗时代码
+ * @param[in] 更新的数据
+ */
 void MainWindow::regM_dataUpdated(const QByteArray &packData)
 {
     QByteArray newPackData = packData;
@@ -840,11 +900,23 @@ void MainWindow::regM_dataUpdated(const QByteArray &packData)
     statisticRegParseCnt += packData.size();
 }
 
+/**
+ * @brief     正则匹配引擎数据保存结果的槽
+ * @note      参考 @ref tee_saveDataResult
+ */
 void MainWindow::regM_saveDataResult(const qint32& result, const QString &path, const qint32 fileSize)
 {
     tee_saveDataResult(result, path, fileSize);
 }
 
+//TODO:这里好像有耗时代码
+/**
+ * @brief     分类显示引擎数据更新的槽
+ * @note      该槽可能会高频被触发，不要放耗时代码
+ * @param[in] 更新的数据的名称
+ * @param[in] 更新的数据
+ * @return
+ */
 void MainWindow::tee_textGroupsUpdate(const QString &name, const QByteArray &data)
 {
 //    qDebug()<<"tee_textGroupsUpdate";
@@ -888,6 +960,9 @@ void MainWindow::tee_textGroupsUpdate(const QString &name, const QByteArray &dat
     }
 }
 
+/**
+ * @brief     周期打印数据到TextBrowser控件上
+ */
 void MainWindow::printToTextBrowserTimerSlot()
 {
     //更新收发统计(可能会占用一点点点loading)
@@ -920,7 +995,10 @@ void MainWindow::printToTextBrowserTimerSlot()
         TryRefreshBrowserCnt--;
 }
 
-//格式化时间
+/**
+ * @brief     格式化时间字符串
+ * @param[in] 时间毫秒
+ */
 QString MainWindow::formatTime(qint32 ms)
 {
     qint32 ss = 1000;
@@ -949,6 +1027,9 @@ QString MainWindow::formatTime(qint32 ms)
     return hou + ":" + min + ":" + sec ;
 }
 
+/**
+ * @brief     收发速度统计和显示
+ */
 void MainWindow::TxRxSpeedStatisticAndDisplay()
 {
     double idealSpeed = 0;
@@ -1002,6 +1083,10 @@ void MainWindow::TxRxSpeedStatisticAndDisplay()
     statusSpeedLabel->setText(txSpeedStr + rxSpeedStr);
 }
 
+/**
+ * @brief     秒定时器
+ * @note      刷新一些更新频率低的数据，如收发统计、HTTP信息、周期备份数据供恢复等
+ */
 void MainWindow::secTimerSlot()
 {
     static int64_t secCnt = 0;
@@ -1051,6 +1136,10 @@ void MainWindow::secTimerSlot()
     currentRunTime++;
 }
 
+/**
+ * @brief     调试定时器
+ * @note      一般用户接触不到这段代码
+ */
 #define DEBUG_TIMER_FRQ (128)
 static double debugTimerSlotCnt = 0;
 void MainWindow::debugTimerSlot()
@@ -1102,6 +1191,10 @@ void MainWindow::debugTimerSlot()
     debugTimerSlotCnt = debugTimerSlotCnt + 1;
 }
 
+/**
+ * @brief     析构函数
+ * @note      主要是保存配置、释放资源等
+ */
 MainWindow::~MainWindow()
 {
     if(needSaveConfig && g_agree_statement){
@@ -1124,7 +1217,7 @@ MainWindow::~MainWindow()
         Config::setSendInterval(ui->sendInterval->text().toInt());
         Config::setTimeStampState(ui->timeStampCheckBox->isChecked());
         Config::setTimeStampTimeOut(ui->timeStampTimeOut->text().toInt());
-        Config::setConfigBool(SECTION_GLOBAL, KEY_SIMPLE_MODE, 
+        Config::setConfigBool(SECTION_GLOBAL, KEY_SIMPLE_MODE,
                             ui->actionSimpleMode->isChecked());
         Config::setMultiStringState(ui->actionMultiString->isChecked());
         Config::setKeyWordHighlightState(ui->actionKeyWordHighlight->isChecked());
@@ -1190,7 +1283,7 @@ MainWindow::~MainWindow()
             if(defaultPlotter->getxAxisSource() == XAxis_Cnt)  //暂时不支持存储XY图模式的X轴名字
                 Config::setXAxisName(defaultPlotter->xAxis->label());
             Config::setYAxisName(defaultPlotter->yAxis->label());
-            Config::setRefreshYAxisState(defaultPlotter->getAutoRescaleYAxis());    
+            Config::setRefreshYAxisState(defaultPlotter->getAutoRescaleYAxis());
             Config::setLineType(defaultPlotter->plotControl->getLineType());
             Config::setOpengGLState(defaultPlotter->getUseOpenGLState());
         }
@@ -1278,6 +1371,9 @@ MainWindow::~MainWindow()
     qDebug()<<"~MainWindow";
 }
 
+/**
+ * @brief     刷新串口
+ */
 void MainWindow::refreshCom()
 {
     //测试更新下拉列表
@@ -1309,11 +1405,12 @@ void MainWindow::refreshCom()
     delete testSerial;
 }
 
-/*
- * Function:刷新串口按下。不知道为什么打开串口后再调用该函数（不是指点击事件是指人工调用函数）就崩溃
-*/
+/**
+ * @brief     刷新串口按钮的槽
+ * @note      不通过点击事件直接调用好像会崩溃，有待排查
+ */
 void MainWindow::on_refreshCom_clicked()
-{   
+{
     if(ui->refreshCom->isEnabled() == false){
         ui->statusBar->showMessage(tr("刷新功能被禁用"), 2000);
         return;
@@ -1331,9 +1428,9 @@ void MainWindow::on_refreshCom_clicked()
     ui->statusBar->showMessage(tr("串口扫描完毕"), 1000);
 }
 
-/*
- * Function:在只有一个串口设备时且未被占用时尝试打开
-*/
+/**
+ * @brief     在只有一个串口时进行尝试打开
+ */
 void MainWindow::tryOpenSerial()
 {
     //只存在一个串口时且串口未被占用自动打开
@@ -1369,7 +1466,9 @@ void MainWindow::tryOpenSerial()
     }
 }
 
-//串口开关
+/**
+ * @brief     串口开关按钮的槽
+ */
 void MainWindow::on_comSwitch_clicked(bool checked)
 {
     QString com = ui->comList->currentText().mid(0,ui->comList->currentText().indexOf('('));
@@ -1414,23 +1513,10 @@ void MainWindow::on_comSwitch_clicked(bool checked)
     refreshCom();
 }
 
-int32_t MainWindow::appendDataToFile(QString path, QByteArray &buff)
-{
-    if(path.isEmpty())
-        return -1;
-    QFile file(path);
-    QTextStream stream(&file);
-    if(file.open(QFile::WriteOnly|QFile::Append)){
-        stream<<buff;
-        file.close();
-        return 0;
-    }
-    return -1;
-}
-
-/*
- * Function:从串口读取数据
-*/
+/**
+ * @brief     读取串口数据
+ * @note      串口对象的数据更新的槽
+ */
 void MainWindow::readSerialPort()
 {
     QByteArray tmpReadBuff;
@@ -1554,8 +1640,11 @@ void MainWindow::readSerialPort()
     TryRefreshBrowserCnt = TRY_REFRESH_BROWSER_CNT;
 }
 
-//好像有一个bug，parseFileSlot执行多了会蹦，也就是文件大的时候就可能蹦？
-//所以增大单文件包就提高可解析最大文件？
+/**
+ * @brief     分包解析文件的槽
+ * @note      好像有一个bug，这个函数执行多了会蹦，也就是文件大的时候就可能蹦？
+ *            所以增大单文件包就提高可解析最大文件？
+ */
 void MainWindow::parseFileSlot()
 {
     readSerialPort();
@@ -1576,6 +1665,10 @@ void MainWindow::parseFileSlot()
     }
 }
 
+/**
+ * @brief     打印数据到TextBrowser
+ * @note      为了降低CPU占用只打印了最新的一部分少量数据
+ */
 static int32_t PAGING_SIZE = 4096; //TextBrowser显示大小
 void MainWindow::printToTextBrowser()
 {
@@ -1633,6 +1726,10 @@ void MainWindow::printToTextBrowser()
     reduceShowedText();
 }
 
+/**
+ * @brief     减少显示的文本
+ * @note      为了降低CPU占用就尽可能少显示一点
+ */
 void MainWindow::reduceShowedText()
 {
     //逐步减少刷新内容以改善资源消耗，可能导致出现大量留白问题
@@ -1681,6 +1778,11 @@ void MainWindow::reduceShowedText()
     }
 }
 
+/**
+ * @brief     串口对象发送了多少字节
+ * @note      用于记录收发统计和进度条
+ * @param[in] 发送的字节
+ */
 void MainWindow::serialBytesWritten(qint64 bytes)
 {
     //发送速度统计
@@ -1705,6 +1807,11 @@ void MainWindow::serialBytesWritten(qint64 bytes)
     }
 }
 
+/**
+ * @brief     处理串口错误
+ * @note      串口松动、拔出检测
+ * @param[in] 错误码
+ */
 void MainWindow::handleSerialError(QSerialPort::SerialPortError errCode)
 {
     //故障检测
@@ -1728,15 +1835,21 @@ void MainWindow::handleSerialError(QSerialPort::SerialPortError errCode)
 //    qDebug()<<"handleSerialError"<<errCode;
 }
 
-/*
- * Function:连续发送定时器槽，执行数据发送
-*/
+/**
+ * @brief     连续发送定时器的槽
+ * @note      用于周期发送功能
+ */
 void MainWindow::cycleSendTimerSlot()
 {
     on_sendButton_clicked();
 }
 
-//用于多字符串组件的序列发送功能，提取序列延时时间
+/**
+ * @brief     从字符串中提取序列发送延迟时间
+ * @note      用于多字符串组件的序列发送功能
+ * @param[in] 要提取的字符串
+ * @return    提取结果
+ */
 qint32 extractSeqenceTime(QString &str)
 {
     QString temp;
@@ -1769,6 +1882,9 @@ qint32 extractSeqenceTime(QString &str)
     return seqTime;
 }
 
+/**
+ * @brief     多字符串序列发送定时器的槽
+ */
 void MainWindow::multiStrSeqSendTimerSlot()
 {
     if (!ui->actionMultiString->isChecked())
@@ -1810,6 +1926,10 @@ void MainWindow::multiStrSeqSendTimerSlot()
     on_sendButton_clicked();
 }
 
+/**
+ * @brief     解析绘图器和分类文本
+ * @note      通常周期执行
+ */
 void MainWindow::parsePlotterAndTee()
 {
     //触发文本提取引擎解析
@@ -1828,6 +1948,10 @@ void MainWindow::parsePlotterAndTee()
     }
 }
 
+/**
+ * @brief     100Hz定时器
+ * @note      一些代码可能需要多执行几次确保数据都处理完了
+ */
 void MainWindow::parseTimer100hzSlot()
 {
     static uint32_t cnt = 0;
@@ -1849,6 +1973,10 @@ void MainWindow::parseTimer100hzSlot()
     cnt++;
 }
 
+/**
+ * @brief     添加数据到多字符串组件中
+ * @param[in] 添加的数据
+ */
 void MainWindow::addTextToMultiString(const QString &text)
 {
     bool hasItem=false;
@@ -1872,14 +2000,14 @@ void MainWindow::addTextToMultiString(const QString &text)
         }
     }
     if(!hasItem)
-        ui->multiString->addItem("CMD_" + 
-                                QString::number(ui->multiString->count()) + " |" + 
+        ui->multiString->addItem("CMD_" +
+                                QString::number(ui->multiString->count()) + " |" +
                                 text);
 }
 
-/*
- * Function:发送数据
-*/
+/**
+ * @brief     发送按钮点击
+ */
 void MainWindow::on_sendButton_clicked()
 {
     QByteArray tmp;
@@ -1980,6 +2108,9 @@ void MainWindow::on_sendButton_clicked()
     }
 }
 
+/**
+ * @brief     清空按钮点击
+ */
 void MainWindow::on_clearWindows_clicked()
 {
     ui->clearWindows->setText(tr("清  空"));
@@ -2105,6 +2236,10 @@ void MainWindow::on_clearWindows_clicked()
     calcCharacterNumberInWindow();
 }
 
+/**
+ * @brief     周期发送框被勾选
+ * @param[in] 勾选结果
+ */
 void MainWindow::on_cycleSendCheck_clicked(bool checked)
 {
     if(ui->sendInterval->text().toInt() < 15 && checked)
@@ -2133,10 +2268,10 @@ void MainWindow::on_cycleSendCheck_clicked(bool checked)
     }
 }
 
-/*
- * Event:发送区文本变化
- * Function:检查十六进制发送模式下的发送区文本内容是否非法
-*/
+/**
+ * @brief     发送区文本发生变化
+ * @note      用于hex发送模式下检测非法字符
+ */
 void MainWindow::on_textEdit_textChanged()
 {
     QString tmp;
@@ -2148,7 +2283,7 @@ void MainWindow::on_textEdit_textChanged()
         if(!hexFormatCheck(tmp)){
             if(g_multiStr_cur_index != -1)
             {
-                QMessageBox::warning(this, tr("警告"), 
+                QMessageBox::warning(this, tr("警告"),
                                     QString("The %1th multi_string has illegal hexadecimal format.")
                                     .arg(g_multiStr_cur_index));
             }
@@ -2169,10 +2304,12 @@ void MainWindow::on_textEdit_textChanged()
     }
 }
 
-/*
- * Event:十六进制格式发送按钮状态变化
- * Function:保存当前发送区的文本内容
-*/
+/**
+ * @brief     hex发送按钮状态改变
+ * @note      保存和恢复发送区的文本（hex模式和非hex模式各自维护一个发送区副本）
+ * @param[in]
+ * @return
+ */
 void MainWindow::on_hexSend_stateChanged(qint32 arg1)
 {
     arg1++;
@@ -2189,20 +2326,23 @@ void MainWindow::on_hexSend_stateChanged(qint32 arg1)
     }
 }
 
-/*
- * Event:十六进制显示按钮状态改变
- * Function:将当前接收框的内容转换为十六进制格式重新显示
-*/
+/**
+ * @brief     hex显示按钮状态改变
+ * @note      将当前接收框的内容转换为hex格式重新显示
+ * @param[in]
+ * @return
+ */
 void MainWindow::on_hexDisplay_clicked(bool checked)
 {
     checked = !checked;
     printToTextBrowser();
 }
 
-/*
- * Action:激活使用win风格回车（\r\n）
- * Function:
-*/
+/**
+ * @brief     激活使用win风格回车（\r\n）
+ * @note      QT会把\r也进行换行，所以CRLF模式会换2次行，所以要进行识别和处理
+ * @param[in] 是否激活
+ */
 void MainWindow::on_action_winLikeEnter_triggered(bool checked)
 {
     if(checked){
@@ -2216,6 +2356,11 @@ void MainWindow::on_action_winLikeEnter_triggered(bool checked)
  * Action:激活使用unix风格回车（\n）
  * Function:
 */
+/**
+ * @brief     激活使用unix风格回车（\n）
+ * @note      参考 @ref on_action_winLikeEnter_triggered()
+ * @param[in] 是否激活
+ */
 void MainWindow::on_action_unixLikeEnter_triggered(bool checked)
 {
     if(checked){
@@ -2225,10 +2370,11 @@ void MainWindow::on_action_unixLikeEnter_triggered(bool checked)
     }
 }
 
-/*
- * Action:激活使用UTF8编码
- * Function:
-*/
+/**
+ * @brief     激活使用UTF8编码
+ * @note      不同编码中文的长度不一样，要识别和处理
+ * @param[in] 是否激活
+ */
 void MainWindow::on_actionUTF8_triggered(bool checked)
 {
     ui->actionUTF8->setChecked(true);
@@ -2243,6 +2389,11 @@ void MainWindow::on_actionUTF8_triggered(bool checked)
     }
 }
 
+/**
+ * @brief     激活使用GBK编码
+ * @note      不同编码中文的长度不一样，要识别和处理
+ * @param[in] 是否激活
+ */
 void MainWindow::on_actionGBK_triggered(bool checked)
 {
     ui->actionGBK->setChecked(true);
@@ -2257,10 +2408,9 @@ void MainWindow::on_actionGBK_triggered(bool checked)
     }
 }
 
-/*
- * Action:保存数据动作触发
- * Function:
-*/
+/**
+ * @brief     保存数据动作触发
+ */
 void MainWindow::on_actionSaveOriginData_triggered()
 {
     QString tabName = MAIN_TAB_NAME;
@@ -2285,7 +2435,7 @@ void MainWindow::on_actionSaveOriginData_triggered()
     //打开保存文件对话框
     QString savePath = QFileDialog::getSaveFileName(this,
                                                     tr("保存原始数据-选择文件路径"),
-                                                    lastFileDialogPath + 
+                                                    lastFileDialogPath +
                                                     "[" + tabName + "]-" +
                                                     QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".dat",
                                                     "Dat File(*.dat);;All File(*.*)");
@@ -2328,12 +2478,11 @@ void MainWindow::on_actionSaveOriginData_triggered()
     lastFileDialogPath = lastFileDialogPath.mid(0, lastFileDialogPath.lastIndexOf('/')+1);
 }
 
-/*
- * Action:读取数据动作触发
- * Function:
-*/
+/**
+ * @brief     读取数据动作触发
+ */
 void MainWindow::on_actionOpenOriginData_triggered()
-{   
+{
     static QString lastFileName;
     //打开文件对话框
     QString readPath = QFileDialog::getOpenFileName(this,
@@ -2362,10 +2511,9 @@ void MainWindow::on_actionOpenOriginData_triggered()
     }
 }
 
-/*
- * Action:触发“关于”按钮
- * Function:弹出关于对话框
-*/
+/**
+ * @brief     关于按钮触发
+ */
 void MainWindow::on_actionAbout_triggered()
 {
     //生日检查啦
@@ -2389,6 +2537,9 @@ void MainWindow::on_actionAbout_triggered()
     p->show();
 }
 
+/**
+ * @brief     串口配置按钮被触发
+ */
 void MainWindow::on_actionCOM_Config_triggered()
 {
     if(serial.isOpen())
@@ -2419,9 +2570,12 @@ void MainWindow::on_actionCOM_Config_triggered()
     delete p;
 }
 
-/*
- * Function:波特率框文本变化，检查输入合法性并重置波特率
-*/
+/**
+ * @brief     波特率框文本变化
+ * @note      检查输入合法性并重置波特率
+ * @param[in]
+ * @return
+ */
 void MainWindow::on_baudrateList_currentTextChanged(const QString &arg1)
 {
     bool ok;
@@ -2434,9 +2588,11 @@ void MainWindow::on_baudrateList_currentTextChanged(const QString &arg1)
     }
 }
 
-/*
- * Function:选择了新的端口号，重新打开串口
-*/
+/**
+ * @brief     comList控件被按下
+ * @note      选择了新的端口号，重新打开串口
+ * @param[in] 选择的端口号
+ */
 void MainWindow::on_comList_textActivated(const QString &arg1)
 {
     //关闭自动发送功能
@@ -2460,6 +2616,9 @@ void MainWindow::on_comList_textActivated(const QString &arg1)
     }
 }
 
+/**
+ * @brief     保存显示数据被按下
+ */
 void MainWindow::on_actionSaveShowedData_triggered()
 {
     QString tabName = MAIN_TAB_NAME;
@@ -2481,7 +2640,7 @@ void MainWindow::on_actionSaveShowedData_triggered()
     QString savePath = QFileDialog::getSaveFileName(
                 this,
                 tr("保存显示数据-选择文件路径"),
-                lastFileDialogPath + 
+                lastFileDialogPath +
                 "[" + tabName + "]-" +
                 QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".txt",
                 "Text File(*.txt);;All File(*.*)");
@@ -2529,6 +2688,9 @@ void MainWindow::on_actionSaveShowedData_triggered()
     }
 }
 
+/**
+ * @brief     更新按钮触发
+ */
 void MainWindow::on_actionUpdate_triggered()
 {
     if(http)
@@ -2539,12 +2701,20 @@ void MainWindow::on_actionUpdate_triggered()
     }
 }
 
+/**
+ * @brief     周期发送时长文本改变
+ * @note      改变时重置周期发送定时器
+ * @param[in] 新的文本
+ */
 void MainWindow::on_sendInterval_textChanged(const QString &arg1)
 {
     if(cycleSendTimer.isActive())
         cycleSendTimer.setInterval(arg1.toInt());
 }
 
+/**
+ * @brief     STM32_ISP按钮按下
+ */
 void MainWindow::on_actionSTM32_ISP_triggered()
 {
     if(ui->comSwitch->isChecked())
@@ -2568,9 +2738,11 @@ void MainWindow::on_actionSTM32_ISP_triggered()
     statisticStm32IspUseCnt++;
 }
 
-/*
- * Event: 多字符串条目双击
-*/
+/**
+ * @brief     多字符串条目双击
+ * @note      双击后发送数据
+ * @param[in] 点击的条目
+ */
 void MainWindow::on_multiString_itemDoubleClicked(QListWidgetItem *item)
 {
     is_multi_str_double_click = true;
@@ -2600,9 +2772,9 @@ void MainWindow::on_multiString_itemDoubleClicked(QListWidgetItem *item)
     on_sendButton_clicked();
 }
 
-/*
- * Action:multiString开关
-*/
+/**
+ * @brief     多字符串开关触发
+ */
 void MainWindow::on_actionMultiString_triggered(bool checked)
 {
     if(checked){
@@ -2616,9 +2788,10 @@ void MainWindow::on_actionMultiString_triggered(bool checked)
     adjustLayout();
 }
 
-/*
- * Function:多字符串右键菜单
-*/
+/**
+ * @brief     多字符串组件的右键菜单
+ * @param[in] 右键的位置
+ */
 void MainWindow::on_multiString_customContextMenuRequested(const QPoint &pos)
 {
     QListWidgetItem* curItem = ui->multiString->itemAt( pos );
@@ -2666,9 +2839,9 @@ void MainWindow::on_multiString_customContextMenuRequested(const QPoint &pos)
     delete deleteSeed;
 }
 
-/*
- * Function:编辑multiString条目
-*/
+/**
+ * @brief     编辑多字符串组件的条目
+ */
 void MainWindow::editSeedSlot()
 {
     QListWidgetItem * item = ui->multiString->currentItem();
@@ -2693,6 +2866,9 @@ void MainWindow::editSeedSlot()
         ui->multiString->item(curIndex)->setText(newStr);
 }
 
+/**
+ * @brief     编辑多字符串组件的条目的注释
+ */
 void MainWindow::editCommentSeedSlot()
 {
     QListWidgetItem * item = ui->multiString->currentItem();
@@ -2721,6 +2897,9 @@ void MainWindow::editCommentSeedSlot()
         ui->multiString->item(curIndex)->setText(newStr);
 }
 
+/**
+ * @brief     多字符串组件条目上移一个
+ */
 void MainWindow::moveUpSeedSlot()
 {
     QListWidgetItem * item = ui->multiString->currentItem();
@@ -2735,6 +2914,9 @@ void MainWindow::moveUpSeedSlot()
     }
 }
 
+/**
+ * @brief     多字符串组件条目下移一个
+ */
 void MainWindow::moveDownSeedSlot()
 {
     QListWidgetItem * item = ui->multiString->currentItem();
@@ -2746,9 +2928,9 @@ void MainWindow::moveDownSeedSlot()
     ui->multiString->insertItem(curIndex + 1, item);
 }
 
-/*
- * Function:删除multiString条目
-*/
+/**
+ * @brief     多字符串组件条目删除一个
+ */
 void MainWindow::deleteSeedSlot()
 {
     QListWidgetItem * item = ui->multiString->currentItem();
@@ -2760,9 +2942,9 @@ void MainWindow::deleteSeedSlot()
     delete item;
 }
 
-/*
- * Function:清除multiString条目
-*/
+/**
+ * @brief     清除多字符串组件条目
+ */
 void MainWindow::clearSeedsSlot()
 {
     QMessageBox::StandardButton button;
@@ -2776,6 +2958,9 @@ void MainWindow::clearSeedsSlot()
     ui->multiString->clear();
 }
 
+/**
+ * @brief     多字符串组件新增一个条目
+ */
 void MainWindow::addSeedSlot()
 {
     bool ok;
@@ -2789,7 +2974,9 @@ void MainWindow::addSeedSlot()
     addTextToMultiString(newStr);
 }
 
-//更新数据可视化按钮的标题
+/**
+ * @brief     更新数据可视化按钮的标题
+ */
 void MainWindow::setVisualizerTitle(void)
 {
     if(!ui->actionPlotterSwitch->isChecked() &&
@@ -2827,6 +3014,9 @@ void MainWindow::setVisualizerTitle(void)
     }
 }
 
+/**
+ * @brief     重置数据可视化按钮的标题
+ */
 void MainWindow::resetVisualizerTitle(void)
 {
     if(ui->tabWidget_plotter->isVisible() ||
@@ -2839,11 +3029,12 @@ void MainWindow::resetVisualizerTitle(void)
     ui->visualizer->setTitle(tr("数据可视化"));
 }
 
-/*
- * Function:绘图器开关
-*/
+/**
+ * @brief     绘图器开关
+ * @param[in] 是否打开
+ */
 void MainWindow::on_actionPlotterSwitch_triggered(bool checked)
-{   
+{
     if(checked){
         ui->tabWidget_plotter->show();
         setVisualizerTitle();
@@ -2856,6 +3047,12 @@ void MainWindow::on_actionPlotterSwitch_triggered(bool checked)
     adjustLayout();
 }
 
+/**
+ * @brief     创建一个新的绘图器对象
+ * @note      新对象的配置来源于默认绘图器
+ * @param[in] 新绘图器对象的名称（标题）
+ * @return    新的绘图器对象
+ */
 MyQCustomPlot* MainWindow::createNewPlotter(QString plotterTitle)
 {
     MyQCustomPlot* plotter = nullptr;
@@ -2884,6 +3081,14 @@ MyQCustomPlot* MainWindow::createNewPlotter(QString plotterTitle)
     return plotter;
 }
 
+/**
+ * @brief     记录图像数据到文件
+ * @note      已经是解析完成后的数据了
+ * @param[in] 记录路径
+ * @param[in] 绘图器标题
+ * @param[in] 绘图器对应的数据
+ * @return    错误码
+ */
 int32_t MainWindow::recordGraphDataToFile(const QString& recordPlotTitle, const QString& plotterTitle, const QVector<double>& oneRowData)
 {
     MyQCustomPlot * plotter = nullptr;
@@ -2974,7 +3179,7 @@ void MainWindow::plotterShowTimerSlot()
         //实时数据记录仪
         recordGraphDataToFile(recordPlotTitle, plotterTitle, oneRowData);
         //FFT处理
-        if(fft_window->isVisible() && 
+        if(fft_window->isVisible() &&
            fft_window->getFFTPlotterTitle() == plotterTitle)
         {
             fft_window->appendData(oneRowData);
@@ -3026,7 +3231,7 @@ void MainWindow::fillDataToValueDisplay(MyQCustomPlot *plotter)
 {
     if(!plotter)
         return;
-        
+
     QVector<double> recentRowData = plotter->plotControl->getRecentRowData();
     //判断是否添加行
     if(ui->valueDisplay->rowCount() < recentRowData.size())
@@ -3076,7 +3281,7 @@ void MainWindow::on_actionAscii_triggered(bool checked)
     ui->actionFloat->setChecked(false);
     ui->actionCSV->setChecked(false);
     ui->actionMAD->setChecked(false);
-    
+
     setVisualizerTitle();
 }
 
@@ -3094,7 +3299,7 @@ void MainWindow::on_actionFloat_triggered(bool checked)
     ui->actionFloat->setChecked(true);
     ui->actionCSV->setChecked(false);
     ui->actionMAD->setChecked(false);
-    
+
     setVisualizerTitle();
 }
 
@@ -3580,7 +3785,7 @@ void MainWindow::on_actionSavePlotData_triggered()
         }
     }
     plotter->replot();
-    
+
     if(plotter->graph(0)->data()->size() == 0)
     {
         QMessageBox::information(this, tr("提示"), tr("绘图器数据容器为空，无法保存。"));
@@ -3589,8 +3794,8 @@ void MainWindow::on_actionSavePlotData_triggered()
     //打开保存文件对话框
     QString savePath = QFileDialog::getSaveFileName(this,
                                                     tr("保存绘图数据-选择文件路径"),
-                                                    lastFileDialogPath + 
-                                                    "[" + plotter->getPlotterTitle() + "]-" + 
+                                                    lastFileDialogPath +
+                                                    "[" + plotter->getPlotterTitle() + "]-" +
                                                     QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss")+".xlsx",
                                                     "XLSX File(*.xlsx);;CSV File(*.csv);;TXT File(*.txt);;All File(*.*)");
     //检查路径格式
@@ -3742,8 +3947,8 @@ void MainWindow::on_actionSavePlotAsPicture_triggered()
     //打开保存文件对话框
     QString savePath = QFileDialog::getSaveFileName(this,
                                                     tr("曲线保存图片-选择文件路径"),
-                                                    lastFileDialogPath + 
-                                                    "[" + plotter->getPlotterTitle() + "]-" + 
+                                                    lastFileDialogPath +
+                                                    "[" + plotter->getPlotterTitle() + "]-" +
                                                     QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss"),
                                                     "Bmp File(*.bmp);;Pdf File(*.pdf);;Jpeg File(*.jpg);;Png File(*.png);;All File(*.*)");
     //检查路径格式
@@ -4245,7 +4450,7 @@ void MainWindow::on_textBrowser_customContextMenuRequested(const QPoint &pos)
     popMenu->addSeparator();
     popMenu->addAction( clearTextBrowser );
 
-    connect( stopRefresh, SIGNAL(triggered(bool) ), 
+    connect( stopRefresh, SIGNAL(triggered(bool) ),
              this, SLOT( disableRefreshWindow_triggered(bool)) );
     connect( showAllText, SIGNAL(triggered() ), this, SLOT( showAllTextBrowser_triggered()) );
     connect( copyText, SIGNAL(triggered() ), this, SLOT( copySelectedTextBrowser_triggered()) );
@@ -4357,7 +4562,7 @@ MyQCustomPlot* MainWindow::selectCurrentPlotter()
             qDebug() << "do not find current plotter and default plotter is null!!!";
             return nullptr;
         }
-        qDebug() << "do not find current plotter and return default plotter(" 
+        qDebug() << "do not find current plotter and return default plotter("
                  << plotter->getPlotterTitle() << ")";
     }
     return plotter;
@@ -4781,7 +4986,7 @@ void MainWindow::updateFunctionButtonTitle()
     if(ui->actionRecordRawData->isChecked() ||
        ui->actionRecordGraphData->isChecked())
     {
-        statisticRecordCnt++;   
+        statisticRecordCnt++;
         ui->function->setTitle(tr("功能(Recording)"));
         return;
     }
@@ -4990,7 +5195,7 @@ void MainWindow::on_actionCSV_triggered(bool checked)
     ui->actionFloat->setChecked(false);
     ui->actionCSV->setChecked(true);
     ui->actionMAD->setChecked(false);
-    
+
     setVisualizerTitle();
 }
 

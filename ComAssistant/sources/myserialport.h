@@ -1,3 +1,11 @@
+/**
+ * @brief   自定义串口对象
+ * @file    myserialport.h
+ * @author  inhowe
+ * @version 0.0.1
+ * @date    2021-2月-11
+ * @note    对自带串口类进行了简化打包，并加入统计功能
+ */
 #ifndef MYSERIALPORT_H
 #define MYSERIALPORT_H
 

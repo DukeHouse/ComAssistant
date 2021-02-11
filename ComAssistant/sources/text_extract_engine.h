@@ -1,3 +1,11 @@
+/**
+ * @brief   分类文本提取引擎
+ * @file    text_extract_engine.h
+ * @author  inhowe
+ * @version 0.0.1
+ * @date    2021-2月-11
+ * @note    根据ASCII协议解析数据流并放入不同的缓冲中
+ */
 #ifndef TEXT_EXTRACT_ENGINE_H
 #define TEXT_EXTRACT_ENGINE_H
 

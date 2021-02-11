@@ -1,3 +1,11 @@
+/**
+ * @brief   本文件完成字符串形式数据的进制格式转换
+ * @file    baseconversion.h
+ * @author  inhowe
+ * @version 0.0.1
+ * @date    2021-2月-11
+ * @note
+ */
 #ifndef BASECONVERSION_H
 #define BASECONVERSION_H
 

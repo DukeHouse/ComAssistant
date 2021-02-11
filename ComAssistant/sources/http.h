@@ -1,3 +1,11 @@
+/**
+ * @brief   HTTP网络请求处理文件
+ * @file    http.h
+ * @author  inhowe
+ * @version 0.0.1
+ * @date    2021-2月-11
+ * @note    检查更新、下载信息、检查版本等功能
+ */
 #ifndef HTTP_H
 #define HTTP_H
 
