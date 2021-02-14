@@ -601,15 +601,15 @@ void MainWindow::quickHelp()
             "# ASCII协议规则(字符串)：\n"
             "  \"{title:string}\\n\"\n"
             "  title为自定义英文标题，纸飞机将根据title对数据进行分窗显示。\n"
-            "  string为自定义英文字符串，这是被分窗显示的内容\n"
-            "  \\n为换行符，不可省\n\n"
+            "  string为自定义英文字符串，这是被分窗显示的内容。\n"
+            "  \\n为换行符，不可省略。\n\n"
             "# C语言使用方法：\n"
             "  1.定义宏函数可简化后期工作：\n"
             "    #define PRINT(title, fmt, ...) printf(\"{\"#title\":\"fmt\"}\\n\", __VA_ARGS__)\n"
             "  2.若要绘图可这样使用：\n"
-            "    PRINT(plotter, \"%f,%f,%f\", data1, data2, data3);即可，表示3条曲线数据\n"
+            "    PRINT(plotter, \"%f,%f,%f\", data1, data2, data3);即可，表示3条曲线数据。\n"
             "  3.若要分类显示可这样使用：\n"
-            "    PRINT(voltage, \"current voltage is %d V\", var);即可，表示跟voltage有关的数据\n";
+            "    PRINT(voltage, \"current voltage is %d V\", var);即可，表示跟voltage有关的数据。\n";
     ui->textBrowser->setPlaceholderText(helpText);
     helpText = "该窗口显示包含关键字符的字符串"
             "\n\n"
@@ -3152,6 +3152,10 @@ int32_t MainWindow::recordGraphDataToFile(const QString& recordPlotTitle, const 
     return 0;
 }
 
+/**
+ * @brief     绘图器刷新定时器的槽
+ * @note      绘图器、数值显示器、FFT都在这刷新
+ */
 void MainWindow::plotterShowTimerSlot()
 {
     QVector<double> oneRowData;
@@ -3235,6 +3239,10 @@ void MainWindow::plotterShowTimerSlot()
     }
 }
 
+/**
+ * @brief     填充最新的数据到数值显示器中
+ * @param[in] 当前的绘图器对象，里面会包含最新的一批数据
+ */
 void MainWindow::fillDataToValueDisplay(MyQCustomPlot *plotter)
 {
     if(!plotter)
@@ -3275,6 +3283,10 @@ void MainWindow::fillDataToValueDisplay(MyQCustomPlot *plotter)
     }
 }
 
+/**
+ * @brief     Ascii协议按钮触发
+ * @param[in] 新的状态
+ */
 void MainWindow::on_actionAscii_triggered(bool checked)
 {
     Q_UNUSED(checked)
@@ -3293,6 +3305,10 @@ void MainWindow::on_actionAscii_triggered(bool checked)
     setVisualizerTitle();
 }
 
+/**
+ * @brief     FLOAT协议按钮触发
+ * @param[in] 新的状态
+ */
 void MainWindow::on_actionFloat_triggered(bool checked)
 {
     Q_UNUSED(checked)
@@ -3311,6 +3327,10 @@ void MainWindow::on_actionFloat_triggered(bool checked)
     setVisualizerTitle();
 }
 
+/**
+ * @brief     debug按钮触发
+ * @param[in] 新的状态
+ */
 void MainWindow::on_actiondebug_triggered(bool checked)
 {
     if(checked)
@@ -3327,6 +3347,11 @@ void MainWindow::on_actiondebug_triggered(bool checked)
     }
 }
 
+/**
+ * @brief     垂直滚动条动作触发
+ * @note      处理上滑显示更多数据的逻辑
+ * @param[in] 触发动作
+ */
 void MainWindow::verticalScrollBarActionTriggered(qint32 action)
 {
     QScrollBar* bar = ui->textBrowser->verticalScrollBar();
@@ -3676,6 +3701,10 @@ void MainWindow::on_actionTimeStampMode_triggered(bool checked)
 
 #endif
 
+/**
+ * @brief     重置默认配置按钮触发
+ * @param[in] 新的状态
+ */
 void MainWindow::on_actionResetDefaultConfig_triggered(bool checked)
 {
     if(checked)
@@ -3690,6 +3719,9 @@ void MainWindow::on_actionResetDefaultConfig_triggered(bool checked)
     }
 }
 
+/**
+ * @brief     帮助按钮触发
+ */
 void MainWindow::on_actionManual_triggered()
 {
     //创建关于我对话框资源
@@ -3703,6 +3735,9 @@ void MainWindow::on_actionManual_triggered()
     p->show();
 }
 
+/**
+ * @brief     保存曲线数据按钮触发
+ */
 void MainWindow::on_actionSavePlotData_triggered()
 {
     //判断是通过右键绘图窗口触发的还是点击菜单栏触发的
@@ -3843,6 +3878,9 @@ void MainWindow::on_actionSavePlotData_triggered()
 
 }
 
+/**
+ * @brief     保存曲线图片按钮触发
+ */
 void MainWindow::on_actionSavePlotAsPicture_triggered()
 {
     //判断是通过右键绘图窗口触发的还是点击菜单栏触发的
@@ -4002,6 +4040,10 @@ void MainWindow::on_actionSavePlotAsPicture_triggered()
     }
 }
 
+/**
+ * @brief     关键字高亮按钮触发
+ * @param[in] 新的状态
+ */
 void MainWindow::on_actionKeyWordHighlight_triggered(bool checked)
 {
     static int32_t first_run = 1;
@@ -4028,8 +4070,12 @@ void MainWindow::on_actionKeyWordHighlight_triggered(bool checked)
     }
     QMessageBox::information(this, tr("提示"), tr("高亮设置将应用于新的显示窗口。"));
 }
-/*
- * 字节数据转换成人类习惯的单位
+
+/**
+ * @brief     将字节数据转换成人类习惯的单位
+ * @note      统计用的
+ * @param[in] 字节数据
+ * @return    转换结果
  */
 QString MainWindow::sta_ConvertHuman_Byte(double num)
 {
@@ -4073,8 +4119,12 @@ QString MainWindow::sta_ConvertHuman_Byte(double num)
 
     return ret;
 }
-/*
- * 时间数据转换成人类习惯的单位
+
+/**
+ * @brief     时间数据转换成人类习惯的单位
+ * @note      统计用的
+ * @param[in] 秒数据
+ * @return    转换结果
  */
 QString MainWindow::sta_ConvertHuman_Time(double sec)
 {
@@ -4099,6 +4149,14 @@ QString MainWindow::sta_ConvertHuman_Time(double sec)
            QString::number(minute, 10) + tr(" 分钟 ") +
            QString::number(second, 10) + tr(" 秒");
 }
+
+/**
+ * @brief     收发结果转换成等级称号排名
+ * @note      统计用的
+ * @param[in] 总发送量
+ * @param[in] 总接收量
+ * @return    等级称号排名
+ */
 QString MainWindow::statisticConvertRank(double totalTx, double totalRx)
 {
     QString rankStr;
@@ -4122,9 +4180,11 @@ QString MainWindow::statisticConvertRank(double totalTx, double totalRx)
     }
     return rankStr;
 }
-/*
- * Funciont:显示使用统计
-*/
+
+/**
+ * @brief     使用统计按钮触发
+ * @note      显示使用统计
+ */
 void MainWindow::on_actionUsageStatistic_triggered()
 {
     double currentTx = serial.getTotalTxCnt();
@@ -4255,6 +4315,9 @@ void MainWindow::on_actionUsageStatistic_triggered()
     p->show();
 }
 
+/**
+ * @brief     发送文件按钮触发
+ */
 void MainWindow::on_actionSendFile_triggered()
 {
     static QString lastFileName;
@@ -4319,6 +4382,10 @@ void MainWindow::on_actionSendFile_triggered()
     }
 }
 
+/**
+ * @brief     数值显示器按钮触发
+ * @param[in] 新的状态
+ */
 void MainWindow::on_actionValueDisplay_triggered(bool checked)
 {
     if(checked){
@@ -4333,6 +4400,10 @@ void MainWindow::on_actionValueDisplay_triggered(bool checked)
     adjustLayout();
 }
 
+/**
+ * @brief     关闭刷新窗口按钮触发
+ * @param[in] 新的状态
+ */
 void MainWindow::disableRefreshWindow_triggered(bool checked)
 {
     static bool displayedAllData = false;
@@ -4356,6 +4427,9 @@ void MainWindow::disableRefreshWindow_triggered(bool checked)
     }
 }
 
+/**
+ * @brief     显示所有文本按钮触发
+ */
 void MainWindow::showAllTextBrowser_triggered()
 {
     if(disableRefreshWindow)
@@ -4382,7 +4456,9 @@ void MainWindow::showAllTextBrowser_triggered()
     ui->textBrowser->moveCursor(QTextCursor::End);
 }
 
-//复制所选文本到剪贴板
+/**
+ * @brief     复制所选文本到剪贴板
+ */
 void MainWindow::copySelectedTextBrowser_triggered(void)
 {
     QClipboard *clipboard = QApplication::clipboard();
@@ -4390,7 +4466,10 @@ void MainWindow::copySelectedTextBrowser_triggered(void)
         return;
     clipboard->setText(ui->textBrowser->textCursor().selectedText());
 }
-//复制全部显示文本到剪贴板
+
+/**
+ * @brief     复制全部显示文本到剪贴板
+ */
 void MainWindow::copyAllTextBrowser_triggered(void)
 {
     QClipboard *clipboard = QApplication::clipboard();
@@ -4401,12 +4480,20 @@ void MainWindow::copyAllTextBrowser_triggered(void)
     }
     clipboard->setText(BrowserBuff);
 }
-//复制全部原始数据到剪贴板
+
+/**
+ * @brief     复制全部原始数据到剪贴板
+ */
 void MainWindow::copyAllData_triggered(void)
 {
     QClipboard *clipboard = QApplication::clipboard();
     clipboard->setText(RxBuff);
 }
+
+/**
+ * @brief     main窗口右键菜单
+ * @param[in] 右键位置
+ */
 void MainWindow::on_textBrowser_customContextMenuRequested(const QPoint &pos)
 {
     QPoint noWarning = pos;
@@ -4479,6 +4566,9 @@ void MainWindow::on_textBrowser_customContextMenuRequested(const QPoint &pos)
     delete stopRefresh;
 }
 
+/**
+ * @brief     清除main窗口数据
+ */
 void MainWindow::clearTextBrowserSlot()
 {
     ui->textBrowser->clear();
@@ -4490,11 +4580,13 @@ void MainWindow::clearTextBrowserSlot()
     unshowedRxBuff.clear();
 }
 
+/**
+ * @brief     数值显示器右键菜单
+ * @param[in] 右键位置
+ */
 void MainWindow::on_valueDisplay_customContextMenuRequested(const QPoint &pos)
 {
-    //消除警告
-    QPoint pp = pos;
-    pp.isNull();
+    Q_UNUSED(pos)
 
     QList<QTableWidgetItem*> selectedItems = ui->valueDisplay->selectedItems();
     QAction *deleteValueDisplayRow = nullptr;
@@ -4517,6 +4609,10 @@ void MainWindow::on_valueDisplay_customContextMenuRequested(const QPoint &pos)
     delete deleteValueDisplay;
 }
 
+/**
+ * @brief     删除数值显示器一行
+ * @return
+ */
 void MainWindow::deleteValueDisplayRowSlot()
 {
     QList<QTableWidgetItem*> selectedItems = ui->valueDisplay->selectedItems();
@@ -4527,6 +4623,10 @@ void MainWindow::deleteValueDisplayRowSlot()
     }
 }
 
+/**
+ * @brief     删除数值显示器所有行
+ * @return
+ */
 void MainWindow::deleteValueDisplaySlot()
 {
     while(ui->valueDisplay->rowCount()>0){
@@ -4534,7 +4634,10 @@ void MainWindow::deleteValueDisplaySlot()
     }
 }
 
-
+/**
+ * @brief     时间戳按钮状态改变
+ * @param[in] 状态值
+ */
 void MainWindow::on_timeStampCheckBox_stateChanged(int arg1)
 {
     if(arg1 != 0){
@@ -4548,12 +4651,19 @@ void MainWindow::on_timeStampCheckBox_stateChanged(int arg1)
     }
 }
 
+/**
+ * @brief     时间戳超时文本改变
+ * @param[in] 新的超时值
+ */
 void MainWindow::on_timeStampTimeOut_textChanged(const QString &arg1)
 {
     timeStampTimer.setSingleShot(true);
     timeStampTimer.start(arg1.toInt());
 }
 
+/**
+ * @brief     选择当前显示的绘图器
+ */
 MyQCustomPlot* MainWindow::selectCurrentPlotter()
 {
     MyQCustomPlot* plotter = nullptr;
@@ -4576,6 +4686,9 @@ MyQCustomPlot* MainWindow::selectCurrentPlotter()
     return plotter;
 }
 
+/**
+ * @brief     字体设置按钮触发
+ */
 void MainWindow::on_actionFontSetting_triggered()
 {
     bool ok;
@@ -4590,6 +4703,10 @@ void MainWindow::on_actionFontSetting_triggered()
     }
 }
 
+/**
+ * @brief     更新UI面板的背景色
+ * @param[in] 新的背景色
+ */
 void MainWindow::updateUIPanelBackground(QString background)
 {
     ui->textBrowser->setStyleSheet("QPlainTextEdit" + background);
@@ -4604,6 +4721,10 @@ void MainWindow::updateUIPanelBackground(QString background)
     ui->menuBar->setStyleSheet("QMenuBar{ background-color: rgb(240,240,240);}");
 }
 
+/**
+ * @brief     更新UI面板的字体
+ * @param[in] 新的字体
+ */
 void MainWindow::updateUIPanelFont(QFont font)
 {
     ui->textBrowser->document()->setDefaultFont(font);
@@ -4617,6 +4738,9 @@ void MainWindow::updateUIPanelFont(QFont font)
 //    ui->multiString->setFont(font);
 }
 
+/**
+ * @brief     背景色设置按钮触发
+ */
 void MainWindow::on_actionBackGroundColorSetting_triggered()
 {
     QColor color;
@@ -4638,6 +4762,10 @@ void MainWindow::on_actionBackGroundColorSetting_triggered()
     teeManager.updateAllTeeBrowserStyleSheet("QPlainTextEdit" + str);
 }
 
+/**
+ * @brief     和校验按钮触发
+ * @param[in] 新的状态
+ */
 void MainWindow::on_actionSumCheck_triggered(bool checked)
 {
     ui->actionSumCheck->setChecked(checked);
@@ -4645,6 +4773,9 @@ void MainWindow::on_actionSumCheck_triggered(bool checked)
     setVisualizerTitle();
 }
 
+/**
+ * @brief     全局弹出热键按钮触发
+ */
 void MainWindow::on_actionPopupHotkey_triggered()
 {
     bool ok;
@@ -4659,19 +4790,29 @@ void MainWindow::on_actionPopupHotkey_triggered()
     registPopupHotKey(newKeySeq);
 }
 
+/**
+ * @brief     按键按下事件
+ * @param[in] 事件值
+ */
 void MainWindow::keyPressEvent(QKeyEvent *e)
 {
 //    qDebug()<<"MainWindow::keyPressEvent"<<e->key();
     emit sendKeyToPlotter(e, true);
 }
 
+/**
+ * @brief     按键松开事件
+ * @param[in] 事件值
+ */
 void MainWindow::keyReleaseEvent(QKeyEvent *e)
 {
 //    qDebug()<<"MainWindow::keyReleaseEvent"<<e->key();
     emit sendKeyToPlotter(e, false);
 }
 
-//计算当前窗口能显示多少字符
+/**
+ * @brief     计算当前窗口能显示多少字符
+ */
 void MainWindow::calcCharacterNumberInWindow()
 {
     QByteArray saveCurrentDataInBrowser;
@@ -4709,7 +4850,11 @@ void MainWindow::calcCharacterNumberInWindow()
     ui->textBrowser->setPlainText(saveCurrentDataInBrowser);
 }
 
-//用于估计窗口能显示多少字符
+/**
+ * @brief     窗口大小改变事件
+ * @note      用于估计窗口能显示多少字符
+ * @param[in] 事件值
+ */
 void MainWindow::resizeEvent(QResizeEvent* event)
 {
     Q_UNUSED(event)
@@ -4731,6 +4876,11 @@ void MainWindow::resizeEvent(QResizeEvent* event)
     calcCharacterNumberInWindow();
 }
 
+/**
+ * @brief     分裂器移动事件的槽
+ * @note      用于重新估计窗口能显示多少字符
+ * @param[in] 新的位置
+ */
 void MainWindow::splitterMovedSlot(int pos, int index)
 {
     Q_UNUSED(pos);
@@ -4758,6 +4908,10 @@ void MainWindow::splitterMovedSlot(int pos, int index)
     printToTextBrowser();
 }
 
+/**
+ * @brief     Tee子选项卡关闭请求
+ * @param[in] 要关闭的选项卡索引
+ */
 void MainWindow::on_tabWidget_tabCloseRequested(int index)
 {
     QString selectName;
@@ -4783,6 +4937,10 @@ void MainWindow::on_tabWidget_tabCloseRequested(int index)
 //    ui->tabWidget->removeTab(index);//removeTab不会释放对象
 }
 
+/**
+ * @brief     绘图器选项卡关闭请求
+ * @param[in] 要关闭的选项卡索引
+ */
 void MainWindow::on_tabWidget_plotter_tabCloseRequested(int index)
 {
     QString selectName;
@@ -4807,6 +4965,10 @@ void MainWindow::on_tabWidget_plotter_tabCloseRequested(int index)
     }
 }
 
+/**
+ * @brief     Tee窗口选项卡点击事件
+ * @param[in] 被点击的选项卡索引
+ */
 void MainWindow::on_tabWidget_tabBarClicked(int index)
 {
     ui->tabWidget->setCurrentIndex(index);
@@ -4818,6 +4980,10 @@ void MainWindow::on_tabWidget_tabBarClicked(int index)
     }
 }
 
+/**
+ * @brief     绘图器选项卡点击事件
+ * @param[in] 被点击的选项卡索引
+ */
 void MainWindow::on_tabWidget_plotter_tabBarClicked(int index)
 {
     ui->tabWidget_plotter->setCurrentIndex(index);
@@ -4845,14 +5011,22 @@ void MainWindow::on_tabWidget_plotter_tabBarClicked(int index)
     }
 }
 
-//拖拽进入时
+/**
+ * @brief     拖拽进入事件
+ * @note      配合实现拖拽打开文件功能
+ * @param[in] 进入事件
+ */
 void MainWindow::dragEnterEvent(QDragEnterEvent *e)
 {
     if(e->mimeData()->hasFormat("text/uri-list")) //只能打开文本文件
         e->acceptProposedAction(); //可以在这个窗口部件上拖放对象
 }
 
-//拖拽松开时
+/**
+ * @brief     拖拽松开事件
+ * @note      实现拖拽打开文件功能
+ * @param[in] 松开事件
+ */
 void MainWindow::dropEvent(QDropEvent *e)
 {
     //获取文件路径列表
@@ -4888,6 +5062,10 @@ void MainWindow::dropEvent(QDropEvent *e)
     parseDatFile(path, false);
 }
 
+/**
+ * @brief     频谱图按钮触发
+ * @param[in] 新的状态
+ */
 void MainWindow::on_actionFFTShow_triggered(bool checked)
 {
     ui->actionFFTShow->setChecked(checked);
@@ -4933,6 +5111,11 @@ void MainWindow::on_actionFFTShow_triggered(bool checked)
     return;
 }
 
+/**
+ * @brief     主窗口移动事件
+ * @note      FFT窗口需要跟着主窗口移动
+ * @param[in] 移动事件
+ */
 void MainWindow::moveEvent(QMoveEvent *event)
 {
     static QPoint lastPos;
@@ -4944,12 +5127,20 @@ void MainWindow::moveEvent(QMoveEvent *event)
     lastPos = event->pos();
 }
 
+/**
+ * @brief     Tee二级名字提取按钮触发
+ * @param[in] 新的状态
+ */
 void MainWindow::on_actionTeeLevel2NameSupport_triggered(bool checked)
 {
     p_textExtract->setLevel2NameSupport(checked);
     ui->actionTeeLevel2NameSupport->setChecked(checked);
 }
 
+/**
+ * @brief     Tee功能使能按钮触发
+ * @param[in] 新的状态
+ */
 void MainWindow::on_actionTeeSupport_triggered(bool checked)
 {
     ui->actionTeeSupport->setChecked(checked);
@@ -4962,6 +5153,9 @@ void MainWindow::on_actionTeeSupport_triggered(bool checked)
     }
 }
 
+/**
+ * @brief     ASCII表按钮触发
+ */
 void MainWindow::on_actionASCIITable_triggered()
 {
     static Ascii_Table_Dialog *p = nullptr;
@@ -4975,6 +5169,10 @@ void MainWindow::on_actionASCIITable_triggered()
     p->show();
 }
 
+/**
+ * @brief     更新“功能”按钮标题
+ * @note      为了增加Recording标识
+ */
 void MainWindow::updateFunctionButtonTitle()
 {
     if(ui->actionRecordRawData->isChecked() ||
@@ -4988,6 +5186,10 @@ void MainWindow::updateFunctionButtonTitle()
     return;
 }
 
+/**
+ * @brief     记录原始数据按钮触发
+ * @param[in] 新的状态
+ */
 void MainWindow::on_actionRecordRawData_triggered(bool checked)
 {
     ui->actionRecordRawData->setChecked(checked);
@@ -5052,6 +5254,11 @@ void MainWindow::on_actionHexConverter_triggered(bool checked)
     p->show();
 }
 
+/**
+ * @brief     asciiMacth文本编辑窗口文本改变
+ * @note      用于重设匹配字符串
+ * @param[in] 新的字符串
+ */
 void MainWindow::on_regMatchEdit_textChanged(const QString &arg1)
 {
     if(!p_regMatch)
@@ -5076,6 +5283,10 @@ void MainWindow::on_regMatchEdit_textChanged(const QString &arg1)
     p_regMatch->updateRegMatch(arg1);
 }
 
+/**
+ * @brief     记录图像数据按钮触发
+ * @param[in] 新的状态
+ */
 void MainWindow::on_actionRecordGraphData_triggered(bool checked)
 {
     ui->actionRecordGraphData->setChecked(checked);
@@ -5159,6 +5370,10 @@ void MainWindow::on_actionRecordGraphData_triggered(bool checked)
     updateFunctionButtonTitle();
 }
 
+/**
+ * @brief     LOG记录开关按钮触发
+ * @param[in] 新的状态
+ */
 void MainWindow::on_actionLogRecord_triggered(bool checked)
 {
     if(!checked)
@@ -5175,6 +5390,10 @@ void MainWindow::on_actionLogRecord_triggered(bool checked)
     }
 }
 
+/**
+ * @brief     CSV协议按钮触发
+ * @param[in] 新的状态
+ */
 void MainWindow::on_actionCSV_triggered(bool checked)
 {
     Q_UNUSED(checked)
@@ -5193,6 +5412,10 @@ void MainWindow::on_actionCSV_triggered(bool checked)
     setVisualizerTitle();
 }
 
+/**
+ * @brief     MAD协议按钮触发
+ * @param[in] 新的状态
+ */
 void MainWindow::on_actionMAD_triggered(bool checked)
 {
     Q_UNUSED(checked)
@@ -5211,13 +5434,18 @@ void MainWindow::on_actionMAD_triggered(bool checked)
     setVisualizerTitle();
 }
 
-//简洁模式的清空按钮
+/**
+ * @brief     简洁模式的清空按钮
+ */
 void MainWindow::on_clearWindows_simple_clicked()
 {
     on_clearWindows_clicked();
 }
 
-//简洁模式
+/**
+ * @brief     简洁模式按钮触发
+ * @param[in] 新的状态
+ */
 void MainWindow::on_actionSimpleMode_triggered(bool checked)
 {
     int32_t length;
@@ -5243,7 +5471,9 @@ void MainWindow::on_actionSimpleMode_triggered(bool checked)
     }
 }
 
-
+/**
+ * @brief     设置默认绘图器按钮触发
+ */
 void MainWindow::on_actionSetDefaultPlotterTitle_triggered()
 {
     bool ok;

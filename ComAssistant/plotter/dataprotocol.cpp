@@ -14,6 +14,11 @@ DataProtocol::~DataProtocol()
 {
 }
 
+/**
+ * @brief     设置协议类型
+ * @param[in] 协议类型
+ * @param[in] 是否清空缓冲
+ */
 void DataProtocol::setProtocolType(ProtocolType_e type, bool clearbuff)
 {
     protocolType = type;
@@ -24,21 +29,39 @@ void DataProtocol::setProtocolType(ProtocolType_e type, bool clearbuff)
     }
 }
 
+/**
+ * @brief     获取协议类型
+ * @return    返回的协议类型
+ */
 DataProtocol::ProtocolType_e DataProtocol::getProtocolType()
 {
     return protocolType;
 }
 
+/**
+ * @brief     获取默认标题
+ * @return    默认标题
+ */
 QString DataProtocol::getDefaultPlotterTitle()
 {
     return defaultPlotTitle;
 }
+
+/**
+ * @brief     设置默认标题
+ * @param[in] 新的标题
+ * @return    错误码
+ */
 int32_t DataProtocol::setDefaultPlotterTitle(QString title)
 {
     defaultPlotTitle = title;
     return 0;
 }
 
+/**
+ * @brief     往协议（解析器）中追加数据
+ * @param[in] 新的数据
+ */
 void DataProtocol::appendData(const QByteArray &data)
 {
     QByteArray tmp;
@@ -63,9 +86,13 @@ void DataProtocol::appendData(const QByteArray &data)
     tempDataPoolLock.unlock();
 }
 
+/**
+ * @brief     解析协议（解析器）中的数据
+ * @param[in] 是否需要和校验
+ */
 void DataProtocol::parseData(bool enableSumCheck)
 {
-    parsePacksFromBuffer(tempDataPool, tempDataPool, 
+    parsePacksFromBuffer(tempDataPool, tempDataPool,
                          tempDataPoolLock, enableSumCheck);
 
     //在解析完成后剔除前面已扫描过的数据
@@ -77,6 +104,11 @@ void DataProtocol::parseData(bool enableSumCheck)
     }
 }
 
+/**
+ * @brief     ASCII协议是否存在错误字符串
+ * @param[in] 被检测的字符串
+ * @return    检测结果
+ */
 inline int32_t DataProtocol::hasErrorStr_Ascii(QByteArray &input)
 {
     int32_t err = 0;
@@ -103,7 +135,14 @@ inline int32_t DataProtocol::hasErrorStr_Ascii(QByteArray &input)
     return err;
 }
 
-//从缓存中提取所有包，每提取出一个包就解析一个
+/**
+ * @brief      从缓冲中解析数据包
+ * @note       根据不同协议使用不同解析方法，解析出数据包后会马上解析数据值
+ * @param[in]  输入缓冲
+ * @param[out] 剩余缓冲
+ * @param[in]  缓冲锁
+ * @param[in]  是否使能和校验
+ */
 inline void DataProtocol::parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBuffer,
                                                QMutex &bufferLock, bool enableSumCheck)
 {
@@ -187,7 +226,7 @@ inline void DataProtocol::parsePacksFromBuffer(QByteArray& buffer, QByteArray& r
     else if(protocolType == Float)
     {
         QByteArray tmpArray = buffer;
-        while (tmpArray.indexOf(MAXDATA_AS_END)!=-1) 
+        while (tmpArray.indexOf(MAXDATA_AS_END) != -1)
         {
             QByteArray before = tmpArray.mid(0,tmpArray.indexOf(MAXDATA_AS_END));
             tmpArray = tmpArray.mid(tmpArray.indexOf(MAXDATA_AS_END)+MAXDATA_AS_END.size());
@@ -206,7 +245,7 @@ inline void DataProtocol::parsePacksFromBuffer(QByteArray& buffer, QByteArray& r
     else if(protocolType == CSV)
     {
         bufferLock.lock();
-        while (buffer.indexOf('\0') != -1) 
+        while (buffer.indexOf('\0') != -1)
         {
             buffer.remove(buffer.indexOf('\0'), 1);
         }
@@ -284,7 +323,7 @@ inline void DataProtocol::parsePacksFromBuffer(QByteArray& buffer, QByteArray& r
         do {
                 QByteArray onePack;
                 match = reg.match(buffer, scanIndex);
-                if(match.hasMatch()) 
+                if(match.hasMatch())
                 {
                     scanIndex = match.capturedEnd();
                     lastScannedIndex = scanIndex;
@@ -319,6 +358,10 @@ inline void DataProtocol::parsePacksFromBuffer(QByteArray& buffer, QByteArray& r
     }
 }
 
+/**
+ * @brief     清空缓冲
+ * @param[in] 要清空的缓冲名称
+ */
 void DataProtocol::clearBuff(const QString &name)
 {
 
@@ -352,11 +395,22 @@ void DataProtocol::clearBuff(const QString &name)
     dataPoolLock.unlock();
 }
 
+/**
+ * @brief     是否存在已解析完成的数据（在数据池中）
+ * @return    返回结果
+ */
 int32_t DataProtocol::hasParsedBuff()
 {
     return hasParsedBuffCnt;
 }
 
+/**
+ * @brief      从数据池中弹出一行数据
+ * @note
+ * @param[in]  要弹出的数据所属的名称
+ * @param[out] 弹出的数据
+ * @return     无用
+ */
 int32_t DataProtocol::popOneRowData(QString &name, QVector<double> &rowData)
 {
     dataPoolLock.lock();
@@ -375,8 +429,15 @@ int32_t DataProtocol::popOneRowData(QString &name, QVector<double> &rowData)
     return 0;
 }
 
-//outName和outRowData是专门为ASCII协议用的返回值
-inline DataProtocol::RowData_t 
+/**
+ * @brief      （从数据包中）提取（解析）一行数据
+ * @note
+ * @param[in]  要被提取的数据包
+ * @param[out] 提取出的数据包的名称
+ * @param[out] 提取出的数据包的数据
+ * @return     提取出的数据包的数据
+ */
+inline DataProtocol::RowData_t
 DataProtocol::extractRowData(const Pack_t &pack, QString &outName, RowData_t &outRowData)
 {
     QString namePack = defaultPlotTitle;
@@ -402,7 +463,7 @@ DataProtocol::extractRowData(const Pack_t &pack, QString &outName, RowData_t &ou
         reg.setPattern("[\\+-]?\\d+\\.?\\d*");//匹配实数 符号出现0、1次，数字至少1次，小数点0、1次，小数不出现或出现多次
         do {
                 match = reg.match(dataPack, index);
-                if(match.hasMatch()) 
+                if(match.hasMatch())
                 {
                     index = match.capturedEnd();
                     rowData << match.captured(0).toDouble();
@@ -418,7 +479,7 @@ DataProtocol::extractRowData(const Pack_t &pack, QString &outName, RowData_t &ou
     else if(protocolType == Float)
     {
         dataPack = pack;
-        while (dataPack.size()>0) 
+        while (dataPack.size() > 0)
         {
             float tmp;
             if(packToFloat(dataPack, tmp))
@@ -452,7 +513,7 @@ DataProtocol::extractRowData(const Pack_t &pack, QString &outName, RowData_t &ou
         reg.setPattern("[\\+-]?\\d+\\.?\\d*");//匹配实数 符号出现0、1次，数字至少1次，小数点0、1次，小数不出现或出现多次
         do {
                 match = reg.match(dataPack, index);
-                if(match.hasMatch()) 
+                if(match.hasMatch())
                 {
                     index = match.capturedEnd();
                     rowData << match.captured(0).toDouble();
@@ -472,6 +533,12 @@ DataProtocol::extractRowData(const Pack_t &pack, QString &outName, RowData_t &ou
     return rowData;
 }
 
+/**
+ * @brief     把（提取出的）数据加入数据池中
+ * @param[in] 数据所属的名称
+ * @param[in] 数据
+ * @param[in] 是否使能和校验
+ */
 inline void DataProtocol::addToDataPool(QString &name, RowData_t &rowData, bool enableSumCheck=false)
 {
     #define SUPER_MIN_VALUE 0.000001
@@ -528,13 +595,20 @@ inline void DataProtocol::addToDataPool(QString &name, RowData_t &rowData, bool 
     }
 }
 
+/**
+ * @brief      字节数组强转Float型数据
+ * @note
+ * @param[in]  要转换的字节数组
+ * @param[out] 转换结果
+ * @return     是否转换成功
+ */
 bool DataProtocol::byteArrayToFloat(const QByteArray& array, float& result)
 {
-    if(array.size()<4)
+    if(array.size() < 4)
         return false;
 
     char num[4];
-    for(int i = 0; i<4; i++)
+    for(int i = 0; i < 4; i++)
         num[i] = array.at(i);//
 //    qDebug("%.2f", *(reinterpret_cast<float*>(num)));
 
@@ -542,6 +616,13 @@ bool DataProtocol::byteArrayToFloat(const QByteArray& array, float& result)
     return true;
 }
 
+/**
+ * @brief      数据包转换为Float型数据
+ * @note       若一个数据包中有多个float型数据，则返回第一个
+ * @param[in]  要转换的数据包
+ * @param[out] 转换结果
+ * @return     是否转换成功
+ */
 bool DataProtocol::packToFloat(const Pack_t& pack , float& result)
 {
     return byteArrayToFloat(pack, result);
