@@ -909,7 +909,6 @@ void MainWindow::regM_saveDataResult(const qint32& result, const QString &path, 
     tee_saveDataResult(result, path, fileSize);
 }
 
-//TODO:这里好像有耗时代码
 /**
  * @brief     分类显示引擎数据更新的槽
  * @note      该槽可能会高频被触发，不要放耗时代码
@@ -919,26 +918,24 @@ void MainWindow::regM_saveDataResult(const qint32& result, const QString &path, 
  */
 void MainWindow::tee_textGroupsUpdate(const QString &name, const QByteArray &data)
 {
-//    qDebug()<<"tee_textGroupsUpdate";
-    QPlainTextEdit *textEdit = nullptr;
-    qint32 count = 0;
-
     //statistic
     statisticTeeParseCnt += data.size();
 
-    //find tab name
-    count = ui->tabWidget->count();
-    for(qint32 i = 0; i < count; i++){
-        if(ui->tabWidget->tabText(i) == name){
-            textEdit = dynamic_cast<QPlainTextEdit *>(ui->tabWidget->widget(i));
-        }
+    if(data.size() == 0)
+    {
+        return;
     }
 
-    //insert data to plainText
-    if(textEdit){
-        textEdit->appendPlainText(data);
-    }else{
+    if(teeManager.appendTeeBrowserBuffer(name, data))
+    {
+        if(name == MAIN_TAB_NAME || name == REGMATCH_TAB_NAME)
+        {
+            qDebug() << "name can not be" << name << "at" << __FUNCTION__;
+            ui->statusBar->showMessage(name + tr("已被系统占用，请更换名称。"), 2000);
+            return;
+        }
         //新增textEdit，并设置字体、背景、高亮器等属性
+        QPlainTextEdit *textEdit = nullptr;
         textEdit = new QPlainTextEdit(this);
         textEdit->setFont(g_font);
 
@@ -956,7 +953,15 @@ void MainWindow::tee_textGroupsUpdate(const QString &name, const QByteArray &dat
         textEdit->setReadOnly(true);
 
         ui->tabWidget->addTab(textEdit, name);
-        textEdit->appendPlainText(data);
+        teeManager.addTeeBrowser(name, textEdit);
+    }
+
+    //再次尝试把数据放缓冲里
+    if(teeManager.appendTeeBrowserBuffer(name, data))
+    {
+        qDebug() << "teeManager append buffer error at" << __FUNCTION__
+                 << "name:" << name
+                 << "data:" << data;
     }
 }
 
@@ -968,6 +973,8 @@ void MainWindow::printToTextBrowserTimerSlot()
     //更新收发统计(可能会占用一点点点loading)
     statusStatisticLabel->setText(serial.getTxRxString_with_color());
 
+    //打印分类文本数据
+    teeManager.updateAllTeeBrowserText();
     //打印正则匹配数据
     if(!regMatchBuffer.isEmpty())
     {
@@ -2182,6 +2189,7 @@ void MainWindow::on_clearWindows_clicked()
             emit tee_clearData(ui->tabWidget->tabText(i));
             if(ui->tabWidget->widget(i) != nullptr)
             {
+                teeManager.removeTeeBrowser(ui->tabWidget->tabText(i));
                 delete ui->tabWidget->widget(i);
             }
 //            ui->tabWidget->removeTab(i);
@@ -4578,15 +4586,7 @@ void MainWindow::on_actionFontSetting_triggered()
         g_font = font;
         updateUIPanelFont(g_font);
 
-        QPlainTextEdit *textEdit = nullptr;
-        for(qint32 i = 0; i < ui->tabWidget->count(); i++)
-        {
-            textEdit = dynamic_cast<QPlainTextEdit *>(ui->tabWidget->widget(i));
-            if(textEdit)
-            {
-                textEdit->setFont(g_font);
-            }
-        }
+        teeManager.updateAllTeeBrowserFont(g_font);
     }
 }
 
@@ -4635,13 +4635,7 @@ void MainWindow::on_actionBackGroundColorSetting_triggered()
     str.replace("RGBB", QString::number(b));
     updateUIPanelBackground(str);
 
-    QPlainTextEdit *textEdit = nullptr;
-    for(qint32 i = 0; i < ui->tabWidget->count(); i++){
-        textEdit = dynamic_cast<QPlainTextEdit *>(ui->tabWidget->widget(i));
-        if(textEdit){
-            textEdit->setStyleSheet("QPlainTextEdit" + str);
-        }
-    }
+    teeManager.updateAllTeeBrowserStyleSheet("QPlainTextEdit" + str);
 }
 
 void MainWindow::on_actionSumCheck_triggered(bool checked)
@@ -4783,6 +4777,7 @@ void MainWindow::on_tabWidget_tabCloseRequested(int index)
     emit tee_clearData(selectName);
     if(selectName != nullptr)
     {
+        teeManager.removeTeeBrowser(selectName);
         delete ui->tabWidget->widget(index);
     }
 //    ui->tabWidget->removeTab(index);//removeTab不会释放对象
@@ -4810,7 +4805,6 @@ void MainWindow::on_tabWidget_plotter_tabCloseRequested(int index)
     {
         plotter->replot();
     }
-//    ui->tabWidget->removeTab(index);//removeTab不会释放对象
 }
 
 void MainWindow::on_tabWidget_tabBarClicked(int index)

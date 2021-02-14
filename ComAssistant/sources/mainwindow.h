@@ -48,6 +48,7 @@
 #include "data_logger.h"
 #include "reg_match_engine.h"
 #include "plotter_manager.h"
+#include "tee_manager.h"
 //界面类
 #include "stm32isp_dialog.h"
 #include "about_me_dialog.h"
@@ -269,7 +270,7 @@ private:
     QByteArray unshowedRxBuff;      //未上屏的接收缓冲
 
     const int32_t PLOTTER_SHOW_PERIOD = 40;  //绘图器显示频率25FPS（解析频率由parseTimer100hz控制）
-    const int32_t TEXT_SHOW_PERIOD    = 50;  //文本显示频率20FPS（刷新率太高低配机型会卡顿）
+    const int32_t TEXT_SHOW_PERIOD    = 50;  //文本显示频率20FPS
 
     bool is_multi_str_double_click = false;
 
@@ -360,6 +361,8 @@ private:
 
     //绘图器集合管理
     PlotterManager plotterManager;
+    //Tee窗口集合管理
+    TeeManager teeManager;
 
 signals:
     void protocol_appendData(const QByteArray &data);

@@ -1,6 +1,6 @@
 #include "plotter_manager.h"
 
-PlotterManager::PlotterManager(QObject *parent) 
+PlotterManager::PlotterManager(QObject *parent)
 : QObject(parent)
 {
 }
@@ -16,7 +16,7 @@ int32_t PlotterManager::init()
 
 int32_t PlotterManager::addPlotter(QString plotterTitle, MyQCustomPlot* plotter)
 {
-    if(!plotter)
+    if(!plotter || plotterTitle.isEmpty())
     {
         return -1;
     }
@@ -26,6 +26,11 @@ int32_t PlotterManager::addPlotter(QString plotterTitle, MyQCustomPlot* plotter)
 
 int32_t PlotterManager::removePlotter(QString plotterTitle)
 {
+    if(plotterTitle.isEmpty())
+    {
+        return -1;
+    }
+
     //这个函数只是从plotterMap移除对象不会释放这个对象资源
     MyQCustomPlot* plotter = nullptr;
     plotter = plotterMap.value(plotterTitle);
@@ -44,6 +49,11 @@ int32_t PlotterManager::removePlotter(QString plotterTitle)
 
 MyQCustomPlot* PlotterManager::selectPlotter(QString plotterTitle)
 {
+    if(plotterTitle.isEmpty())
+    {
+        return nullptr;
+    }
+
     MyQCustomPlot* plotter = nullptr;
     plotter = plotterMap.value(plotterTitle);
     return plotter;
@@ -51,12 +61,17 @@ MyQCustomPlot* PlotterManager::selectPlotter(QString plotterTitle)
 
 int32_t PlotterManager::clearPlotter(QString title)
 {
+    if(title.isEmpty())
+    {
+        return -1;
+    }
+
     MyQCustomPlot* plotter = nullptr;
     plotter = plotterMap.value(title);
-    
+
     if(!plotter)
         return -1;
-    
+
     plotter->plotControl->resetRightEdge();
     plotter->plotControl->clearPlotter(-1);
     while(plotter->graphCount() > 1)
@@ -97,8 +112,10 @@ int32_t PlotterManager::updateAllPlotterFont(QFont font)
     QMap<QString, MyQCustomPlot*>::iterator it;
     for(it = plotterMap.begin(); it != plotterMap.end(); it++)
     {
+        plotter = nullptr;
         plotter = it.value();
-        plotter->plotControl->setupFont(font);
+        if(plotter)
+            plotter->plotControl->setupFont(font);
     }
     return 0;
 }
@@ -118,7 +135,7 @@ int32_t PlotterManager::setDefaultPlotter(MyQCustomPlot* plotter)
 {
     if(!plotter)
         return -1;
-    
+
     //TODO:确认下如果没找到是会进这个逻辑吗？
     if(plotterMap.value(plotter->getPlotterTitle()) == nullptr)
     {
@@ -132,6 +149,11 @@ int32_t PlotterManager::setDefaultPlotter(MyQCustomPlot* plotter)
 
 int32_t PlotterManager::setDefaultPlotter(QString plotterTitle)
 {
+    if(plotterTitle.isEmpty())
+    {
+        return -1;
+    }
+
     MyQCustomPlot* plotter = nullptr;
     plotter = plotterMap.value(plotterTitle);
     if(plotter)
@@ -148,4 +170,3 @@ MyQCustomPlot* PlotterManager::getDefaultPlotter()
 {
     return defaultPlotter;
 }
-

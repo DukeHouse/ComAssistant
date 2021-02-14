@@ -11,7 +11,7 @@
 #include "fft_dialog.h"
 
 /*
- * 本文件对各个绘图器对象进行管理，用于实现多窗口绘图 
+ * 本文件对各个绘图器对象进行管理，用于实现多窗口绘图
  */
 
 class PlotterManager : public QObject
@@ -24,7 +24,6 @@ public:
     ~PlotterManager();
     int32_t init();
     int32_t addPlotter(QString plotterTitle, MyQCustomPlot* plotter);
-    int32_t createPlotter(QString plotterTitle);
     int32_t removePlotter(QString plotterTitle);
     MyQCustomPlot* selectPlotter(QString plotterTitle);
     int32_t clearPlotter(QString title);
@@ -33,7 +32,7 @@ public:
     QVector<MyQCustomPlot*> getAllPlotters();
     int32_t setDefaultPlotter(MyQCustomPlot* plotter);
     int32_t setDefaultPlotter(QString plotterTitle);
-    MyQCustomPlot* getDefaultPlotter(); 
+    MyQCustomPlot* getDefaultPlotter();
 public slots:
 private:
     QMap<QString, MyQCustomPlot*> plotterMap;

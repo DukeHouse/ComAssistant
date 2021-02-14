@@ -20,7 +20,12 @@
         "xhash": "cpp",
         "xstring": "cpp",
         "xtree": "cpp",
-        "xutility": "cpp"
+        "xutility": "cpp",
+        "system_error": "cpp",
+        "xlocale": "cpp",
+        "map": "cpp",
+        "unordered_map": "cpp",
+        "mutex": "cpp"
     }
 }
 }

@@ -82,6 +82,7 @@ SOURCES += \
     plotter/plotter_manager.cpp \
     plotter/qcustomplot.cpp \
     plotter/qcustomplotcontrol.cpp \
+    sources/tee_manager.cpp \
     sources/baseconversion.cpp \
     sources/config.cpp \
     sources/data_logger.cpp \
@@ -160,6 +161,7 @@ HEADERS += \
     plotter/plotter_manager.h \
     plotter/qcustomplot.h \
     plotter/qcustomplotcontrol.h \
+    sources/tee_manager.h \
     sources/baseconversion.h \
     sources/common.h \
     sources/config.h \

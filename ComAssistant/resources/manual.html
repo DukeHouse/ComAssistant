@@ -4,12 +4,12 @@
 
 <h2>文件</h2>
 <ul>
-  <li><b>保存原始数据</b>：将自上一次清空窗口后收到的原始数据以二进制流形式保存</li>
-  <li><b>打开原始数据</b>：将选择的文件中以二进制流的形式读入程序并进行解析</li>
+  <li><b>保存原始数据</b>：将自上一次清空窗口后收到的原始数据以二进制流形式保存。</li>
+  <li><b>打开原始数据</b>：将选择的文件中以二进制流的形式读入程序并进行解析。</li>
   <li><b>保存显示数据</b>：将数据显示区中的内容以文本形式保存。该选项所见即所得，不可见字符会被抛弃，时间戳等修饰内容也会被保存。</li>
   <li><b>保存曲线数据</b>：将绘图器收到的数据保存为excel、csv、txt文件。（若要用本软件重新打开曲线数据，请选择“保存为原始数据”）</li>
   <li><b>保存曲线图片</b>：将绘图曲线保存为图片。图片的尺寸由当前窗口大小决定。图像的质量顺序由高到底通常为pdf > bmp > jpg = png</li>
-  <li><b>发送文件</b>：将选择的文件以二进制流的形式从串口发送出去</li>
+  <li><b>发送文件</b>：将选择的文件以二进制流的形式从串口发送出去。</li>
 </ul>
 
 <h2>功能</h2>
@@ -17,24 +17,24 @@
   <li><b>多字符串</b>：发送的数据均会记录下来供重复使用。</li>
   <li><b>多字符串序列发送</b>：在注释部分添加[num]即可，其中num为延时毫秒，num毫秒后自动发送下一个字符串，当num为0时停止发送，常用于多指令序列发送。</li>
   <li><b>分类解析引擎</b>：分类解析引擎开关，关闭后将无法进行分类显示。具体参考《分类文本显示》</li>
-  <li><b>提取二级名称</b>：分类文本显示支持二级名称的提取以进行二级分类，规则为进一步将text_data段中的花括号数据提取出来作为二级名称，如{title1:{title2}string}\n，注意绘图协议不支持二级名称，只能是形如{title:num1,num2,num3}的结构</li>
-  <li><b>记录数据到文件</b>：将收到的数据写入文件保存</li>
+  <li><b>提取二级名称</b>：分类文本显示支持二级名称的提取以进行二级分类，规则为进一步将text_data段中的花括号数据提取出来作为二级名称，如{title1:{title2}string}\n，注意绘图协议不支持二级名称，只能是形如{title:num1,num2,num3}的结构。</li>
+  <li><b>记录数据到文件</b>：将收到的数据写入文件保存。</li>
   <li><b>STM32-ISP</b>：实现STM32F1和F4系列的芯片的一键下载功能。</li>
-  <li><b>ASCII码表</b>：提供一个ASCII码表格进行查询</li>
-  <li><b>HEX转换</b>：提供了一个ASCII和HEX相互转换的小工具</li>
+  <li><b>ASCII码表</b>：提供一个ASCII码表格进行查询。</li>
+  <li><b>HEX转换</b>：提供了一个ASCII和HEX相互转换的小工具。</li>
 </ul>
 
 <h2>设置</h2>
 <ul>
-  <li><b>串口设置</b>：对串口进行更丰富的设置</li>
-  <li><b>编码规则</b>：选择软件内部使用的编码规则。这会影响中文显示效果</li>
-  <li><b>回车样式</b>：选择win风格回车"\r\n"还是unix风格回车"\n"。这会影响回车效果</li>
+  <li><b>串口设置</b>：对串口进行更丰富的设置。</li>
+  <li><b>编码规则</b>：选择软件内部使用的编码规则。这会影响中文显示效果。</li>
+  <li><b>回车样式</b>：选择win风格回车"\r\n"还是unix风格回车"\n"。这会影响回车效果。</li>
   <li><b>个性化</b>：
     <ul>
         <!--<li><b>关键字高亮</b>：开启/关闭数据显示区的关键字高亮功能，方便阅读。时间戳信息、字符串、注释等以及如下字符会被高亮: , ; { } = ( ) [ ] &lt; &gt;</li>-->
-        <li><b>全局弹出热键</b>：弹出主窗口，最小化后方便快速打开查看数据，默认值为Shift+Alt+C，点击后进行修改</li>
-        <li><b>字体设置</b>：设置字体</li>
-        <li><b>背景色设置</b>：设置背景色</li>
+        <li><b>全局弹出热键</b>：弹出主窗口，最小化后方便快速打开查看数据，默认值为Shift+Alt+C，点击后进行修改。</li>
+        <li><b>字体设置</b>：设置字体。</li>
+        <li><b>背景色设置</b>：设置背景色。</li>
     </ul>
   </li>
   <li><b>恢复默认设置</b>：软件支持保存部分设置，该按钮可以恢复所有默认设置。也可以在关闭软件后通过删除程序目录的ComAssistantConfig.ini文件达到同样目的。</li>
@@ -54,7 +54,7 @@
     title 表示窗口标题，由字母、数字、下划线组成，纸飞机将根据title划分不同的显示窗口。
     :为 title 和 string 之间的分隔符。
     string 表示文本字符串数据，支持大部分可见英文字符。
-    \n为换行符，可以是\n也可以是\r\n，该字符不可遗漏。
+    \n为换行符，也可以是\r\n，该字符不可遗漏。
     单个数据包长限制为512字节，超大的数据包将无法解析。
     </pre>
     <br>
@@ -89,62 +89,62 @@
 <ul>
     多窗口绘图器支持ASCII协议、CSV协议、FLOAT协议，只有ASCII协议支持多窗口绘图，其余协议只能在默认窗口绘图
     <ul>
-        <li>ASCII协议的规则和分类文本显示协议几乎一致，具体参考分类文本显示功能<br>
-            <b>C语言示例</b>：
+        <li><b>ASCII协议：</b>ASCII协议规则和分类文本显示协议几乎一致，具体参考分类文本显示功能。<br>
+            C语言示例：
             <pre style="background-color: rgb(235, 235, 235);">
-            1.首先定义宏函数简化后期工作：
-                #define PRINT(title, fmt, ...) printf("{"#title":"fmt"}\n", __VA_ARGS__);
-            2.若要把电压电流曲线绘制在一个窗口，可这样调用：
-                PRINT(plotter, "%d,%d", volVar,curVar);
-            3.若要把电压电流曲线绘制在两个窗口，可这样调用：
-                PRINT(voltage, "%d", volVar);
-                PRINT(current, "%d", curVar);
+        1.首先定义宏函数简化后期工作：
+            #define PRINT(title, fmt, ...) printf("{"#title":"fmt"}\n", __VA_ARGS__);
+        2.若要把电压电流曲线绘制在一个窗口，可这样调用：
+            PRINT(plotter, "%d,%d", volVar,curVar);
+        3.若要把电压电流曲线绘制在两个窗口，可这样调用：
+            PRINT(voltage, "%d", volVar);
+            PRINT(current, "%d", curVar);
             </pre>
-            plotter是纸飞机的默认绘图窗口，你可以修改为其他的值。不管哪种协议每个绘图窗口最多显示15条曲线。
+            plotter是纸飞机的默认绘图窗口，你可以修改为其他的值。此外，不管哪种协议每个绘图窗口最多显示15条曲线。
         </li>
-        <li>CSV协议把逗号分隔的数据提取并显示在默认绘图窗口上。<br>
-            <b>C语言示例</b>：
+        <li><b>CSV协议：</b>CSV协议把逗号分隔的数据提取并显示在默认绘图窗口上。<br>
+            C语言示例：
             <pre style="background-color: rgb(235, 235, 235);">
-            1.若要显示电压和电流曲线，可直接使用格式化输出
-                printf("%d,%d\n", volVar,curVar);
+        1.若要显示电压和电流曲线，可直接使用格式化输出：
+            printf("%d,%d\n", volVar,curVar);
             </pre>
-            CSV协议不支持多窗口绘图，数据显示在默认绘图窗口上
+            CSV协议不支持多窗口绘图，数据显示在默认绘图窗口上。
         </li>
-        <li>FLOAT协议把数据流当成float型进行解析而非字符串。对于下位机，只需要将float类型数据按小端顺序拆成4个字节依次发送，并以0x00, 0x00, 0x80, 0x7F四个字节作为一组数据的结尾（0x7F800000是float型能表示的极小值），因此FLOAT协议的数据包总是4的倍数，且每4个数据表示一条曲线。<br>
-            <b>C语言示例</b>：
+        <li><b>FLOAT协议：</b>FLOAT协议把数据流当成float型进行解析而非字符串。对于下位机，只需要将float类型数据按小端顺序拆成4个字节依次发送，并以0x00, 0x00, 0x80, 0x7F四个字节作为一组数据的结尾（0x7F800000是float型能表示的极小值），因此FLOAT协议的数据包总是4的倍数，且每4个数据表示一条曲线。<br>
+            C语言示例：
             <pre style="background-color: rgb(235, 235, 235);">
-            //float转byte宏
-            #define BYTE0(dwTemp)       (*(char *)(&dwTemp))
-            #define BYTE1(dwTemp)       (*((char *)(&dwTemp) + 1))
-            #define BYTE2(dwTemp)       (*((char *)(&dwTemp) + 2))
-            #define BYTE3(dwTemp)       (*((char *)(&dwTemp) + 3))
-            //发送函数
-            void SendCurve(float data1, float data2)
-            {
-                u8 dataBuff[4+4+4];           //3个float型变量
-                u8 cnt = 0;
-                dataBuff[cnt++]=BYTE0(data1); //第一个变量
-                dataBuff[cnt++]=BYTE1(data1);
-                dataBuff[cnt++]=BYTE2(data1);
-                dataBuff[cnt++]=BYTE3(data1);
-                dataBuff[cnt++]=BYTE0(data2); //第二个变量
-                dataBuff[cnt++]=BYTE1(data2);
-                dataBuff[cnt++]=BYTE2(data2);
-                dataBuff[cnt++]=BYTE3(data2);
-                dataBuff[cnt++]=0x00;         //结束标志
-                dataBuff[cnt++]=0x00;
-                dataBuff[cnt++]=0x80;
-                dataBuff[cnt++]=0x7F;
+        //float转byte宏
+        #define BYTE0(dwTemp)       (*(char *)(&dwTemp))
+        #define BYTE1(dwTemp)       (*((char *)(&dwTemp) + 1))
+        #define BYTE2(dwTemp)       (*((char *)(&dwTemp) + 2))
+        #define BYTE3(dwTemp)       (*((char *)(&dwTemp) + 3))
+        //发送函数
+        void SendCurve(float data1, float data2)
+        {
+            u8 dataBuff[4+4+4];           //3个float型变量
+            u8 cnt = 0;
+            dataBuff[cnt++]=BYTE0(data1); //第一个变量
+            dataBuff[cnt++]=BYTE1(data1);
+            dataBuff[cnt++]=BYTE2(data1);
+            dataBuff[cnt++]=BYTE3(data1);
+            dataBuff[cnt++]=BYTE0(data2); //第二个变量
+            dataBuff[cnt++]=BYTE1(data2);
+            dataBuff[cnt++]=BYTE2(data2);
+            dataBuff[cnt++]=BYTE3(data2);
+            dataBuff[cnt++]=0x00;         //结束标志
+            dataBuff[cnt++]=0x00;
+            dataBuff[cnt++]=0x80;
+            dataBuff[cnt++]=0x7F;
 
-                u8 size = cnt;
-                for(int i = 0; i &lt; cnt; i++){
-                    printf("%c",dataBuff[i]);
-                }
+            u8 size = cnt;
+            for(int i = 0; i &lt; cnt; i++){
+                printf("%c",dataBuff[i]);
             }
+        }
             </pre>
-            FLOAT协议不支持多窗口绘图，数据显示在默认绘图窗口上
+            FLOAT协议不支持多窗口绘图，数据显示在默认绘图窗口上。
         </li>
-        <li>和校验：当勾选和校验时，绘图器会将最后一条曲线的数据作为前面曲线的累加和校验，校验不通过的数据将被丢弃。
+        <li><b>和校验：</b>当勾选和校验时，绘图器会将最后一条曲线的数据作为前面曲线的累加和校验，校验不通过的数据将被丢弃。
         </li>
     </ul>
 </ul>
@@ -161,8 +161,6 @@
     <li>横轴为绘图点的数量，纵轴为绘图点的值，如要求数据点之间具有相同的时间间隔，请自行控制下位机的发送时间间隔。</li>
     <li>无校验的绘图协议在物理链路的受电磁干扰存在数据错误可能，因此绘图过程中出现少量的异常绘图点属正常现象。</li>
 </ul>
-
-<h2>FAQ</h2>
 
 <h2>快捷键</h2>
 <ul>
@@ -191,6 +189,11 @@
   <li>运行多个纸飞机可能导致数据恢复功能不可用，这是因为共用了恢复文件，可将纸飞机放入不同路径下运行。</li>
   <li>记录数据到文件和数据恢复功能会定时往硬盘写入数据，写入频率约1Hz，即若软件意外崩溃，自崩溃起1秒内的数据可能丢失。</li>
   <li>部分USB转串口芯片（如FTDI）在高速收发下可能出现卡顿现象，可在设备管理器中检查该端口的属性，选择最高的缓冲大小和最小的收发延时计数器。</li>
+</ul>
+
+<h2>FAQ</h2>
+<ul>
+    暂无。
 </ul>
 
 <h2>隐私声明</h2>

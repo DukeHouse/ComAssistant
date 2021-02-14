@@ -36,6 +36,7 @@ QString DataProtocol::getDefaultPlotterTitle()
 int32_t DataProtocol::setDefaultPlotterTitle(QString title)
 {
     defaultPlotTitle = title;
+    return 0;
 }
 
 void DataProtocol::appendData(const QByteArray &data)
