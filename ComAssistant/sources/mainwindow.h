@@ -270,7 +270,7 @@ private:
     QByteArray unshowedRxBuff;      //未上屏的接收缓冲
 
     const int32_t PLOTTER_SHOW_PERIOD = 40;  //绘图器显示频率25FPS（解析频率由parseTimer100hz控制）
-    const int32_t TEXT_SHOW_PERIOD    = 50;  //文本显示频率20FPS
+    const int32_t TEXT_SHOW_PERIOD    = 55;  //文本显示频率18FPS
 
     bool is_multi_str_double_click = false;
 

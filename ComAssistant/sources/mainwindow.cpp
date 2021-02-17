@@ -1051,41 +1051,63 @@ void MainWindow::TxRxSpeedStatisticAndDisplay()
     idealSpeed = (double)serial.baudRate()/(serial.stopBits()+serial.parity()+serial.dataBits()+1)/1024.0;
     txLoad = 100 * txSpeedKB / idealSpeed;
     rxLoad = 100 * rxSpeedKB / idealSpeed;
-    if(txLoad > 100)txLoad = 100;//由于电脑串口是先放进缓冲再发送，因此会出现使用率大于100%的情况
-    if(rxLoad > 100)rxLoad = 100;
 
     QString txSpeedStr;
     QString rxSpeedStr;
     #define HIGH_LOAD_WARNING    90
-    if(txSpeedKB == 0)
+    if(txSpeedKB < 1)
     {
-        txSpeedStr = " T:" + QString::number(txSpeedKB) + "KB/s(" + QString::number(txLoad) + "%)";
+        txSpeedStr = " T:" + QString::number(static_cast<int32_t>(txSpeedKB * 1000.0)) + "B/s(" +
+                     QString::number(txLoad) + "%)";
     }
     else if(txSpeedKB < 1000)
     {
-        txSpeedStr = " T:" + QString::number(txSpeedKB, 'f', 2) + "KB/s(" + QString::number(txLoad) + "%)";
-    }else
+        txSpeedStr = " T:" + QString::number(txSpeedKB, 'f', 2) + "KB/s(" +
+                     QString::number(txLoad) + "%)";
+    }
+    else
     {
-        txSpeedStr = " T:" + QString::number(txSpeedKB, 'g', 2) + "KB/s(" + QString::number(txLoad) + "%)";
+        txSpeedStr = " T:" + QString::number(txSpeedKB, 'g', 2) + "KB/s(" +
+                     QString::number(txLoad) + "%)";
     }
     if(txLoad > HIGH_LOAD_WARNING)
     {
-        txSpeedStr = "<font color=#FF5A5A>" + txSpeedStr + "</font>";
+        //电脑串口有缓冲，因此会出现使用率大于100%的情况
+        if(txLoad > 100)
+        {
+            txSpeedStr = "<font color=#FF0000>" + txSpeedStr + "</font>";
+        }
+        else
+        {
+            txSpeedStr = "<font color=#FF5A5A>" + txSpeedStr + "</font>";
+        }
     }
-    if(rxSpeedKB == 0)
+    if(rxSpeedKB < 1)
     {
-        rxSpeedStr = " R:" + QString::number(rxSpeedKB) + "KB/s(" + QString::number(rxLoad) + "%)";
+        rxSpeedStr = " R:" + QString::number(static_cast<int32_t>(rxSpeedKB * 1000.0)) + "B/s(" +
+                     QString::number(rxLoad) + "%)";
     }
     else if(rxSpeedKB < 1000)
     {
-        rxSpeedStr = " R:" + QString::number(rxSpeedKB, 'f', 2) + "KB/s(" + QString::number(rxLoad) + "%)";
-    }else
+        rxSpeedStr = " R:" + QString::number(rxSpeedKB, 'f', 2) + "KB/s(" +
+                     QString::number(rxLoad) + "%)";
+    }
+    else
     {
-        rxSpeedStr = " R:" + QString::number(rxSpeedKB, 'g', 2) + "KB/s(" + QString::number(rxLoad) + "%)";
+        rxSpeedStr = " R:" + QString::number(rxSpeedKB, 'g', 2) + "KB/s(" +
+                     QString::number(rxLoad) + "%)";
     }
     if(rxLoad > HIGH_LOAD_WARNING)
     {
-        rxSpeedStr = "<font color=#FF5A5A>" + rxSpeedStr + "</font>";
+        //电脑串口有缓冲，因此会出现使用率大于100%的情况
+        if(rxLoad > 100)
+        {
+            rxSpeedStr = "<font color=#FF0000>" + rxSpeedStr + "</font>";
+        }
+        else
+        {
+            rxSpeedStr = "<font color=#FF5A5A>" + rxSpeedStr + "</font>";
+        }
     }
     statusSpeedLabel->setText(txSpeedStr + rxSpeedStr);
 }
