@@ -986,6 +986,8 @@ void MainWindow::printToTextBrowserTimerSlot()
         regMatchBufferLock.unlock();
     }
 
+    checkBlankProblem();
+
     //characterCount=0时或者窗口大小改变时重算窗口并重新显示
     if(characterCount == 0 || windowSize != ui->textBrowser->size())
     {
@@ -994,6 +996,12 @@ void MainWindow::printToTextBrowserTimerSlot()
     }
     if(TryRefreshBrowserCnt == DO_NOT_REFRESH_BROWSER)
         return;
+
+    if(!disableRefreshWindow)
+    {
+        checkScrollBarTooLarge();
+        checkBlankProblem();
+    }
 
     //打印数据
     printToTextBrowser();
@@ -1664,7 +1672,6 @@ void MainWindow::readSerialPort()
         BrowserBuff.append(QString::fromLocal8Bit(tmpReadBuff));
     }
 
-
     //允许数据刷新
     TryRefreshBrowserCnt = TRY_REFRESH_BROWSER_CNT;
 }
@@ -1717,8 +1724,14 @@ void MainWindow::printToTextBrowser()
     }
 
     //多显示一点并对齐到characterCount_Col的倍数
-    PAGING_SIZE = characterCount * 1.2;
-    PAGING_SIZE = PAGING_SIZE - PAGING_SIZE % characterCount_Col;
+    if(ui->hexDisplay->isChecked())
+        PAGING_SIZE = characterCount * 1.2 + 1; //characterCount 小于4时乘1.2还是等于4所以要加1确保增加
+    else
+        PAGING_SIZE = characterCount * 1.2 + 1;
+    if(PAGING_SIZE > characterCount_Col)
+        PAGING_SIZE = PAGING_SIZE - PAGING_SIZE % characterCount_Col;
+    else
+        PAGING_SIZE = characterCount_Col;
     //满足gbk/utf8编码长度的倍数
     if(ui->actionGBK->isChecked())
     {
@@ -1751,60 +1764,84 @@ void MainWindow::printToTextBrowser()
 
     ui->textBrowser->verticalScrollBar()->setValue(ui->textBrowser->verticalScrollBar()->maximum());
     ui->textBrowser->moveCursor(QTextCursor::End);
-
-    reduceShowedText();
 }
 
 /**
- * @brief     减少显示的文本
- * @note      为了降低CPU占用就尽可能少显示一点
+ * @brief     修复文本大量留白的问题
+ * @note      当缓冲数量大于窗口显示数量时，由于只显示了部分数据，
+ *            在缺少换行符或者纯中文的情况下，就显示出留白问题。
+ *            若存在留白现象，则滚动条数值变小，甚至消失，以此进行判断。
+ * @return    是否进行了处理
  */
-void MainWindow::reduceShowedText()
+int32_t MainWindow::checkBlankProblem()
 {
-    //逐步减少刷新内容以改善资源消耗，可能导致出现大量留白问题
-    #define MAX_BAR_VALUE (25)
-    if(ui->textBrowser->verticalScrollBar()->maximum() > MAX_BAR_VALUE)
+    int32_t ret = 0;
+
+    if(ui->textBrowser->verticalScrollBar()->maximum() != 0)
+        return ret;
+
+    if(ui->hexDisplay->isChecked())
     {
-        float coef = ui->textBrowser->verticalScrollBar()->maximum() / MAX_BAR_VALUE;
-        if(coef > 1)
+        if(hexBrowserBuff.size() > characterCount)
         {
-            characterCount = characterCount / coef;
-        }
-        else
-        {
-            characterCount -= (2 * 3);
-        }
-    }
-    //多显示一点并对齐到characterCount_Col的倍数
-    PAGING_SIZE = characterCount * 1.2;
-    PAGING_SIZE = PAGING_SIZE - PAGING_SIZE % characterCount_Col;
-    //满足gbk/utf8编码长度的倍数
-    if(ui->actionGBK->isChecked())
-    {
-        PAGING_SIZE = PAGING_SIZE - PAGING_SIZE % 2;
-    }
-    else if(ui->actionUTF8->isChecked())
-    {
-        PAGING_SIZE = PAGING_SIZE - PAGING_SIZE % 3;
-    }
-    //修复大量留白的问题：当缓冲数量大于窗口可显示数量但是却没有滚动条
-    if(ui->textBrowser->verticalScrollBar()->maximum() == 0)
-    {
-        if(ui->hexDisplay->isChecked())
-        {
-            if(hexBrowserBuff.size() > characterCount_bak)
+            if(characterCount == 0)
             {
-                calcCharacterNumberInWindow();
+                characterCount++;
             }
-        }
-        else
-        {
-            if(BrowserBuff.size() > characterCount_bak)
-            {
-                calcCharacterNumberInWindow();
-            }
+            characterCount = characterCount * 1.2 + 1;//characterCount 小于4时乘1.2还是等于4所以要加1确保增加
+            if(characterCount > hexBrowserBuff.size())
+                characterCount = hexBrowserBuff.size();
+            printToTextBrowser();
+            ret = 1;
         }
     }
+    else
+    {
+        if(BrowserBuff.size() > characterCount)
+        {
+            if(characterCount == 0)
+            {
+                characterCount++;
+            }
+            characterCount = characterCount * 1.2 + 1;//characterCount 小于4时乘1.2还是等于4所以要加1确保增加
+            if(characterCount > BrowserBuff.size())
+                characterCount = BrowserBuff.size();
+            printToTextBrowser();
+            ret = 1;
+        }
+    }
+
+    return ret;
+}
+
+/**
+ * @brief     检查滚动条是否太多，如果是则进行处理
+ * @note      滚动条太多时数据刷新会很慢
+ * @return    是否进行了处理
+ */
+int32_t MainWindow::checkScrollBarTooLarge()
+{
+    #define MAX_BAR_VALUE (20)
+    int32_t ret = 0;
+
+    if(ui->textBrowser->verticalScrollBar()->maximum() < MAX_BAR_VALUE)
+        return 0;
+
+    float coef = ui->textBrowser->verticalScrollBar()->maximum() / MAX_BAR_VALUE;
+    if(coef > 1)
+    {
+        characterCount = characterCount / coef;
+        printToTextBrowser();
+        ret = 1;
+    }
+    // else
+    // {
+    //     characterCount -= 1;
+    //     if(characterCount < 0)
+    //         characterCount = 0;
+    // }
+
+    return ret;
 }
 
 /**
@@ -2703,9 +2740,9 @@ void MainWindow::on_actionSaveShowedData_triggered()
     //删除旧数据形式写文件
     if(file.open(QFile::WriteOnly|QFile::Text|QFile::Truncate)){
         if(ui->hexDisplay->isChecked()){
-            stream<<hexBrowserBuff;
+            stream << hexBrowserBuff;
         }else{
-            stream<<BrowserBuff;
+            stream << BrowserBuff;
         }
         file.close();
 
@@ -4834,12 +4871,14 @@ void MainWindow::keyReleaseEvent(QKeyEvent *e)
 
 /**
  * @brief     计算当前窗口能显示多少字符
+ * @note      属于耗时函数（几十~几百毫秒）
  */
 void MainWindow::calcCharacterNumberInWindow()
 {
-    QByteArray saveCurrentDataInBrowser;
-
-    saveCurrentDataInBrowser = ui->textBrowser->toPlainText().toLocal8Bit();
+    QString saveCurrentDataInBrowser; //不要用QByteArray
+    QCursor saveCurrentCursor;
+    saveCurrentDataInBrowser = ui->textBrowser->toPlainText();
+    saveCurrentCursor = ui->textBrowser->cursor();
 
     //MainWindow尺寸改变时计算当前窗口能显示多少字符。
     //若MainWindow尺寸未变，内部控件尺寸变化的情况使用轮询解决
@@ -4870,6 +4909,7 @@ void MainWindow::calcCharacterNumberInWindow()
     characterCount_bak = characterCount;
 
     ui->textBrowser->setPlainText(saveCurrentDataInBrowser);
+    ui->textBrowser->setCursor(saveCurrentCursor);
 }
 
 /**

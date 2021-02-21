@@ -243,8 +243,9 @@ private:
     int32_t recordGraphDataToFile(const QString& recordPlotTitle,
                                   const QString& plotterTitle,
                                   const QVector<double>& oneRowData);
-    void reduceShowedText();
     void calcCharacterNumberInWindow();
+    int32_t checkBlankProblem();
+    int32_t checkScrollBarTooLarge();
     Ui::MainWindow *ui;
     mySerialPort serial;
 
