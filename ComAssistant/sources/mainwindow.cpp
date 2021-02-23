@@ -329,7 +329,8 @@ int32_t MainWindow::firstRunNotify()
     else
     {
         g_agree_statement = true;
-        if(Config::versionCompare(Config::readVersion(), "0.5.3") > 0)
+        if(Config::versionCompare(Config::readVersion(), "0.5.3") > 0
+        || Config::isEvalVersionFromIniFile())
         {
             QMessageBox::information(this,
                                     tr("提示"),

@@ -162,6 +162,7 @@ public:
     static QString getVersion();//这个是从软件本身读版本号
     static QString readVersion(void);//这个是从配置文件中读版本号
     static int32_t getVersionNumber();
+    static bool isEvalVersionFromIniFile();
     static int32_t versionCompare(QString oldVersion, QString newVersion);
     //serial
     static void setPortName(QString name);

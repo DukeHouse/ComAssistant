@@ -153,6 +153,15 @@ int32_t Config::getVersionNumber()
 {
     return version_to_number(getVersion());
 }
+bool Config::isEvalVersionFromIniFile()
+{
+    QString ver = readVersion();
+    QStringList list = ver.split('.');
+    if(list.size() != 3)
+        return false;
+
+    return list.at(2).toInt() >= 100 ? true : false;
+}
 /*
  * res = -1 传入的版本是旧版本
  * res = 0  版本相等
