@@ -125,6 +125,7 @@ private slots:
     void copyAllTextBrowser_triggered(void);
     void copyAllData_triggered(void);
     void on_regMatchEdit_textChanged(const QString &arg1);
+    void on_regMatchSwitch_clicked(bool checked);
 
     //file
     void on_actionSaveOriginData_triggered();

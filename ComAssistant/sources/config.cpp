@@ -39,7 +39,7 @@ void Config::writeCommentMsgAtFileTop()
 }
 
 void Config::writeDefault(){
-    qDebug() << "exec " << __FUNCTION__ << "() at " <<__FILE__;
+    qDebug() << "exec " << __FUNCTION__ << "() at" <<__FILE__;
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
 
     QFont defaultFont;

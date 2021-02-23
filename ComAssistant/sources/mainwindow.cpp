@@ -5569,3 +5569,38 @@ void MainWindow::on_actionSetDefaultPlotterTitle_triggered()
     plotProtocol->setDefaultPlotterTitle(text);
     plotterManager.setDefaultPlotter(text);
 }
+
+/**
+ * @brief     从缓冲中重新匹配数据
+ */
+void MainWindow::on_regMatchSwitch_clicked(bool checked)
+{
+    Q_UNUSED(checked)
+
+    /* 单击式，所以这个目前没用 */
+//    if(!checked)
+//    {
+//        emit regM_clearData();
+//        ui->regMatchBrowser->clear();
+//        regMatchBufferLock.lock();
+//        regMatchBuffer.clear();
+//        regMatchBufferLock.unlock();
+//        return;
+//    }
+
+    #define MAX_MATCH_SIZE (1 * 1024 * 1024)
+    QByteArray arr;
+    if(RxBuff.size() > MAX_MATCH_SIZE)
+    {
+        arr = RxBuff.mid(RxBuff.size() - MAX_MATCH_SIZE);
+        ui->statusBar->showMessage(tr("只匹配当前缓冲中最近1MB的数据！"), 2000);
+    }
+    else
+    {
+        arr = RxBuff;
+    }
+
+    ui->regMatchBrowser->clear();
+    emit regM_appendData(arr);
+    emit regM_parseData();
+}
