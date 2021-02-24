@@ -338,7 +338,7 @@ int32_t MainWindow::firstRunNotify()
                                     tr("请关注ASCII协议变化：") + "\n" +
                                     tr("请修改{:1,2,3}为{plotter:1,2,3}") + "\n" +
                                     tr("其中plotter可以是任意英文字符。") + "\n" +
-                                    tr("如发送{plotter:1,2,3}{vol:4,5,6}将可以出现2个绘图窗口。") + "\n\n" +
+                                    tr("如发送{plotter:1,2,3}\\n{vol:4,5,6}\\n将可以出现2个绘图窗口。") + "\n\n" +
                                     tr("详情请重新了解帮助文档，感谢阁下的使用！"),
                                     QMessageBox::Ok);
         }
@@ -3231,7 +3231,7 @@ void MainWindow::plotterShowTimerSlot()
         return;
     }
 
-    if(plotProtocol->hasParsedBuff() == 0)
+    if(plotProtocol->hasParsedBuff() == 0 || disableRefreshWindow)
     {
         return;
     }
@@ -4466,12 +4466,20 @@ void MainWindow::on_actionValueDisplay_triggered(bool checked)
  */
 void MainWindow::disableRefreshWindow_triggered(bool checked)
 {
+    #define PLOT_BUFF_WARNING (1*10000)
     static bool displayedAllData = false;
     disableRefreshWindow = checked;
     fft_window->disableRePlot(checked);
     if(disableRefreshWindow)
     {
-        ui->statusBar->showMessage(tr("已暂停刷新数据。"));
+        if(plotProtocol->hasParsedBuff() > PLOT_BUFF_WARNING)
+        {
+            ui->statusBar->showMessage(tr("警告：待绘图数据较多，请尽早使能刷新！"));
+        }
+        else
+        {
+            ui->statusBar->showMessage(tr("已暂停刷新数据。"));
+        }
         //记录此刻缓冲区的大小，取size速度相对较快，高频接收时暂停点更加准确
         if(!displayedAllData)
         {
