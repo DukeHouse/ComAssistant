@@ -861,6 +861,7 @@ p, li { white-space: pre-wrap; }
     <addaction name="separator"/>
     <addaction name="actionSTM32_ISP"/>
     <addaction name="actionASCIITable"/>
+    <addaction name="actionPriorityTable"/>
     <addaction name="actionHexConverter"/>
    </widget>
    <widget class="QMenu" name="visualizer">
@@ -1377,6 +1378,11 @@ p, li { white-space: pre-wrap; }
   <action name="actionSetDefaultPlotterTitle">
    <property name="text">
     <string>设置默认窗口</string>
+   </property>
+  </action>
+  <action name="actionPriorityTable">
+   <property name="text">
+    <string>运算符优先级表</string>
    </property>
   </action>
  </widget>

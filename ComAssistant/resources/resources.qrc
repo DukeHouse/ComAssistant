@@ -6,5 +6,6 @@
         <file>AsciiTable.html</file>
         <file>AsciiTable_EN.html</file>
         <file>manual_EN.html</file>
+        <file>PriorityTable.html</file>
     </qresource>
 </RCC>

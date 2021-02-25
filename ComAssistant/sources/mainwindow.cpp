@@ -1342,6 +1342,7 @@ MainWindow::~MainWindow()
         Config::addCurrentStatistic(KEY_TOTALFFTUSE, statisticFFTUseCnt);
         Config::addCurrentStatistic(KEY_TOTALMULTISTRUSE, statisticMultiStrUseCnt);
         Config::addCurrentStatistic(KEY_TOTALASCIITABLEUSE, statisticAsciiTableUseCnt);
+        Config::addCurrentStatistic(KEY_TOTALPRIORITYTABLEUSE, statisticPriorityTableUseCnt);
         Config::addCurrentStatistic(KEY_TOTALSTM32ISPUSE, statisticStm32IspUseCnt);
         Config::addCurrentStatistic(KEY_TOTALHEXTOOLUSE, statisticHexToolUseCnt);
         Config::addCurrentStatistic(KEY_TOTALASCIILUSE, statisticASCIIUseCnt);
@@ -4267,6 +4268,7 @@ void MainWindow::on_actionUsageStatistic_triggered()
     QString totalFFTUseStr;
     QString totalMultiStrUseStr;
     QString totalAsciiTableUseStr;
+    QString totalPriorityTableUseStr;
     QString totalStm32IspUseStr;
     QString totalHexToolUseStr;
     QString totalASCIIUseStr;
@@ -4299,6 +4301,7 @@ void MainWindow::on_actionUsageStatistic_triggered()
     totalFFTUseStr          = QString::number(Config::getTotalStatistic(KEY_TOTALFFTUSE) + statisticFFTUseCnt);
     totalMultiStrUseStr     = QString::number(Config::getTotalStatistic(KEY_TOTALMULTISTRUSE) + statisticMultiStrUseCnt);
     totalAsciiTableUseStr   = QString::number(Config::getTotalStatistic(KEY_TOTALASCIITABLEUSE) + statisticAsciiTableUseCnt);
+    totalPriorityTableUseStr= QString::number(Config::getTotalStatistic(KEY_TOTALPRIORITYTABLEUSE) + statisticPriorityTableUseCnt);
     totalStm32IspUseStr     = QString::number(Config::getTotalStatistic(KEY_TOTALSTM32ISPUSE) + statisticStm32IspUseCnt);
     totalHexToolUseStr      = QString::number(Config::getTotalStatistic(KEY_TOTALHEXTOOLUSE) + statisticHexToolUseCnt);
     totalASCIIUseStr        = QString::number(Config::getTotalStatistic(KEY_TOTALASCIILUSE) + statisticASCIIUseCnt);
@@ -4346,6 +4349,7 @@ void MainWindow::on_actionUsageStatistic_triggered()
     str.append(tr("   - asciiMatch解析数据：") + totalRegParseStr + "\n");
     str.append(tr("   - 使用多字符串次数：") + totalMultiStrUseStr + "\n");
     str.append(tr("   - 使用ASCII码表次数：") + totalAsciiTableUseStr + "\n");
+    str.append(tr("   - 使用运算符优先级表次数：") + totalPriorityTableUseStr + "\n");
     str.append(tr("   - 使用STM32ISP次数：") + totalStm32IspUseStr + "\n");
     str.append(tr("   - 使用HEX Tool次数：") + totalHexToolUseStr + "\n");
     str.append(tr("   - 使用ASCII协议次数：") + totalASCIIUseStr + "\n");
@@ -5229,14 +5233,15 @@ void MainWindow::on_actionTeeSupport_triggered(bool checked)
  */
 void MainWindow::on_actionASCIITable_triggered()
 {
-    static Ascii_Table_Dialog *p = nullptr;
+    static Text_Browser_Dialog *p = nullptr;
     statisticAsciiTableUseCnt++;
     if(p)
     {
         p->show();
         return;
     }
-    p = new Ascii_Table_Dialog(this);
+    p = new Text_Browser_Dialog(this);
+    p->showAsciiTable();
     p->show();
 }
 
@@ -5611,4 +5616,18 @@ void MainWindow::on_regMatchSwitch_clicked(bool checked)
     ui->regMatchBrowser->clear();
     emit regM_appendData(arr);
     emit regM_parseData();
+}
+
+void MainWindow::on_actionPriorityTable_triggered()
+{
+    static Text_Browser_Dialog *p = nullptr;
+    statisticPriorityTableUseCnt++;
+    if(p)
+    {
+        p->show();
+        return;
+    }
+    p = new Text_Browser_Dialog(this);
+    p->showPriorityTable();
+    p->show();
 }

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Ascii_Table_Dialog</class>
- <widget class="QDialog" name="Ascii_Table_Dialog">
+ <class>Text_Browser_Dialog</class>
+ <widget class="QDialog" name="Text_Browser_Dialog">
   <property name="geometry">
    <rect>
     <x>0</x>

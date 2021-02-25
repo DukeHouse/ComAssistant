@@ -53,7 +53,7 @@
 #include "stm32isp_dialog.h"
 #include "about_me_dialog.h"
 #include "settings_dialog.h"
-#include "ascii_table_dialog.h"
+#include "text_browser_dialog.h"
 #include "hex_tool_dialog.h"
 //文本提取引擎
 #include "text_extract_engine.h"
@@ -146,6 +146,7 @@ private slots:
     void on_actionRecordRawData_triggered(bool checked);
     void on_actionRecordGraphData_triggered(bool checked);
     void on_actionHexConverter_triggered(bool checked);
+    void on_actionPriorityTable_triggered();
 
     //setting
     void on_actionCOM_Config_triggered();
@@ -324,6 +325,7 @@ private:
     int64_t statisticFFTUseCnt = 0;
     int64_t statisticMultiStrUseCnt = 0;
     int64_t statisticAsciiTableUseCnt = 0;
+    int64_t statisticPriorityTableUseCnt = 0;
     int64_t statisticStm32IspUseCnt = 0;
     int64_t statisticHexToolUseCnt = 0;
     int64_t statisticASCIIUseCnt = 0;

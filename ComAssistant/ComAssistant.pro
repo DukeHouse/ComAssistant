@@ -74,7 +74,7 @@ SOURCES += \
     dialog/settings_dialog.cpp \
     dialog/stm32isp_dialog.cpp \
     dialog/fft_dialog.cpp \
-    dialog/ascii_table_dialog.cpp\
+    dialog/text_browser_dialog.cpp \
     plotter/axistag.cpp \
     plotter/dataprotocol.cpp \
     plotter/myqcustomplot.cpp \
@@ -153,7 +153,7 @@ HEADERS += \
     dialog/settings_dialog.h \
     dialog/stm32isp_dialog.h \
     dialog/fft_dialog.h \
-    dialog/ascii_table_dialog.h \
+    dialog/text_browser_dialog.h \
     plotter/axistag.h \
     plotter/dataprotocol.h \
     plotter/myqcustomplot.h \
@@ -177,7 +177,7 @@ HEADERS += \
 
 FORMS += \
         ui/about_me_dialog.ui \
-        ui/ascii_table_dialog.ui \
+        ui/text_browser_dialog.ui \
         ui/hex_tool_dialog.ui \
         ui/mainwindow.ui \
         ui/settings_dialog.ui \

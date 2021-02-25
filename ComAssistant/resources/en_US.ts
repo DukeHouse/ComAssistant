@@ -107,14 +107,14 @@ p, li { white-space: pre-wrap; }
     </message>
 </context>
 <context>
-    <name>Ascii_Table_Dialog</name>
+    <name>Text_Browser_Dialog</name>
     <message>
-        <location filename="../ui/ascii_table_dialog.ui" line="14"/>
+        <location filename="../ui/text_browser_dialog.ui" line="14"/>
         <source>ASCII Table</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../ui/ascii_table_dialog.ui" line="20"/>
+        <location filename="../ui/text_browser_dialog.ui" line="20"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
