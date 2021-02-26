@@ -231,7 +231,7 @@ private:
     void addTextToMultiString(const QString &text);
     void updateProgressBar(QString preStr, double percent);
     void parsePlotterAndTee();
-    void updateUIPanelBackground(QString background);
+    void updateUIPanelBackground(QString background, QColor itsColor);
     void updateUIPanelFont(QFont font);
     int32_t firstRunNotify();
     void updateFunctionButtonTitle();

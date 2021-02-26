@@ -162,7 +162,7 @@ void MainWindow::readConfig()
     str.replace("RGBR", QString::number(r));
     str.replace("RGBG", QString::number(g));
     str.replace("RGBB", QString::number(b));
-    updateUIPanelBackground(str);
+    updateUIPanelBackground(str, color);
 
     //绘图器开关
     ui->actionPlotterSwitch->setChecked(Config::getPlotterState());
@@ -3146,6 +3146,9 @@ MyQCustomPlot* MainWindow::createNewPlotter(QString plotterTitle)
     //GPU设置
     plotter->useOpenGL(defaultPlotter->getUseOpenGLState());
     plotter->plotControl->setupFont(g_font);
+    //背景色设置
+    plotter->setBackground(g_background_color);
+    plotter->legend->setBrush(g_background_color);
 
     return plotter;
 }
@@ -4779,7 +4782,7 @@ void MainWindow::on_actionFontSetting_triggered()
  * @brief     更新UI面板的背景色
  * @param[in] 新的背景色
  */
-void MainWindow::updateUIPanelBackground(QString background)
+void MainWindow::updateUIPanelBackground(QString background, QColor itsColor)
 {
     ui->textBrowser->setStyleSheet("QPlainTextEdit" + background);
     ui->regMatchBrowser->setStyleSheet("QPlainTextEdit" + background);
@@ -4789,6 +4792,8 @@ void MainWindow::updateUIPanelBackground(QString background)
     ui->multiString->setStyleSheet("QListWidget" + background);
 //    ui->tabWidget->setStyleSheet("QTabWidget" + background);
 //    this->setStyleSheet("QMainWindow" + background);
+    plotterManager.updateAllPlotterBackGround(itsColor);
+    selectCurrentPlotter()->replot();
     //菜单栏写死咯
     ui->menuBar->setStyleSheet("QMenuBar{ background-color: rgb(240,240,240);}");
 }
@@ -4829,7 +4834,7 @@ void MainWindow::on_actionBackGroundColorSetting_triggered()
     str.replace("RGBR", QString::number(r));
     str.replace("RGBG", QString::number(g));
     str.replace("RGBB", QString::number(b));
-    updateUIPanelBackground(str);
+    updateUIPanelBackground(str, color);
 
     teeManager.updateAllTeeBrowserStyleSheet("QPlainTextEdit" + str);
 }

@@ -120,6 +120,23 @@ int32_t PlotterManager::updateAllPlotterFont(QFont font)
     return 0;
 }
 
+int32_t PlotterManager::updateAllPlotterBackGround(QColor color)
+{
+    MyQCustomPlot* plotter = nullptr;
+    QMap<QString, MyQCustomPlot*>::iterator it;
+    for(it = plotterMap.begin(); it != plotterMap.end(); it++)
+    {
+        plotter = nullptr;
+        plotter = it.value();
+        if(plotter)
+        {
+            plotter->setBackground(color);
+            plotter->legend->setBrush(color);
+        }
+    }
+    return 0;
+}
+
 QVector<MyQCustomPlot*> PlotterManager::getAllPlotters()
 {
     QVector<MyQCustomPlot*> list;

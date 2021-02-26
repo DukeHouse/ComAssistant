@@ -29,6 +29,7 @@ public:
     int32_t clearPlotter(QString title);
     int32_t clearAllPlotter();
     int32_t updateAllPlotterFont(QFont font);
+    int32_t updateAllPlotterBackGround(QColor color);
     QVector<MyQCustomPlot*> getAllPlotters();
     int32_t setDefaultPlotter(MyQCustomPlot* plotter);
     int32_t setDefaultPlotter(QString plotterTitle);
