@@ -19,6 +19,7 @@ static bool     g_enableSumCheck;
 static qint64   g_lastSecsSinceEpoch;
 static QString  g_popupHotKeySequence;
 static QHotkey  *g_popupHotkey = new QHotkey(nullptr);
+static int32_t  g_theme_index = 0;
 
 /**
  * @brief     注册全局快捷键
@@ -147,22 +148,7 @@ void MainWindow::readConfig()
     ui->textEdit->setText(Config::getTextSendArea());
     ui->textEdit->moveCursor(QTextCursor::End);
     //背景色
-    qint32 r,g,b;
-    QColor color = Config::getBackGroundColor();
-    if(color.isValid()){
-        g_background_color = color;
-        g_background_color.getRgb(&r,&g,&b);
-    }else{
-        r=g=b=255;
-        g_background_color.setRed(r);
-        g_background_color.setGreen(g);
-        g_background_color.setBlue(b);
-    }
-    QString str = "{ background-color: rgb(RGBR,RGBG,RGBB);}";
-    str.replace("RGBR", QString::number(r));
-    str.replace("RGBG", QString::number(g));
-    str.replace("RGBB", QString::number(b));
-    updateUIPanelBackground(str, color);
+    updateUIPanelBackground(Config::getBackGroundColor());
 
     //绘图器开关
     ui->actionPlotterSwitch->setChecked(Config::getPlotterState());
@@ -499,12 +485,10 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->valueDisplay->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     ui->valueDisplay->horizontalHeader()->setStretchLastSection(true);
 
-    //加载样式表
-    QFile styleFile(":/style.css");
-    styleFile.open(QFile::ReadOnly);
-    QString style = styleFile.readAll();
-    styleFile.close();
-    this->setStyleSheet(style);
+    this->setAutoFillBackground(true);
+
+    //设置主题
+    setWindowTheme(Config::getConfigNumber(SECTION_GLOBAL, KEY_THEME_INDEX, 0));
     g_font = Config::getGUIFont();
     updateUIPanelFont(g_font);
 
@@ -1269,6 +1253,7 @@ MainWindow::~MainWindow()
         Config::setLastFileDialogPath(lastFileDialogPath);
         Config::setGUIFont(g_font);
         Config::setBackGroundColor(g_background_color);
+        Config::setConfigNumber(SECTION_GLOBAL, KEY_THEME_INDEX, g_theme_index);
         Config::setPopupHotKey(g_popupHotKeySequence);
         Config::setTeeSupport(textExtractEnable);
         Config::setTeeLevel2NameSupport(p_textExtract->getLevel2NameSupport());
@@ -4387,6 +4372,12 @@ void MainWindow::on_actionUsageStatistic_triggered()
  */
 void MainWindow::on_actionSendFile_triggered()
 {
+    if(!serial.isOpen())
+    {
+        QMessageBox::information(this, tr("提示"), tr("请先打开串口。"));
+        return;
+    }
+
     static QString lastFileName;
     //打开文件对话框
     QString readPath = QFileDialog::getOpenFileName(this,
@@ -4782,16 +4773,46 @@ void MainWindow::on_actionFontSetting_triggered()
  * @brief     更新UI面板的背景色
  * @param[in] 新的背景色
  */
-void MainWindow::updateUIPanelBackground(QString background, QColor itsColor)
+void MainWindow::updateUIPanelBackground(QColor itsColor)
 {
+    int32_t r, g, b;
+    if(itsColor.isValid())
+    {
+        g_background_color = itsColor;
+        g_background_color.getRgb(&r,&g,&b);
+    }
+    else
+    {
+        r = g = b = 0xFF;
+        g_background_color.setRed(r);
+        g_background_color.setGreen(g);
+        g_background_color.setBlue(b);
+    }
+
+    QString background = "{ background-color: rgb(RGBR,RGBG,RGBB);}";
+    background.replace("RGBR", QString::number(r));
+    background.replace("RGBG", QString::number(g));
+    background.replace("RGBB", QString::number(b));
+
     ui->textBrowser->setStyleSheet("QPlainTextEdit" + background);
     ui->regMatchBrowser->setStyleSheet("QPlainTextEdit" + background);
     ui->textEdit->setStyleSheet("QTextEdit" + background);
     ui->regMatchEdit->setStyleSheet("QLineEdit" + background);
     ui->valueDisplay->setStyleSheet("QTableWidget" + background);
     ui->multiString->setStyleSheet("QListWidget" + background);
-//    ui->tabWidget->setStyleSheet("QTabWidget" + background);
-//    this->setStyleSheet("QMainWindow" + background);
+
+    teeManager.updateAllTeeBrowserBackground(itsColor);
+
+    // 没有效果
+    // this->setStyleSheet("QMainWindow" + background);
+    // ui->tabWidget->setStyleSheet("QTabWidget" + background);
+
+    // 可以改，但不从这改
+    // ui->statusBar->setStyleSheet("QStatusBar" + background);
+    // QPalette palette(this->palette());
+    // palette.setColor(QPalette::Background, QColor(0xFFFFFF));
+    // this->setPalette(palette);
+
     plotterManager.updateAllPlotterBackGround(itsColor);
     selectCurrentPlotter()->replot();
     //菜单栏写死咯
@@ -4827,16 +4848,7 @@ void MainWindow::on_actionBackGroundColorSetting_triggered()
     if(!color.isValid())
         return;
 
-    qint32 r,g,b;
-    g_background_color = color;
-    g_background_color.getRgb(&r,&g,&b);
-    QString str = "{ background-color: rgb(RGBR,RGBG,RGBB);}";
-    str.replace("RGBR", QString::number(r));
-    str.replace("RGBG", QString::number(g));
-    str.replace("RGBB", QString::number(b));
-    updateUIPanelBackground(str, color);
-
-    teeManager.updateAllTeeBrowserStyleSheet("QPlainTextEdit" + str);
+    updateUIPanelBackground(color);
 }
 
 /**
@@ -5623,6 +5635,10 @@ void MainWindow::on_regMatchSwitch_clicked(bool checked)
     emit regM_parseData();
 }
 
+/**
+ * @brief     运算符优先级表触发
+ * @note      打开运算符优先级表
+ */
 void MainWindow::on_actionPriorityTable_triggered()
 {
     static Text_Browser_Dialog *p = nullptr;
@@ -5635,4 +5651,75 @@ void MainWindow::on_actionPriorityTable_triggered()
     p = new Text_Browser_Dialog(this);
     p->showPriorityTable();
     p->show();
+}
+
+/**
+ * @brief     设置颜色主题
+ * @param[in] 颜色主题序号
+ */
+void MainWindow::setWindowTheme(int32_t themeIndex)
+{
+    //default
+    QFile styleFile;
+    QString style;
+    QPalette thisPalette(this->palette());
+    switch(themeIndex)
+    {
+        case 0:
+            styleFile.setFileName(":/style.css");
+            styleFile.open(QFile::ReadOnly);
+            style = styleFile.readAll();
+            styleFile.close();
+            this->setStyleSheet(style);
+            updateUIPanelBackground(QColor(Qt::white));
+            ui->statusBar->setStyleSheet("QStatusBar{ background-color: rgb(240,240,240);}");
+        break;
+
+        case 1:
+            styleFile.setFileName(":/qss/flatwhite.css");
+            styleFile.open(QFile::ReadOnly);
+            style = styleFile.readAll();
+            styleFile.close();
+            this->setStyleSheet(style);
+            updateUIPanelBackground(QColor(Qt::white));
+            ui->statusBar->setStyleSheet("QStatusBar{ background-color: rgb(255,255,255);}");
+            thisPalette.setColor(QPalette::Background, QColor(0xFFFFFF));
+            this->setPalette(thisPalette);
+        break;
+        default:
+            themeIndex = 0;
+            styleFile.setFileName(":/style.css");
+            styleFile.open(QFile::ReadOnly);
+            style = styleFile.readAll();
+            styleFile.close();
+            this->setStyleSheet(style);
+            ui->statusBar->setStyleSheet("QStatusBar{ background-color: rgb(240,240,240);}");
+            qDebug() << "unmatched themeIndex" << themeIndex << "at" << __FUNCTION__;
+            break;
+    }
+    g_theme_index = themeIndex;
+}
+
+/**
+ * @brief     设置颜色主题动作触发
+ */
+void MainWindow::on_actionSelectTheme_triggered()
+{
+    bool ok;
+    QStringList items;
+    QString theme;
+    items << "0:default" << "1:flatwhite";
+    theme = QInputDialog::getItem(this, tr("提示"),
+                                 tr("颜色主题"),
+                                 items,
+                                 g_theme_index,
+                                 false,//不可编辑
+                                 &ok);
+    if(!ok)
+    {
+        return;
+    }
+
+    int32_t index = theme.mid(0, 1).toInt();
+    setWindowTheme(index);
 }

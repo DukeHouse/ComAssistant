@@ -147,6 +147,7 @@ private slots:
     void on_actionRecordGraphData_triggered(bool checked);
     void on_actionHexConverter_triggered(bool checked);
     void on_actionPriorityTable_triggered();
+    void on_actionSelectTheme_triggered();
 
     //setting
     void on_actionCOM_Config_triggered();
@@ -231,7 +232,7 @@ private:
     void addTextToMultiString(const QString &text);
     void updateProgressBar(QString preStr, double percent);
     void parsePlotterAndTee();
-    void updateUIPanelBackground(QString background, QColor itsColor);
+    void updateUIPanelBackground(QColor itsColor);
     void updateUIPanelFont(QFont font);
     int32_t firstRunNotify();
     void updateFunctionButtonTitle();
@@ -248,6 +249,7 @@ private:
     void calcCharacterNumberInWindow();
     int32_t checkBlankProblem();
     int32_t checkScrollBarTooLarge();
+    void setWindowTheme(int32_t themeIndex);
     Ui::MainWindow *ui;
     mySerialPort serial;
 

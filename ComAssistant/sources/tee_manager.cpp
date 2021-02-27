@@ -275,8 +275,19 @@ int32_t TeeManager::updateAllTeeBrowserFont(QFont font)
  * @param[in] 风格字符串
  * @return    错误码
  */
-int32_t TeeManager::updateAllTeeBrowserStyleSheet(QString styleSheet)
+int32_t TeeManager::updateAllTeeBrowserBackground(QColor itsColor)
 {
+    int32_t r, g, b;
+    r = g = b = 0xFF;
+    itsColor.setRed(r);
+    itsColor.setGreen(g);
+    itsColor.setBlue(b);
+
+    QString background = "QPlainTextEdit { background-color: rgb(RGBR,RGBG,RGBB);}";
+    background.replace("RGBR", QString::number(r));
+    background.replace("RGBG", QString::number(g));
+    background.replace("RGBB", QString::number(b));
+
     TeeBrowserObj_t* obj = nullptr;
     QMap<QString, TeeBrowserObj_t*>::iterator it;
     for(it = teeBrowserMap.begin(); it != teeBrowserMap.end(); it++)
@@ -284,7 +295,7 @@ int32_t TeeManager::updateAllTeeBrowserStyleSheet(QString styleSheet)
         obj = nullptr;
         obj = it.value();
         if(obj)
-            obj->browser->setStyleSheet(styleSheet);
+            obj->browser->setStyleSheet(background);
     }
     return 0;
 }

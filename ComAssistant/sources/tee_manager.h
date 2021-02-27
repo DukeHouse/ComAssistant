@@ -39,7 +39,7 @@ public:
     int32_t updateTeeBrowserText(QString teeBrowserTitle);
     int32_t updateAllTeeBrowserText();
     int32_t updateAllTeeBrowserFont(QFont font);
-    int32_t updateAllTeeBrowserStyleSheet(QString styleSheet);
+    int32_t updateAllTeeBrowserBackground(QColor itsColor);
     QVector<QPlainTextEdit*> getAllTeeBrowsers();
 public slots:
 private:

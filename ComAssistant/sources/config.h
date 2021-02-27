@@ -47,6 +47,7 @@
 #define KEY_TIMESTAMP_TIMEOUT       QString("TimeStampTimeOut")
 #define KEY_GUIFONT                 QString("GUIFont")
 #define KEY_BACKGROUNDCOLOR         QString("BackGroudColor")
+#define KEY_THEME_INDEX             QString("ThemeIndex")
 #define KEY_POPUPHOTKEY             QString("PopUpHotKey")
 #define KEY_TEE_Support             QString("TeeEnable")
 #define KEY_TEE_LEVEL2_NAME         QString("TeeLevel2NameEnable")

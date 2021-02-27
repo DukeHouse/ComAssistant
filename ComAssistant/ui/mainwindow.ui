@@ -806,6 +806,7 @@ p, li { white-space: pre-wrap; }
      <addaction name="actionPopupHotkey"/>
      <addaction name="actionFontSetting"/>
      <addaction name="actionBackGroundColorSetting"/>
+     <addaction name="actionSelectTheme"/>
     </widget>
     <addaction name="actionCOM_Config"/>
     <addaction name="textCode"/>
@@ -1383,6 +1384,14 @@ p, li { white-space: pre-wrap; }
   <action name="actionPriorityTable">
    <property name="text">
     <string>运算符优先级表</string>
+   </property>
+  </action>
+  <action name="actionSelectTheme">
+   <property name="text">
+    <string>颜色主题</string>
+   </property>
+   <property name="toolTip">
+    <string>切换风格</string>
    </property>
   </action>
  </widget>

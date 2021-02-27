@@ -1,33 +1,56 @@
 /* QCustomPlot控件相关的风格不受本文件控制 */
 
 /* 串口开关样式 */
-QPushButton#comSwitch{  
+QPushButton#comSwitch{
+    /*
     border: 2px solid rgb(255, 90, 90);
     color: rgb(255, 90, 90);
-    width: 93px; 
+    width: 93px;
     height: 30px;
     font-weight: bold;
-}    
-QPushButton#comSwitch:hover{     
+    */
+    border-style:none;
+    padding:8px;
+    border-radius:5px;
+    color:#FFFFFF;
+    background:#E74C3C;
+    font-weight: bold;
+    width: 85px;
+    /* height: 30px; */
+}
+QPushButton#comSwitch:hover{
+    /*
     border: 2px solid rgb(255, 10, 10);
     color: rgb(255, 10, 10);
-}  
-QPushButton#comSwitch:pressed{  
+     */
+    color:#FFF5E7;
+    background:#EC7064;
+}
+QPushButton#comSwitch:pressed{
+    /*
     border: 2px solid rgb(130, 90, 230);
     color: rgb(130, 90, 230);
+    */
+    color:#F5A996;
+    background:#DC2D1A;
 }
-QPushButton#comSwitch:checked{  
-    border: 2px solid rgb(50, 200, 50);
-    color: rgb(50, 200, 50);
-}  
+QPushButton#comSwitch:checked{
+    /* border: 2px solid rgb(50, 200, 50); */
+    color:#FFFFFF;
+    background:#42e73c;
+}
 QPushButton#comSwitch:checked:hover{
-    border: 2px solid rgb(20, 230, 20);
-    color: rgb(20, 230, 20);
+    /* border: 2px solid rgb(20, 230, 20); */
+    /* color: rgb(20, 230, 20); */
+    color:#e7ffee;
+    background:#64e65f;
 }
-QPushButton#comSwitch:checked:pressed{  
-    border: 2px solid rgb(130, 90, 230);
-    color: rgb(130, 90, 230);
-} 
+QPushButton#comSwitch:checked:pressed{
+    /* border: 2px solid rgb(130, 90, 230); */
+    /* color: rgb(130, 90, 230); */
+    color:#9ef596;
+    background:#2adc1a;
+}
 /* 点按交互区域 */
 QPushButton{
   font-family: Microsoft YaHei UI;
