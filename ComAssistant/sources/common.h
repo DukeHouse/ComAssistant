@@ -11,6 +11,6 @@
 
 //常驻的tab名称
 #define MAIN_TAB_NAME               "main"
-#define REGMATCH_TAB_NAME           "asciiMatch"
+#define REGMATCH_TAB_NAME           "filter"
 
 #endif // COMMON_H

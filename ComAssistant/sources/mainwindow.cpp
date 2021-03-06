@@ -600,7 +600,7 @@ void MainWindow::quickHelp()
             "\n\n"
             "（字符串需以换行符\\n结尾）";
     ui->regMatchBrowser->setPlaceholderText(helpText);
-    helpText = "输入要匹配的关键字符";
+    helpText = "输入要过滤的关键字符";
     ui->regMatchEdit->setPlaceholderText(helpText);
 }
 
@@ -2220,7 +2220,7 @@ void MainWindow::on_clearWindows_clicked()
 
     //正则匹配区
 //    emit regM_clearData();
-    p_regMatch->clearData();//若点击了从缓冲中匹配可能会由于数据量过大一直在while解析导致无法响应clear信号所以直接调用函数
+    p_regMatch->clearData();//若点击了从缓冲中过滤可能会由于数据量过大一直在while解析导致无法响应clear信号所以直接调用函数
     ui->regMatchBrowser->clear();
     regMatchBufferLock.lock();
     regMatchBuffer.clear();
@@ -4340,7 +4340,7 @@ void MainWindow::on_actionUsageStatistic_triggered()
     str.append(tr("   - 共运行本软件：") + currentRunTimeStr + "\n");
     str.append(tr("   - 绘制数据点数：") + currentPlotterNumStr + "\n");
     str.append(tr("   - 分类引擎解析数据：") + currentTeeParseStr + "\n");
-    str.append(tr("   - asciiMatch解析数据：") + currentRegParseStr + "\n");
+    str.append(tr("   - filter解析数据：") + currentRegParseStr + "\n");
     str.append("\n");
     str.append(tr("   ### 自首次启动软件以来，阁下：") + "\n");
     str.append(tr("   - 首次启动日期：") + Config::getFirstStartTime() + "\n");
@@ -4354,7 +4354,7 @@ void MainWindow::on_actionUsageStatistic_triggered()
     str.append(tr("   - 使用频谱图次数：") + totalFFTUseStr + "\n");
     str.append(tr("   - 使用分类引擎次数：") + totalTeeUseStr + "\n");
     str.append(tr("   - 分类引擎解析数据：") + totalTeeParseStr + "\n");
-    str.append(tr("   - asciiMatch解析数据：") + totalRegParseStr + "\n");
+    str.append(tr("   - filter解析数据：") + totalRegParseStr + "\n");
     str.append(tr("   - 使用多字符串次数：") + totalMultiStrUseStr + "\n");
     str.append(tr("   - 使用ASCII码表次数：") + totalAsciiTableUseStr + "\n");
     str.append(tr("   - 使用运算符优先级表次数：") + totalPriorityTableUseStr + "\n");
@@ -5657,7 +5657,7 @@ void MainWindow::on_regMatchSwitch_clicked(bool checked)
 
     if(ui->regMatchEdit->text().isEmpty())
     {
-        QMessageBox::information(this, tr("提示"), tr("请输入要匹配的关键字符。"));
+        QMessageBox::information(this, tr("提示"), tr("请输入要过滤的关键字符。"));
         return;
     }
 
@@ -5670,7 +5670,7 @@ void MainWindow::on_regMatchSwitch_clicked(bool checked)
         QString item;
         QStringList items;
         bool ok;
-        label = tr("当前缓冲较多，请选择想要匹配的数据量：");
+        label = tr("当前缓冲较多，请选择想要过滤的数据量：");
         items << "1MB" << "1.5MB" << "2MB" << "ALL";
         item = QInputDialog::getItem(this, tr("提示"),
                                      label, items, current, false, &ok);

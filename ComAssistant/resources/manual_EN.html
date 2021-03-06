@@ -47,14 +47,14 @@ Please send data according protocol otherwise Dart can not parse text correctly.
 <ul>
     The protocol is a string of below style:
     <pre style="background-color: rgb(235, 235, 235);">
-    
+
     {name:text_data}\n
 
     The above represents a data packet, where
     name represents the packed name, composed of letters, numbers, and underscores
     ':' is the separator between name and text_data
     text_data represents any text data
-    '\n' is LF character. It can be '\n' or "\r\n". 
+    '\n' is LF character. It can be '\n' or "\r\n".
     The length of one packet is limited to 512 bytes now.
     </pre>
     Data has the same name will be displayed under the same window. <br>
@@ -62,7 +62,7 @@ Please send data according protocol otherwise Dart can not parse text correctly.
     For example:<br>
     If there are voltage and current data that need to be displayed separately, the string format sent is as follows:<br>
     <pre style="background-color: rgb(235, 235, 235);">
-    
+
     {voltage:the voltage is 3.32 V}\n
     {current:the current is 0.23 A}\n
     </pre>
@@ -83,7 +83,7 @@ Please send data according protocol otherwise Dart can not parse text correctly.
     </pre>
 </ul>
 
-<h2>asciiMatch regular match</h2>
+<h2>filter</h2>
 <ul>
 Enter the key character to be matched to extract a string containing the specified character. The end of the string must contain '\n', and the maximum length is limited to 512 bytes. The matching grammar refers to QT5 regular grammar.
 </ul>
@@ -103,7 +103,7 @@ Enter the key character to be matched to extract a string containing the specifi
         represents the data of 3 curves at the same time. The number of curves cannot exceed 15. The 'plotter' in the string can also be changed to other text data, refer to the classification text display function
       </li><br>
       <li>
-        <b>Ascii protocol rule with sum check is</b>:The last data of the string is the checksum. 
+        <b>Ascii protocol rule with sum check is</b>:The last data of the string is the checksum.
         <pre style="background-color: rgb(235, 235, 235);">
 
         printf("{plotter:%d,%d,%d}\n", data1, data2, data1 + data2);
@@ -111,7 +111,7 @@ Enter the key character to be matched to extract a string containing the specifi
         This mode only supports integer data<br>
       </li><br>
       <li>
-        <b>Float protocol rules is</b>:Directly send the float type data in little-endian order and use the four bytes of 0x00, 0x00, 0x80, 0x7F as the end of one pack. The first flot data represents the first curve, and so on, the number of curves cannot exceed 15. 
+        <b>Float protocol rules is</b>:Directly send the float type data in little-endian order and use the four bytes of 0x00, 0x00, 0x80, 0x7F as the end of one pack. The first flot data represents the first curve, and so on, the number of curves cannot exceed 15.
         <pre style="background-color: rgb(235, 235, 235);">
 
         //float to byte macro
@@ -191,7 +191,7 @@ Enter the key character to be matched to extract a string containing the specifi
 
         printf("%f,%f,%f\n", data1, data2, data3);
         </pre>
-        represents the data of 3 curves at the same time. The number of curves cannot exceed 15. 
+        represents the data of 3 curves at the same time. The number of curves cannot exceed 15.
       </li><br>
       <li>
         <b>CSV protocol with checksum</b>:

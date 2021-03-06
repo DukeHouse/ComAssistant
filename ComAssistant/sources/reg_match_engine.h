@@ -1,5 +1,5 @@
 /**
- * @brief   asciiMatch功能的实现
+ * @brief   filter功能的实现
  * @file    reg_match_engine.h
  * @author  inhowe
  * @version 0.0.1
@@ -73,7 +73,7 @@ signals:
     void saveDataResult(const qint32& result, const QString &path, const qint32 fileSize);
 
 private:
-    bool parsingFlag;
+    bool parsingFlag = false;
     QString RegMatchStr;
     void parsePacksFromBuffer(QByteArray &buffer, QByteArray &restBuffer, QMutex &bufferLock);
     QByteArray  rawDataBuff;

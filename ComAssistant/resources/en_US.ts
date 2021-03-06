@@ -790,12 +790,12 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <location filename="../ui/mainwindow.ui" line="603"/>
-        <source>asciiMatch</source>
+        <source>filter</source>
         <translation></translation>
     </message>
     <message>
         <location filename="../ui/mainwindow.ui" line="650"/>
-        <source>输入要匹配的关键字符</source>
+        <source>输入要过滤的关键字符</source>
         <translation>Input key characters to match</translation>
     </message>
     <message>
@@ -1713,8 +1713,8 @@ Is the cable loose?</translation>
     </message>
     <message>
         <location filename="../sources/mainwindow.cpp" line="3256"/>
-        <source>   - asciiMatch解析数据：</source>
-        <translation>  - data size parsed by asciiMatch:</translation>
+        <source>   - filter解析数据：</source>
+        <translation>  - data size parsed by filter:</translation>
     </message>
     <message>
         <location filename="../sources/mainwindow.cpp" line="3257"/>
@@ -1758,7 +1758,7 @@ Is the cable loose?</translation>
     </message>
     <message>
         <location filename="../sources/mainwindow.cpp" line="3720"/>
-        <source>不允许删除匹配窗口</source>
+        <source>不允许删除过滤窗口</source>
         <translation>Can not delete match window</translation>
     </message>
     <message>
