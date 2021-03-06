@@ -2068,7 +2068,7 @@ void MainWindow::on_sendButton_clicked()
 
     if(!serial.isOpen())
     {
-        QMessageBox::information(this,tr("提示"),tr("串口未打开"));
+        QMessageBox::information(this, tr("提示"), tr("串口未打开。"));
         return;
     }
 
@@ -2219,7 +2219,8 @@ void MainWindow::on_clearWindows_clicked()
     unshowedRxBuff.clear();
 
     //正则匹配区
-    emit regM_clearData();
+//    emit regM_clearData();
+    p_regMatch->clearData();//若点击了从缓冲中匹配可能会由于数据量过大一直在while解析导致无法响应clear信号所以直接调用函数
     ui->regMatchBrowser->clear();
     regMatchBufferLock.lock();
     regMatchBuffer.clear();
@@ -2296,14 +2297,21 @@ void MainWindow::on_clearWindows_clicked()
  */
 void MainWindow::on_cycleSendCheck_clicked(bool checked)
 {
+    if(ui->sendInterval->text().toInt() == 0)
+    {
+        QMessageBox::information(this, tr("提示"), tr("发送间隔不允许设为0。"));
+        ui->cycleSendCheck->setChecked(false);
+        return;
+    }
+
     if(ui->sendInterval->text().toInt() < 15 && checked)
     {
-        QMessageBox::warning(this, tr("警告"), tr("发送间隔较小可能不够准确"));
+        ui->statusBar->showMessage(tr("发送间隔较小可能不够准确。"), 2000);
     }
 
     if(!serial.isOpen())
     {
-        QMessageBox::information(this, tr("提示"), tr("串口未打开"));
+        QMessageBox::information(this, tr("提示"), tr("串口未打开。"));
         ui->cycleSendCheck->setChecked(false);
         return;
     }
@@ -2762,6 +2770,14 @@ void MainWindow::on_actionUpdate_triggered()
  */
 void MainWindow::on_sendInterval_textChanged(const QString &arg1)
 {
+    if(arg1.toInt() == 0)
+    {
+        cycleSendTimer.stop();
+        ui->cycleSendCheck->setChecked(false);
+        ui->statusBar->showMessage(tr("发送间隔不允许设为0"), 2000);
+        return;
+    }
+
     if(cycleSendTimer.isActive())
         cycleSendTimer.setInterval(arg1.toInt());
 }
@@ -3758,7 +3774,11 @@ void MainWindow::on_actionResetDefaultConfig_triggered(bool checked)
 {
     if(checked)
     {
-        QMessageBox::Button button = QMessageBox::warning(this,tr("警告：确认恢复默认设置吗？"),tr("该操作会重置软件初始状态！"),QMessageBox::Ok|QMessageBox::No);
+        QMessageBox::Button button;
+        button = QMessageBox::warning(this,
+                                      tr("警告：确认恢复默认设置吗？"),
+                                      tr("该操作会重置软件初始状态！"),
+                                      QMessageBox::Ok|QMessageBox::No);
         if(button == QMessageBox::No)
             return;
         needSaveConfig = false;
@@ -5063,12 +5083,29 @@ void MainWindow::on_tabWidget_plotter_tabCloseRequested(int index)
  */
 void MainWindow::on_tabWidget_tabBarClicked(int index)
 {
+    static int32_t barValue = 0;
+    // 记忆失焦时的滚动条位置
+    if(ui->tabWidget->tabText(ui->tabWidget->currentIndex()) == MAIN_TAB_NAME)
+    {
+        barValue = ui->textBrowser->verticalScrollBar()->value();
+    }
+
     ui->tabWidget->setCurrentIndex(index);
+    // 当选中main窗口时
     if(ui->tabWidget->tabText(index) == MAIN_TAB_NAME)
     {
-        calcCharacterNumberInWindow();
-        printToTextBrowser();
-        TryRefreshBrowserCnt = TRY_REFRESH_BROWSER_CNT;
+        // 需要刷新时才刷新
+        if(TryRefreshBrowserCnt && !disableRefreshWindow)
+        {
+            calcCharacterNumberInWindow();
+            printToTextBrowser();
+            TryRefreshBrowserCnt = TRY_REFRESH_BROWSER_CNT;
+        }
+        else
+        {
+            // 否则恢复滚动条位置
+            ui->textBrowser->verticalScrollBar()->setValue(barValue);
+        }
     }
 }
 
@@ -5368,12 +5405,12 @@ void MainWindow::on_regMatchEdit_textChanged(const QString &arg1)
             return;
         }
     }
-    emit regM_clearData();
-    ui->regMatchBrowser->clear();
+//    emit regM_clearData();  //在解析大量数据时会在parsePacksFromBuffer中循环解析，所以不会处理信号的
     regMatchBufferLock.lock();
     regMatchBuffer.clear();
     regMatchBufferLock.unlock();
-    p_regMatch->updateRegMatch(arg1);
+    p_regMatch->updateRegMatch(arg1, true);
+    ui->regMatchBrowser->clear();
 }
 
 /**
@@ -5618,12 +5655,42 @@ void MainWindow::on_regMatchSwitch_clicked(bool checked)
 //        return;
 //    }
 
-    #define MAX_MATCH_SIZE (1 * 1024 * 1024)
+    if(ui->regMatchEdit->text().isEmpty())
+    {
+        QMessageBox::information(this, tr("提示"), tr("请输入要匹配的关键字符。"));
+        return;
+    }
+
+    #define MAX_MATCH_SIZE (0.5 * 1024 * 1024)
     QByteArray arr;
     if(RxBuff.size() > MAX_MATCH_SIZE)
     {
-        arr = RxBuff.mid(RxBuff.size() - MAX_MATCH_SIZE);
-        ui->statusBar->showMessage(tr("只匹配当前缓冲中最近1MB的数据！"), 2000);
+        static int32_t current = 0;
+        QString label;
+        QString item;
+        QStringList items;
+        bool ok;
+        label = tr("当前缓冲较多，请选择想要匹配的数据量：");
+        items << "1MB" << "1.5MB" << "2MB" << "ALL";
+        item = QInputDialog::getItem(this, tr("提示"),
+                                     label, items, current, false, &ok);
+        if(!ok)
+        {
+            return;
+        }
+        current = items.indexOf(item);
+        item.remove("MB");
+        int32_t match_size = item.toFloat(&ok) * 1024 * 1024;
+        if(!ok)
+        {
+            arr = RxBuff;
+        }
+        else
+        {
+            int32_t temp_size = RxBuff.size();
+            match_size = match_size > temp_size ? temp_size : match_size;
+            arr = RxBuff.mid(RxBuff.size() - match_size);
+        }
     }
     else
     {

@@ -47,7 +47,7 @@ public:
      * @note      不支持中文
      * @param[in] 新的匹配模式
      */
-    void updateRegMatch(QString newStr);
+    void updateRegMatch(QString newStr, bool clearFlag = true);
     //已弃用
     void updateCodec(QString codec);
 
@@ -73,6 +73,7 @@ signals:
     void saveDataResult(const qint32& result, const QString &path, const qint32 fileSize);
 
 private:
+    bool parsingFlag;
     QString RegMatchStr;
     void parsePacksFromBuffer(QByteArray &buffer, QByteArray &restBuffer, QMutex &bufferLock);
     QByteArray  rawDataBuff;

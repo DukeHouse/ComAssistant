@@ -14,16 +14,18 @@ RegMatchEngine::~RegMatchEngine()
 }
 
 /**
- * @brief 更新匹配字符串
+ * @brief     更新匹配字符串
  * @note
  * @param[in] 新的匹配字符串
+ * @param[in] 是否清空缓冲
  * @return
 */
-void RegMatchEngine::updateRegMatch(QString newStr)
+void RegMatchEngine::updateRegMatch(QString newStr, bool clearFlag)
 {
     if(newStr != RegMatchStr)
     {
-        clearData();
+        if(clearFlag)
+            clearData();
         RegMatchStr = newStr;
     }
 }
@@ -44,6 +46,8 @@ void RegMatchEngine::updateCodec(QString codec)
 */
 void RegMatchEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBuffer, QMutex &bufferLock)
 {
+    parsingFlag = true;
+
     if(buffer.isEmpty() || buffer == "\n")
         return;
     if(RegMatchStr.isEmpty())
@@ -57,6 +61,13 @@ void RegMatchEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBu
     reg.setPattern(pattern.toLocal8Bit());
     reg.setPatternOptions(QRegularExpression::InvertedGreedinessOption);//设置为非贪婪模式匹配
     do {
+            //若执行了清空函数则会重置parsingFlag，此时不再解析并清空buffer
+            if(!parsingFlag)
+            {
+                qDebug() << __FUNCTION__ << "detect exit flag";
+                clearData();
+                return;
+            }
             QByteArray onePack;
             match = reg.match(buffer, scanIndex);
             if(match.hasMatch()) {
@@ -88,6 +99,8 @@ void RegMatchEngine::parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBu
     bufferLock.lock();
     restBuffer = buffer.mid(lastScannedIndex);
     bufferLock.unlock();
+
+    parsingFlag = false;
 }
 
 
@@ -149,6 +162,13 @@ void RegMatchEngine::appendAndParseData(const QByteArray &newData)
 */
 void RegMatchEngine::clearData()
 {
+    //若正在解析，则重置解析标志，由解析函数负责清空缓冲
+    if(parsingFlag)
+    {
+        parsingFlag = false;
+        return;
+    }
+
     rawDataBuff.clear();
     matchedDataPool.clear();
     //由于匹配借用了前面数据包结尾的换行符，因此这里也要保留最后的换行符供下一个数据包借用
