@@ -1,5 +1,5 @@
 /**
- * @brief   分类文本提取引擎
+ * @brief   分窗文本提取引擎
  * @file    text_extract_engine.h
  * @author  inhowe
  * @version 0.0.1

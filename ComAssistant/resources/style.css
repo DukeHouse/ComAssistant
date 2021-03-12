@@ -37,19 +37,19 @@ QPushButton#comSwitch:pressed{
 QPushButton#comSwitch:checked{
     /* border: 2px solid rgb(50, 200, 50); */
     color:#FFFFFF;
-    background:#42e73c;
+    background:#37e631;
 }
 QPushButton#comSwitch:checked:hover{
     /* border: 2px solid rgb(20, 230, 20); */
     /* color: rgb(20, 230, 20); */
     color:#e7ffee;
-    background:#64e65f;
+    background:#6ae666;
 }
 QPushButton#comSwitch:checked:pressed{
     /* border: 2px solid rgb(130, 90, 230); */
     /* color: rgb(130, 90, 230); */
     color:#9ef596;
-    background:#2adc1a;
+    background:#16d416;
 }
 /* 点按交互区域 */
 QPushButton{

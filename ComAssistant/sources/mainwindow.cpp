@@ -593,7 +593,7 @@ void MainWindow::quickHelp()
             "    #define PRINT(title, fmt, ...) printf(\"{\"#title\":\"fmt\"}\\n\", __VA_ARGS__)\n"
             "  2.若要绘图可这样使用：\n"
             "    PRINT(plotter, \"%f,%f,%f\", data1, data2, data3);即可，表示3条曲线数据。\n"
-            "  3.若要分类显示可这样使用：\n"
+            "  3.若要分窗显示可这样使用：\n"
             "    PRINT(voltage, \"current voltage is %d V\", var);即可，表示跟voltage有关的数据。\n";
     ui->textBrowser->setPlaceholderText(helpText);
     helpText = "该窗口显示包含关键字符的字符串"
@@ -830,7 +830,7 @@ void MainWindow::readRecoveryFile()
 }
 
 /**
- * @brief     保存分类显示文本数据的结果的槽
+ * @brief     保存分窗显示文本数据的结果的槽
  * @param[in] 保存的结果
  * @param[in] 保存的路径
  * @param[in] 保存的文件大小
@@ -895,7 +895,7 @@ void MainWindow::regM_saveDataResult(const qint32& result, const QString &path, 
 }
 
 /**
- * @brief     分类显示引擎数据更新的槽
+ * @brief     分窗显示引擎数据更新的槽
  * @note      该槽可能会高频被触发，不要放耗时代码
  * @param[in] 更新的数据的名称
  * @param[in] 更新的数据
@@ -958,7 +958,7 @@ void MainWindow::printToTextBrowserTimerSlot()
     //更新收发统计(可能会占用一点点点loading)
     statusStatisticLabel->setText(serial.getTxRxString_with_color());
 
-    //打印分类文本数据
+    //打印分窗文本数据
     teeManager.updateAllTeeBrowserText();
     //打印正则匹配数据
     if(!regMatchBuffer.isEmpty())
@@ -1980,7 +1980,7 @@ void MainWindow::multiStrSeqSendTimerSlot()
 }
 
 /**
- * @brief     解析绘图器和分类文本
+ * @brief     解析绘图器和分窗文本
  * @note      通常周期执行
  */
 void MainWindow::parsePlotterAndTee()
@@ -4339,7 +4339,7 @@ void MainWindow::on_actionUsageStatistic_triggered()
     str.append(tr("   - 共接收数据：") + currentRxStr + "\n");
     str.append(tr("   - 共运行本软件：") + currentRunTimeStr + "\n");
     str.append(tr("   - 绘制数据点数：") + currentPlotterNumStr + "\n");
-    str.append(tr("   - 分类引擎解析数据：") + currentTeeParseStr + "\n");
+    str.append(tr("   - 数据分窗引擎解析数据：") + currentTeeParseStr + "\n");
     str.append(tr("   - filter解析数据：") + currentRegParseStr + "\n");
     str.append("\n");
     str.append(tr("   ### 自首次启动软件以来，阁下：") + "\n");
@@ -4352,8 +4352,8 @@ void MainWindow::on_actionUsageStatistic_triggered()
     str.append(tr("   - 绘制数据点数：") + totalPlotterNumStr + "\n");
     str.append(tr("   - 使用数值显示器次数：") + totalValueDisplayUseStr + "\n");
     str.append(tr("   - 使用频谱图次数：") + totalFFTUseStr + "\n");
-    str.append(tr("   - 使用分类引擎次数：") + totalTeeUseStr + "\n");
-    str.append(tr("   - 分类引擎解析数据：") + totalTeeParseStr + "\n");
+    str.append(tr("   - 使用数据分窗引擎次数：") + totalTeeUseStr + "\n");
+    str.append(tr("   - 数据分窗引擎解析数据：") + totalTeeParseStr + "\n");
     str.append(tr("   - filter解析数据：") + totalRegParseStr + "\n");
     str.append(tr("   - 使用多字符串次数：") + totalMultiStrUseStr + "\n");
     str.append(tr("   - 使用ASCII码表次数：") + totalAsciiTableUseStr + "\n");
@@ -5740,6 +5740,8 @@ void MainWindow::setWindowTheme(int32_t themeIndex)
             this->setStyleSheet(style);
             updateUIPanelBackground(QColor(Qt::white));
             ui->statusBar->setStyleSheet("QStatusBar{ background-color: rgb(240,240,240);}");
+            this->setAutoFillBackground(true);
+            this->setPalette(QPalette(QColor(240, 240, 240)));
         break;
 
         case 1:
@@ -5761,6 +5763,8 @@ void MainWindow::setWindowTheme(int32_t themeIndex)
             styleFile.close();
             this->setStyleSheet(style);
             ui->statusBar->setStyleSheet("QStatusBar{ background-color: rgb(240,240,240);}");
+            this->setAutoFillBackground(true);
+            this->setPalette(QPalette(QColor(240, 240, 240)));
             qDebug() << "unmatched themeIndex" << themeIndex << "at" << __FUNCTION__;
             break;
     }

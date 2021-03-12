@@ -1,0 +1,11 @@
+<!--提权文件，使程序可以在C盘写入文件，提权方法参见 https://www.cnblogs.com/pyw0818/p/8013176.html -->
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+    <assembly xmlns='urn:schemas-microsoft-com:asm.v1' manifestVersion='1.0'>
+        <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+            <security>
+                <requestedPrivileges>
+                    <requestedExecutionLevel level='requireAdministrator' uiAccess='false' />
+                </requestedPrivileges>
+            </security>
+        </trustInfo>
+    </assembly>
