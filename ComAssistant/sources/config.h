@@ -28,12 +28,14 @@
 //节
 #define SECTION_GLOBAL              QString("Global/")
 #define SECTION_SERIAL              QString("Serial/")
+#define SECTION_NETWORK             QString("Network/")
 #define SECTION_MULTISTR            QString("MultiStr/")
 #define SECTION_PLOTTER             QString("Plotter/")
 #define SECTION_STATISTIC           QString("Statistic/")
 #define SECTION_ABOUT               QString("About/")
 
 //global键
+#define KEY_WORKMODE                QString("WorkMode")
 #define KEY_FIRSTRUN                QString("FirstRun")
 #define KEY_CODERULE                QString("CodeRule")
 #define KEY_ENTERSTYLE              QString("EnterStyle")
@@ -64,6 +66,12 @@
 #define KEY_DATABIT                 QString("DataBit")
 #define KEY_PARITY                  QString("Parity")
 #define KEY_FLOWCONTROL             QString("FlowControl")
+
+//network键
+#define KEY_NETWORK_MODE            QString("NetworkMode")
+#define KEY_UDPS_REMOTE_ADDR        QString("UDPServerRemoteAddr")
+#define KEY_CLIENT_TARGET_IP        QString("ClientTargetIp")
+#define KEY_CLIENT_TARGET_PORT      QString("ClientTargetPort")
 
 //multiStr键
 #define KEY_MULTISTRINGSTATE        QString("MultiStringState")
@@ -149,7 +157,7 @@ class Config
 public:
     #define defualtGraphName  "Graph 1;Graph 2;Graph 3;Graph 4;Graph 5;Graph 6;Graph 7;Graph 8;Graph 9;Graph 10;Graph 11;Graph 12;Graph 13;Graph 14;Graph 15;"
     //版本
-    #define VERSION_STRING  "0.5.4"
+    #define VERSION_STRING  "0.5.5"
 
     Config();
     static void writeCommentMsgAtFileTop();

@@ -6,12 +6,24 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>960</width>
+    <width>1080</width>
     <height>720</height>
    </rect>
   </property>
+  <property name="minimumSize">
+   <size>
+    <width>160</width>
+    <height>0</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>16777215</width>
+    <height>16777215</height>
+   </size>
+  </property>
   <property name="windowTitle">
-   <string>纸飞机串口调试助手</string>
+   <string>纸飞机调试助手</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <widget class="QWidget" name="widget_ctrl" native="true">
@@ -19,7 +31,7 @@
      <rect>
       <x>9</x>
       <y>9</y>
-      <width>376</width>
+      <width>941</width>
       <height>30</height>
      </rect>
     </property>
@@ -249,9 +261,9 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>470</y>
-      <width>680</width>
-      <height>191</height>
+      <y>510</y>
+      <width>691</width>
+      <height>151</height>
      </rect>
     </property>
     <layout class="QFormLayout" name="formLayout_2">
@@ -495,9 +507,9 @@ p, li { white-space: pre-wrap; }
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>240</y>
-      <width>571</width>
-      <height>221</height>
+      <y>380</y>
+      <width>691</width>
+      <height>121</height>
      </rect>
     </property>
     <property name="orientation">
@@ -699,10 +711,10 @@ p, li { white-space: pre-wrap; }
    <widget class="QSplitter" name="splitter_visulize">
     <property name="geometry">
      <rect>
-      <x>20</x>
-      <y>50</y>
-      <width>551</width>
-      <height>161</height>
+      <x>10</x>
+      <y>270</y>
+      <width>681</width>
+      <height>101</height>
      </rect>
     </property>
     <property name="orientation">
@@ -769,6 +781,219 @@ p, li { white-space: pre-wrap; }
      </property>
     </widget>
    </widget>
+   <widget class="QWidget" name="widget_net_ctrl" native="true">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>70</y>
+      <width>1001</width>
+      <height>30</height>
+     </rect>
+    </property>
+    <layout class="QFormLayout" name="formLayout_7">
+     <property name="leftMargin">
+      <number>0</number>
+     </property>
+     <property name="topMargin">
+      <number>0</number>
+     </property>
+     <property name="rightMargin">
+      <number>0</number>
+     </property>
+     <property name="bottomMargin">
+      <number>0</number>
+     </property>
+     <item row="0" column="0" colspan="2">
+      <layout class="QHBoxLayout" name="layout_net_ctrl">
+       <item>
+        <widget class="QComboBox" name="networkModeBox">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <item>
+          <property name="text">
+           <string>TCP Server</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>TCP Client</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>UDP Server</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>UDP Client</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_targetIP">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string>监听地址</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="comboBox_targetIP">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>160</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="editable">
+          <bool>true</bool>
+         </property>
+         <property name="currentText">
+          <string>127.0.0.1</string>
+         </property>
+         <item>
+          <property name="text">
+           <string>127.0.0.1</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_targetPort">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string>监听端口</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="comboBox_targetPort">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="editable">
+          <bool>true</bool>
+         </property>
+         <property name="currentText">
+          <string>1234</string>
+         </property>
+         <item>
+          <property name="text">
+           <string>1234</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_remoteAddr">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string>当前连接</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="comboBox_remoteAddr">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>200</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="editable">
+          <bool>false</bool>
+         </property>
+         <property name="currentText">
+          <string>127.0.0.1:1234</string>
+         </property>
+         <item>
+          <property name="text">
+           <string>127.0.0.1:1234</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="clearWindows_simple_net">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string>清  空</string>
+         </property>
+         <property name="autoDefault">
+          <bool>false</bool>
+         </property>
+         <property name="flat">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="networkSwitch">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string>监听</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </widget>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <widget class="QMenuBar" name="menuBar">
@@ -776,7 +1001,7 @@ p, li { white-space: pre-wrap; }
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>960</width>
+     <width>1080</width>
      <height>26</height>
     </rect>
    </property>
@@ -864,6 +1089,8 @@ p, li { white-space: pre-wrap; }
     <addaction name="actionASCIITable"/>
     <addaction name="actionPriorityTable"/>
     <addaction name="actionHexConverter"/>
+    <addaction name="separator"/>
+    <addaction name="actionNetworkMode"/>
    </widget>
    <widget class="QMenu" name="visualizer">
     <property name="title">
@@ -1392,6 +1619,14 @@ p, li { white-space: pre-wrap; }
    </property>
    <property name="toolTip">
     <string>切换风格</string>
+   </property>
+  </action>
+  <action name="actionNetworkMode">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>网络模式</string>
    </property>
   </action>
  </widget>

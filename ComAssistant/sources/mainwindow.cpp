@@ -12,6 +12,7 @@ bool    g_agree_statement = false;  //同意相关声明标志
 bool    g_log_record      = false;  //日志记录开关
 bool    g_debugger        = false;  //调试开关
 
+static int32_t  g_network_comm_mode = 0;    // 串口网络切换开关
 static qint32   g_multiStr_cur_index = -1;  // -1 means closed this function
 static QColor   g_background_color;
 static QFont    g_font;
@@ -199,6 +200,62 @@ void MainWindow::readConfig()
     ui->actionValueDisplay->setChecked(Config::getValueDisplayState());
     on_actionValueDisplay_triggered(Config::getValueDisplayState());
 
+    //网络通信相关
+    QString addr;
+    QString addrStrSet;
+    QStringList addrStrList;
+    QRegExp validAddrFormat;
+    addrStrSet = Config::getConfigString(SECTION_NETWORK, KEY_UDPS_REMOTE_ADDR, "");
+    addrStrList = addrStrSet.split(";");
+    validAddrFormat.setPattern("\\d{1,3}.\\d{1,3}.\\d{1,3}.\\d{1,3}:\\d{1,5}");
+    server_remoteAddr_backup_list.clear();
+    for(int32_t i = 0; i < addrStrList.size(); i++)
+    {
+        addr = addrStrList.at(i);
+        if(addr.contains(validAddrFormat))
+            server_remoteAddr_backup_list << addr;
+    }
+    addrStrSet = Config::getConfigString(SECTION_NETWORK, KEY_CLIENT_TARGET_IP, "");
+    addrStrList = addrStrSet.split(";");
+    validAddrFormat.setPattern("\\d{1,3}.\\d{1,3}.\\d{1,3}.\\d{1,3}");
+    for(int32_t i = 0; i < addrStrList.size(); i++)
+    {
+        addr = addrStrList.at(i);
+        if(addr.contains(validAddrFormat))
+            client_targetIP_backup_List << addr;
+    }
+    addrStrSet = Config::getConfigString(SECTION_NETWORK, KEY_CLIENT_TARGET_PORT, "");
+    addrStrList = addrStrSet.split(";");
+    validAddrFormat.setPattern("\\d{1,5}");
+    ui->comboBox_targetPort->clear();
+    for(int32_t i = 0; i < addrStrList.size(); i++)
+    {
+        addr = addrStrList.at(i);
+        if(addr.contains(validAddrFormat)
+           && ui->comboBox_targetPort->findText(addr) == -1)
+        {
+            ui->comboBox_targetPort->addItem(addr);
+            if(i == 0)
+                ui->comboBox_targetPort->setCurrentText(addr);
+        }
+    }
+    if(!ui->comboBox_targetPort->count())
+    {
+        ui->comboBox_targetPort->addItem(QString::number(DEFAULT_PORT));
+    }
+    QString str = Config::getConfigString(SECTION_NETWORK, KEY_NETWORK_MODE, "TCP Server");
+    if(str == "TCP Server"
+       || str == "TCP Client"
+       || str == "UDP Server"
+       || str == "UDP Client" )
+    {
+        on_networkModeBox_activated(str);
+    }
+    else
+    {
+        on_networkModeBox_activated("TCP Server");
+    }
+
 #if SHOW_PLOTTER_SETTING
     //refreshYAxis
     on_actionAutoRefreshYAxis_triggered(Config::getRefreshYAxisState());
@@ -272,6 +329,7 @@ void MainWindow::layoutConfig()
     //设置顶级布局
     central = new QVBoxLayout();
     central->addWidget(ui->widget_ctrl);
+    central->addWidget(ui->widget_net_ctrl);
     central->addWidget(splitter_io);
     ui->centralWidget->setLayout(central);
 }
@@ -284,14 +342,10 @@ int32_t MainWindow::firstRunNotify()
     if(Config::getFirstRun())
     {
         Config::setFirstStartTime(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
-//        QMessageBox::information(this, tr("提示"),
-//                                 tr("欢迎使用纸飞机串口调试助手。") + "\n\n" +
-//                                 tr("由于阁下是首次运行，接下来会弹出声明文档，请认真阅读。") + "\n\n" +
-//                                 tr("若阁下继续使用本软件则代表阁下接受并同意相关声明，\n否则请关闭软件。"));
         //弹出声明
         //创建关于我对话框资源
         About_Me_Dialog* p = new About_Me_Dialog(this);
-        p->updateTitle(tr("欢迎使用纸飞机串口调试助手！"));
+        p->updateTitle(tr("欢迎使用纸飞机调试助手！"));
         p->getVersionString(Config::getVersion());
         //设置close后自动销毁
         p->setAttribute(Qt::WA_DeleteOnClose);
@@ -311,6 +365,11 @@ int32_t MainWindow::firstRunNotify()
             //弹出帮助文件
 //            on_actionManual_triggered();
         }
+
+        g_network_comm_mode = QMessageBox::information(this, tr("提示"),
+                                          tr("请选择常用的工作模式，后续可在\"功能\"选项中进行重设。"),
+                                          tr("串口调试"), tr("网络调试"));
+        on_actionNetworkMode_triggered(g_network_comm_mode);
     }
     else
     {
@@ -320,7 +379,7 @@ int32_t MainWindow::firstRunNotify()
         {
             QMessageBox::information(this,
                                     tr("提示"),
-                                    tr("纸飞机串口助手现已支持多窗口绘图！") + "\n\n" +
+                                    tr("纸飞机调试助手现已支持多窗口绘图！") + "\n\n" +
                                     tr("请关注ASCII协议变化：") + "\n" +
                                     tr("请修改{:1,2,3}为{plotter:1,2,3}") + "\n" +
                                     tr("其中plotter可以是任意英文字符。") + "\n" +
@@ -380,9 +439,9 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->statusBar->addPermanentWidget(statusSpeedLabel);
 
     //设置波特率框和发送间隔框的合法输入范围
-    ui->baudrateList->setValidator(new QIntValidator(0,9999999,this));
-    ui->sendInterval->setValidator(new QIntValidator(0,99999,this));
-    ui->timeStampTimeOut->setValidator(new QIntValidator(0,99999,this));
+    ui->baudrateList->setValidator(new QIntValidator(0, 9999999, this));
+    ui->sendInterval->setValidator(new QIntValidator(0, 99999, this));
+    ui->timeStampTimeOut->setValidator(new QIntValidator(0, 99999, this));
 
     //fft
     fft_window = new FFT_Dialog(ui->actionFFTShow, this);
@@ -461,6 +520,26 @@ MainWindow::MainWindow(QWidget *parent) :
     p_logger_thread->start();
     p_logger->init_logger(RECOVERY_LOG, RECOVERY_FILE_PATH);    //恢复log必须开启，其他log按需开启
 
+    //网络调试模块
+    p_networkCommThread = new QThread(this);
+    p_networkComm        = new NetworkComm(nullptr);
+    p_networkComm->moveToThread(p_networkCommThread);
+    connect(p_networkCommThread, SIGNAL(finished()), p_networkComm, SLOT(deleteLater()));
+    connect(this, SIGNAL(initNetwork()), p_networkComm, SLOT(init()));
+    connect(p_networkComm, SIGNAL(readReady()), this, SLOT(readSerialPort()));
+    connect(p_networkComm, SIGNAL(bytesWritten(qint64)), this, SLOT(serialBytesWritten(qint64)));
+    connect(this, SIGNAL(writeToNetwork(const QByteArray&)), p_networkComm, SLOT(write(const QByteArray&)));
+    connect(this, SIGNAL(connectToNetwork(qint32, QString , quint16)), p_networkComm, SLOT(connect(qint32, QString , quint16)));
+    connect(this, SIGNAL(disconnectFromNetwork()), p_networkComm, SLOT(disconnect()));
+    connect(p_networkComm, SIGNAL(error(qint32, QString)), this, SLOT(errorNetwork(qint32, QString)));
+    connect(p_networkComm, SIGNAL(message(qint32, QString)), this, SLOT(msgNetwork(qint32, QString)));
+    p_networkCommThread->start();
+    emit initNetwork();
+
+    //串口网络模式切换
+    g_network_comm_mode = Config::getConfigNumber(SECTION_GLOBAL, KEY_WORKMODE, 0);
+    on_actionNetworkMode_triggered(g_network_comm_mode);
+
     //设置窗体布局
     layoutConfig();
 
@@ -471,11 +550,22 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //显示收发统计
     serial.resetCnt();
-    statusStatisticLabel->setText(serial.getTxRxString_with_color());
+    p_networkComm->resetCnt();
+    if(g_network_comm_mode)
+    {
+        statusStatisticLabel->setText(p_networkComm->getTxRxString_with_color());
+    }
+    else
+    {
+        statusStatisticLabel->setText(serial.getTxRxString_with_color());
+    }
 
     //搜寻可用串口，并尝试打开
-    refreshCom();
-    tryOpenSerial();
+    if(!g_network_comm_mode)
+    {
+        refreshCom();
+        tryOpenSerial();
+    }
 
     //数值显示器初始化
     ui->valueDisplay->setColumnCount(2);
@@ -492,7 +582,7 @@ MainWindow::MainWindow(QWidget *parent) :
     g_font = Config::getGUIFont();
     updateUIPanelFont(g_font);
 
-    this->setWindowTitle(tr("纸飞机串口助手") + " - V"+Config::getVersion());
+    this->setWindowTitle(tr("纸飞机调试助手") + " - V"+Config::getVersion());
 
     //接受拖入文件的动作
     this->setAcceptDrops(true);
@@ -641,6 +731,7 @@ void MainWindow::openInteractiveUI()
     ui->cycleSendCheck->setEnabled(true);
     ui->clearWindows->setText(tr("清  空"));
     ui->clearWindows_simple->setText(ui->clearWindows->text());
+    ui->clearWindows_simple_net->setText(ui->clearWindows->text());
 }
 
 /**
@@ -656,6 +747,7 @@ void MainWindow::closeInteractiveUI()
     ui->cycleSendCheck->setChecked(false);
     ui->clearWindows->setText(tr("中  止"));
     ui->clearWindows_simple->setText(ui->clearWindows->text());
+    ui->clearWindows_simple_net->setText(ui->clearWindows->text());
 }
 
 /**
@@ -957,7 +1049,14 @@ void MainWindow::tee_textGroupsUpdate(const QString &name, const QByteArray &dat
 void MainWindow::printToTextBrowserTimerSlot()
 {
     //更新收发统计(可能会占用一点点点loading)
-    statusStatisticLabel->setText(serial.getTxRxString_with_color());
+    if(g_network_comm_mode)
+    {
+        statusStatisticLabel->setText(p_networkComm->getTxRxString_with_color());
+    }
+    else
+    {
+        statusStatisticLabel->setText(serial.getTxRxString_with_color());
+    }
 
     //打印分窗文本数据
     teeManager.updateAllTeeBrowserText();
@@ -1041,10 +1140,22 @@ void MainWindow::TxRxSpeedStatisticAndDisplay()
     statisticRxByteCnt = 0;
     txSpeedKB = static_cast<double>(statisticTxByteCnt) / 1024.0;
     statisticTxByteCnt = 0;
-    //负载率计算(公式中的1是起始位)
-    idealSpeed = (double)serial.baudRate()/(serial.stopBits()+serial.parity()+serial.dataBits()+1)/1024.0;
+    //负载率计算(公式中的1是起始位)(网络模式下不显示负载率)
+    if(g_network_comm_mode)
+    {
+        idealSpeed = 1;
+    }
+    else
+    {
+        idealSpeed = (double)serial.baudRate()/(serial.stopBits()+serial.parity()+serial.dataBits()+1)/1024.0;
+    }
+
     txLoad = 100 * txSpeedKB / idealSpeed;
     rxLoad = 100 * rxSpeedKB / idealSpeed;
+    if(g_network_comm_mode)
+    {
+        txLoad = rxLoad = 0;
+    }
 
     QString txSpeedStr;
     QString rxSpeedStr;
@@ -1103,6 +1214,14 @@ void MainWindow::TxRxSpeedStatisticAndDisplay()
             rxSpeedStr = "<font color=#FF5A5A>" + rxSpeedStr + "</font>";
         }
     }
+    //网络模式下不显示负载率
+    if(g_network_comm_mode)
+    {
+        if(rxSpeedStr.indexOf("(0%)"))
+            rxSpeedStr.remove(rxSpeedStr.indexOf("(0%)"), 4);
+        if(txSpeedStr.indexOf("(0%)"))
+            txSpeedStr.remove(txSpeedStr.indexOf("(0%)"), 4);
+    }
     statusSpeedLabel->setText(txSpeedStr + rxSpeedStr);
 }
 
@@ -1129,7 +1248,7 @@ void MainWindow::secTimerSlot()
         }
     }
 
-    if(ui->comSwitch->isChecked())
+    if(ui->comSwitch->isChecked() || ui->networkSwitch->isChecked())
     {
         qint64 consumedTime = QDateTime::currentSecsSinceEpoch() - g_lastSecsSinceEpoch;
         statusTimer->setText("Timer:" + formatTime(consumedTime * 1000));
@@ -1196,9 +1315,19 @@ void MainWindow::debugTimerSlot()
                "{cnt:the cnt is $$$}\n";
         tmp.replace("###", QString::number(3.3 + qrand()/static_cast<double>(RAND_MAX)/10.0, 'f', 3));
         tmp.replace("$$$", QString::number(static_cast<qint32>(debugTimerSlotCnt)));
-        if(serial.isOpen()){
-            serial.write(tmp.toLocal8Bit());
+        if(g_network_comm_mode)
+        {
+            if(p_networkComm->isOpen()){
+                p_networkComm->write(tmp.toLocal8Bit());
+            }
         }
+        else
+        {
+            if(serial.isOpen()){
+                serial.write(tmp.toLocal8Bit());
+            }
+        }
+
     }else if(ui->actionFloat->isChecked()){
         QByteArray tmp;
         tmp.append(BYTE0(num1));tmp.append(BYTE1(num1));tmp.append(BYTE2(num1));tmp.append(BYTE3(num1));
@@ -1206,8 +1335,18 @@ void MainWindow::debugTimerSlot()
         tmp.append(BYTE0(num3));tmp.append(BYTE1(num3));tmp.append(BYTE2(num3));tmp.append(BYTE3(num3));
         tmp.append(BYTE0(num4));tmp.append(BYTE1(num4));tmp.append(BYTE2(num4));tmp.append(BYTE3(num4));
         tmp.append(static_cast<char>(0x00));tmp.append(static_cast<char>(0x00));tmp.append(static_cast<char>(0x80));tmp.append(static_cast<char>(0x7F));
-        if(serial.isOpen()){
-            serial.write(tmp);
+
+        if(g_network_comm_mode)
+        {
+            if(p_networkComm->isOpen()){
+                p_networkComm->write(tmp);
+            }
+        }
+        else
+        {
+            if(serial.isOpen()){
+                serial.write(tmp);
+            }
         }
     }
 
@@ -1262,6 +1401,19 @@ MainWindow::~MainWindow()
                                 ui->tabWidget->tabText(ui->tabWidget->currentIndex()));
         Config::setConfigString(SECTION_GLOBAL, KEY_REG_MATCH_STR,
                                 ui->regMatchEdit->text());
+        //网络
+        Config::setConfigNumber(SECTION_GLOBAL, KEY_WORKMODE, g_network_comm_mode);
+        Config::setConfigString(SECTION_NETWORK, KEY_NETWORK_MODE, ui->networkModeBox->currentText());
+        QString udps_addr_list;
+        udps_addr_list = ui->comboBox_remoteAddr->currentText();
+        Config::setConfigString(SECTION_NETWORK, KEY_UDPS_REMOTE_ADDR, udps_addr_list);
+        QString target_addr_list;
+        target_addr_list = ui->comboBox_targetIP->currentText();
+        Config::setConfigString(SECTION_NETWORK, KEY_CLIENT_TARGET_IP, target_addr_list);
+        QString port_list;
+        port_list = ui->comboBox_targetPort->currentText();
+        Config::setConfigString(SECTION_NETWORK, KEY_CLIENT_TARGET_PORT, port_list);
+
         //serial 只保存成功打开过的
         Config::setPortName(serial.portName());
         Config::setBaudrate(serial.baudRate());
@@ -1376,6 +1528,10 @@ MainWindow::~MainWindow()
     p_logger_thread->wait();
 //    delete p_logger_thread; //deleteLater自动删除？
     delete p_logger_thread;
+
+    p_networkCommThread->quit();
+    p_networkCommThread->wait();
+    delete p_networkCommThread;
 
     delete fft_window;
     fft_window = nullptr;
@@ -1496,6 +1652,9 @@ void MainWindow::tryOpenSerial()
  */
 void MainWindow::on_comSwitch_clicked(bool checked)
 {
+    if(g_network_comm_mode)
+        return;
+
     QString com = ui->comList->currentText().mid(0,ui->comList->currentText().indexOf('('));
     qint32 baud = ui->baudrateList->currentText().toInt();
 
@@ -1558,11 +1717,32 @@ void MainWindow::readSerialPort()
         RxBuff.append(tmpReadBuff);
     }
     else{
-        if(serial.isOpen()){
-            tmpReadBuff = serial.readAll(); //tmpReadBuff一定不为空。
-            RxBuff.append(tmpReadBuff);
-        }else
-            return;
+        //网络或者串口模式
+        if(!g_network_comm_mode)
+        {
+            if(serial.isOpen())
+            {
+                tmpReadBuff = serial.readAll(); //tmpReadBuff一定不为空。
+                RxBuff.append(tmpReadBuff);
+            }
+            else
+            {
+                return;
+            }
+        }
+        else
+        {
+            if(p_networkComm->isOpen())
+            {
+                tmpReadBuff = p_networkComm->readAll(); //tmpReadBuff一定不为空。
+                RxBuff.append(tmpReadBuff);
+            }
+            else
+            {
+                return;
+            }
+        }
+
     }
 
     //空数据检查
@@ -1846,7 +2026,14 @@ void MainWindow::serialBytesWritten(qint64 bytes)
     {
         double percent = 100.0 * (SendFileBuffIndex + 1) / SendFileBuff.size();
         updateProgressBar(tr("发送进度："), percent);
-        serial.write(SendFileBuff.at(SendFileBuffIndex++));
+        if(g_network_comm_mode)
+        {
+            p_networkComm->write(SendFileBuff.at(SendFileBuffIndex++));
+        }
+        else
+        {
+            serial.write(SendFileBuff.at(SendFileBuffIndex++));
+        }
         if(SendFileBuffIndex == SendFileBuff.size())
         {
             SendFileBuffIndex = 0;
@@ -1857,6 +2044,7 @@ void MainWindow::serialBytesWritten(qint64 bytes)
             ui->cycleSendCheck->setEnabled(true);
             ui->clearWindows->setText(tr("清  空"));
             ui->clearWindows_simple->setText(ui->clearWindows->text());
+            ui->clearWindows_simple_net->setText(ui->clearWindows->text());
         }
     }
 }
@@ -1868,6 +2056,9 @@ void MainWindow::serialBytesWritten(qint64 bytes)
  */
 void MainWindow::handleSerialError(QSerialPort::SerialPortError errCode)
 {
+    if(g_network_comm_mode)
+        return;
+
     //故障检测
     if(errCode == QSerialPort::ResourceError){
         //记录故障的串口号
@@ -1945,6 +2136,7 @@ void MainWindow::multiStrSeqSendTimerSlot()
     {
         ui->clearWindows->setText(tr("清  空"));
         ui->clearWindows_simple->setText(ui->clearWindows->text());
+        ui->clearWindows_simple_net->setText(ui->clearWindows->text());
         multiStrSeqSendTimer.stop();
         return;
     }
@@ -1953,6 +2145,7 @@ void MainWindow::multiStrSeqSendTimerSlot()
         g_multiStr_cur_index = -1;
         ui->clearWindows->setText(tr("清  空"));
         ui->clearWindows_simple->setText(ui->clearWindows->text());
+        ui->clearWindows_simple_net->setText(ui->clearWindows->text());
         multiStrSeqSendTimer.stop();
     }
 
@@ -2067,10 +2260,21 @@ void MainWindow::on_sendButton_clicked()
     QByteArray tmp;
     QString tail;
 
-    if(!serial.isOpen())
+    if(g_network_comm_mode)
     {
-        QMessageBox::information(this, tr("提示"), tr("串口未打开。"));
-        return;
+        if(!p_networkComm->isOpen())
+        {
+            QMessageBox::information(this, tr("提示"), tr("网络未打开。"));
+            return;
+        }
+    }
+    else
+    {
+        if(!serial.isOpen())
+        {
+            QMessageBox::information(this, tr("提示"), tr("串口未打开。"));
+            return;
+        }
     }
 
     tmp = ui->textEdit->toPlainText().toLocal8Bit();
@@ -2103,18 +2307,34 @@ void MainWindow::on_sendButton_clicked()
         bool ok;
         sendArr = HexStringToByteArray(tmp,ok); //hex转发送数据流
         if(ok){
-            serial.write(sendArr);
+            if(g_network_comm_mode)
+            {
+                emit writeToNetwork(sendArr);
+            }
+            else
+            {
+                serial.write(sendArr);
+            }
         }else{
             ui->statusBar->showMessage(tr("文本输入区数据转换失败，放弃此次发送！"), 2000);
         }
-    }else {
+    }
+    else
+    {
         sendArr = tmp;
         //utf8编码
-        serial.write(sendArr);
+        if(g_network_comm_mode)
+        {
+            emit writeToNetwork(sendArr);
+        }
+        else
+        {
+            serial.write(sendArr);
+        }
     }
 
     //周期发送开启则立刻发送
-    if(ui->cycleSendCheck->isChecked())
+    if(ui->cycleSendCheck->isChecked() && !g_network_comm_mode)
         serial.flush();
 
     //若添加了时间戳则把发送的数据也显示在接收区
@@ -2139,7 +2359,16 @@ void MainWindow::on_sendButton_clicked()
 
     //更新收发统计(周期发送时收发统计直接通过周期定时器刷新以减少资源消耗)
     if(!ui->cycleSendCheck->isChecked())
-        statusStatisticLabel->setText(serial.getTxRxString_with_color());
+    {
+        if(g_network_comm_mode)
+        {
+            statusStatisticLabel->setText(p_networkComm->getTxRxString_with_color());
+        }
+        else
+        {
+            statusStatisticLabel->setText(serial.getTxRxString_with_color());
+        }
+    }
 
     //多字符串序列发送
     if(g_multiStr_cur_index != -1)
@@ -2150,6 +2379,7 @@ void MainWindow::on_sendButton_clicked()
         {
             ui->clearWindows->setText(tr("中  止"));
             ui->clearWindows_simple->setText(ui->clearWindows->text());
+            ui->clearWindows_simple_net->setText(ui->clearWindows->text());
             multiStrSeqSendTimer.start(seqTime);
         }
         else
@@ -2157,6 +2387,7 @@ void MainWindow::on_sendButton_clicked()
             g_multiStr_cur_index = -1;
             ui->clearWindows->setText(tr("清  空"));
             ui->clearWindows_simple->setText(ui->clearWindows->text());
+            ui->clearWindows_simple_net->setText(ui->clearWindows->text());
             multiStrSeqSendTimer.stop();
         }
     }
@@ -2169,6 +2400,7 @@ void MainWindow::on_clearWindows_clicked()
 {
     ui->clearWindows->setText(tr("清  空"));
     ui->clearWindows_simple->setText(ui->clearWindows->text());
+    ui->clearWindows_simple_net->setText(ui->clearWindows->text());
 
     progressBar->setValue(0);
     progressBar->setVisible(false);
@@ -2206,9 +2438,16 @@ void MainWindow::on_clearWindows_clicked()
     statusTimer->setText("Timer:" + formatTime(consumedTime * 1000));
 
     //串口
-    serial.resetCnt();
-    if(serial.isOpen())
-        serial.flush();
+    if(g_network_comm_mode)
+    {
+        p_networkComm->resetCnt();
+    }
+    else
+    {
+        serial.resetCnt();
+        if(serial.isOpen())
+            serial.flush();
+    }
 
     //接收区
     ui->textBrowser->clear();
@@ -2304,7 +2543,14 @@ void MainWindow::on_clearWindows_clicked()
     p_logger->clear_logger(RECOVERY_LOG);
 
     //更新收发统计
-    statusStatisticLabel->setText(serial.getTxRxString_with_color());
+    if(g_network_comm_mode)
+    {
+        statusStatisticLabel->setText(p_networkComm->getTxRxString_with_color());
+    }
+    else
+    {
+        statusStatisticLabel->setText(serial.getTxRxString_with_color());
+    }
 
     //估计窗口容纳字符数量
     calcCharacterNumberInWindow();
@@ -2328,12 +2574,25 @@ void MainWindow::on_cycleSendCheck_clicked(bool checked)
         ui->statusBar->showMessage(tr("发送间隔较小可能不够准确。"), 2000);
     }
 
-    if(!serial.isOpen())
+    if(g_network_comm_mode)
     {
-        QMessageBox::information(this, tr("提示"), tr("串口未打开。"));
-        ui->cycleSendCheck->setChecked(false);
-        return;
+        if(!p_networkComm->isOpen())
+        {
+            QMessageBox::information(this, tr("提示"), tr("网络未打开。"));
+            ui->cycleSendCheck->setChecked(false);
+            return;
+        }
     }
+    else
+    {
+        if(!serial.isOpen())
+        {
+            QMessageBox::information(this, tr("提示"), tr("串口未打开。"));
+            ui->cycleSendCheck->setChecked(false);
+            return;
+        }
+    }
+
 
     //启停定时器
     if(checked)
@@ -2375,6 +2634,7 @@ void MainWindow::on_textEdit_textChanged()
             multiStrSeqSendTimer.stop();
             ui->clearWindows->setText(tr("清  空"));
             ui->clearWindows_simple->setText(ui->clearWindows->text());
+            ui->clearWindows_simple_net->setText(ui->clearWindows->text());
             ui->textEdit->clear();
             ui->textEdit->insertPlainText(lastText);
             return;
@@ -4275,8 +4535,8 @@ QString MainWindow::statisticConvertRank(double totalTx, double totalRx)
  */
 void MainWindow::on_actionUsageStatistic_triggered()
 {
-    double currentTx = serial.getTotalTxCnt();
-    double currentRx = serial.getTotalRxCnt();
+    double currentTx = serial.getTotalTxCnt() + p_networkComm->getTotalTxCnt();
+    double currentRx = serial.getTotalRxCnt() + p_networkComm->getTotalRxCnt();
     double totalTx = Config::getTotalTxCnt().toDouble() + currentTx;
     double totalRx = Config::getTotalRxCnt().toDouble() + currentRx;
     double totalRunTime = Config::getTotalRunTime().toDouble() + currentRunTime;
@@ -4411,11 +4671,23 @@ void MainWindow::on_actionUsageStatistic_triggered()
  */
 void MainWindow::on_actionSendFile_triggered()
 {
-    if(!serial.isOpen())
+    if(g_network_comm_mode)
     {
-        QMessageBox::information(this, tr("提示"), tr("请先打开串口。"));
-        return;
+        if(!p_networkComm->isOpen())
+        {
+            QMessageBox::information(this, tr("提示"), tr("请先打开网络。"));
+            return;
+        }
     }
+    else
+    {
+        if(!serial.isOpen())
+        {
+            QMessageBox::information(this, tr("提示"), tr("请先打开串口。"));
+            return;
+        }
+    }
+
 
     static QString lastFileName;
     //打开文件对话框
@@ -4454,7 +4726,7 @@ void MainWindow::on_actionSendFile_triggered()
         if(divideDataToPacks(TxBuff, SendFileBuff, PACKSIZE_SENDFILE, sendFile))
             return ;
 
-        if(serial.isOpen()){
+        if(serial.isOpen() || p_networkComm->isOpen()){
             ui->textBrowser->clear();
             ui->textBrowser->appendPlainText("File size: "+QString::number(file.size())+" Bytes");
             ui->textBrowser->appendPlainText("One pack size: "+QString::number(PACKSIZE_SENDFILE)+" Bytes");
@@ -4466,7 +4738,10 @@ void MainWindow::on_actionSendFile_triggered()
             hexBrowserBuff.clear();
             hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
 
-            serial.write(SendFileBuff.at(SendFileBuffIndex++));//后续缓冲的发送在串口发送完成的槽里
+            if(serial.isOpen())
+                serial.write(SendFileBuff.at(SendFileBuffIndex++));//后续缓冲的发送在串口发送完成的槽里
+            else if(p_networkComm->isOpen())
+                emit writeToNetwork(SendFileBuff.at(SendFileBuffIndex++));
         }
         else{
             openInteractiveUI();
@@ -5346,7 +5621,7 @@ void MainWindow::on_actionRecordRawData_triggered(bool checked)
     {
         QString savePath;
         //串口开启状态下则默认保存到程序所在目录，因为选择文件路径的对话框是阻塞型的，串口开启下会影响接收
-        if(serial.isOpen())
+        if(serial.isOpen() || p_networkComm->isOpen())
         {
             savePath = "Recorder[Raw]-" + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".dat";
             rawDataRecordPath = QCoreApplication::applicationDirPath() + "/" + savePath;
@@ -5443,7 +5718,7 @@ void MainWindow::on_actionRecordGraphData_triggered(bool checked)
     {
         QString savePath;
         //串口开启状态下则默认保存到程序所在目录，因为选择文件路径的对话框是阻塞型的，串口开启下会影响接收
-        if(serial.isOpen())
+        if(serial.isOpen() || p_networkComm->isOpen())
         {
             recordPlotTitle = plotProtocol->getDefaultPlotterTitle();
             savePath = "Recorder[" + recordPlotTitle + "]-" + QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss") + ".csv";
@@ -5600,10 +5875,11 @@ void MainWindow::on_actionSimpleMode_triggered(bool checked)
     int32_t length;
     QList<int32_t> lengthList;
     ui->actionSimpleMode->setChecked(checked);
-    // qDebug() << __FUNCTION__ << checked << ui->widget_input->size();
     if(checked)
     {
         ui->clearWindows_simple->setVisible(true);
+        ui->clearWindows_simple_net->setVisible(true);
+        ui->comboBox_targetPort->setMaximumSize(120, 0xFFFFFF);
         //splitter_io垂直间距调整
         length = splitter_io->height();
         lengthList << static_cast<int32_t>(length)
@@ -5613,6 +5889,8 @@ void MainWindow::on_actionSimpleMode_triggered(bool checked)
     else
     {
         ui->clearWindows_simple->setVisible(false);
+        ui->clearWindows_simple_net->setVisible(false);
+        ui->comboBox_targetPort->setMaximumSize(0xFFFFFF, 0xFFFFFF);
         length = splitter_io->height();
         lengthList << static_cast<int32_t>(length*0.8)
                 << static_cast<int32_t>(length*0.2);
@@ -5812,4 +6090,514 @@ void MainWindow::on_actionSelectTheme_triggered()
 
     int32_t index = theme.mid(0, 1).toInt();
     setWindowTheme(index);
+}
+
+/**
+ * @brief     往浏览器添加调试信息
+ */
+void MainWindow::appendMsgLogToBrowser(QString str)
+{
+    str = QDateTime::currentDateTime().toString("[hh:mm:ss]# ") + str;
+    ui->textBrowser->appendPlainText(str);
+    BrowserBuff.append(str);
+    hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
+}
+
+/**
+ * @brief     更改通信模式：网络通信、串口通信
+ */
+void MainWindow::changeCommMode(bool isNetworkComm)
+{
+    //隐藏所有相关控件，再选择性打开
+    ui->widget_ctrl->setVisible(false);
+    ui->widget_net_ctrl->setVisible(false);
+    ui->actionCOM_Config->setVisible(false);
+
+    g_network_comm_mode = isNetworkComm;
+    if(g_network_comm_mode)
+    {
+        //网络通信模式
+        on_comSwitch_clicked(false);
+        QRegExp validAddrFormat;
+        validAddrFormat.setPattern("\\d{0,3}\\.\\d{0,3}\\.\\d{0,3}\\.\\d{0,3}");
+        ui->comboBox_targetIP->setValidator(new QRegExpValidator(validAddrFormat, this));
+        validAddrFormat.setPattern("\\d{0,5}");
+        ui->comboBox_targetPort->setValidator(new QRegExpValidator(validAddrFormat, this));
+        on_networkModeBox_activated("TCP Server");
+        ui->widget_net_ctrl->setVisible(true);
+    }
+    else
+    {
+        ui->actionCOM_Config->setVisible(true);
+        on_networkSwitch_clicked(false);
+        //串口通信模式
+        ui->widget_ctrl->setVisible(true);
+        refreshCom();
+    }
+}
+
+/**
+ * @brief     更新网络开关文本
+ * @param[in] 网络模式
+ * @param[in] 是否为按下状态
+ */
+void MainWindow::updateNetworkSwitchText(const QString &networkMode, bool pressed)
+{
+    if(networkMode == "TCP Server")
+    {
+        if(pressed)
+        {
+            ui->networkSwitch->setText(tr("断开"));
+        }
+        else
+        {
+            ui->networkSwitch->setText(tr("监听"));
+        }
+    }
+    else if(networkMode == "TCP Client")
+    {
+        if(pressed)
+        {
+            ui->networkSwitch->setText(tr("关闭"));
+        }
+        else
+        {
+            ui->networkSwitch->setText(tr("打开"));
+        }
+    }
+    else if(networkMode == "UDP Server")
+    {
+        if(pressed)
+        {
+            ui->networkSwitch->setText(tr("断开"));
+        }
+        else
+        {
+            ui->networkSwitch->setText(tr("监听"));
+        }
+    }
+    else if(networkMode == "UDP Client")
+    {
+        if(pressed)
+        {
+            ui->networkSwitch->setText(tr("关闭"));
+        }
+        else
+        {
+            ui->networkSwitch->setText(tr("打开"));
+        }
+    }
+}
+
+/**
+ * @brief     切换网络模式
+ */
+void MainWindow::on_networkModeBox_activated(const QString &arg1)
+{
+    static QString last_arg1;
+    if(ui->networkSwitch->isChecked())
+    {
+        qDebug() << "can not change network mode when working" << __FUNCTION__;
+        return;
+    }
+    ui->networkModeBox->setCurrentText(arg1);
+
+    //先重置状态（切换可编辑性后字体重置了，可能是bug）
+    ui->comboBox_targetIP->setEditable(true);
+    ui->comboBox_targetPort->setEditable(true);
+    ui->comboBox_remoteAddr->setEditable(true);
+    ui->comboBox_targetIP->setStyleSheet("QComboBox{ font-family: Microsoft YaHei UI;}");
+    ui->comboBox_targetPort->setStyleSheet("QComboBox{ font-family: Microsoft YaHei UI;}");
+    ui->comboBox_remoteAddr->setStyleSheet("QComboBox{ font-family: Microsoft YaHei UI;}");
+    ui->comboBox_remoteAddr->setVisible(false);
+    ui->label_remoteAddr->setVisible(false);
+
+    //在Server和Client切换时备份/恢复Client模式下的targetIP
+    if((last_arg1 == "TCP Client" || last_arg1 == "UDP Client")
+        && (arg1 == "TCP Server" || arg1 == "UDP Server"))
+    {
+        client_targetIP_backup_List.clear();
+        for(int32_t i = 0; i < ui->comboBox_targetIP->count(); i++)
+        {
+            client_targetIP_backup_List << ui->comboBox_targetIP->itemText(i);
+        }
+    }
+    else if((last_arg1 == "TCP Server" || last_arg1 == "UDP Server")
+            && (arg1 == "TCP Client" || arg1 == "UDP Client"))
+    {
+        if(client_targetIP_backup_List.isEmpty())
+        {
+            if(arg1 != "TCP Client")
+                client_targetIP_backup_List << p_networkComm->getLocalIP();
+            client_targetIP_backup_List << "127.0.0.1";
+        }
+        ui->comboBox_targetIP->clear();
+        ui->comboBox_targetIP->addItems(client_targetIP_backup_List);
+    }
+
+    //在切到TCP Server或者UDP Server时备份/恢复远端地址
+    if(arg1 == "TCP Server")
+    {
+        server_remoteAddr_backup_list.clear();
+        for(int32_t i = 0; i < ui->comboBox_remoteAddr->count(); i++)
+        {
+            server_remoteAddr_backup_list << ui->comboBox_remoteAddr->itemText(i);
+        }
+    }
+    else if(arg1 == "UDP Server")
+    {
+        if(server_remoteAddr_backup_list.isEmpty())
+        {
+            server_remoteAddr_backup_list << p_networkComm->getLocalIP() + ":" + ui->comboBox_targetPort->currentText();
+            server_remoteAddr_backup_list << "127.0.0.1:" + ui->comboBox_targetPort->currentText();
+        }
+        ui->comboBox_remoteAddr->clear();
+        ui->comboBox_remoteAddr->addItems(server_remoteAddr_backup_list);
+    }
+
+    if(arg1 == "TCP Server")
+    {
+        ui->label_targetIP->setText(tr("监听地址"));
+        ui->label_targetPort->setText(tr("监听端口"));
+        ui->networkSwitch->setText(tr("监听"));
+
+        ui->comboBox_targetIP->clear();
+        ui->comboBox_targetIP->setEditable(false);
+        ui->comboBox_targetIP->addItem(p_networkComm->getLocalIP());
+        ui->comboBox_targetIP->addItem("127.0.0.1");
+
+        ui->comboBox_remoteAddr->clear();
+        ui->comboBox_remoteAddr->setEditable(false);
+        ui->comboBox_remoteAddr->setVisible(true);
+        ui->label_remoteAddr->setVisible(true);
+        ui->label_remoteAddr->setText(tr("当前连接"));
+    }
+    else if(arg1 == "TCP Client")
+    {
+        ui->label_targetIP->setText(tr("远端地址"));
+        ui->label_targetPort->setText(tr("远端端口"));
+        ui->networkSwitch->setText(tr("打开"));
+    }
+    else if(arg1 == "UDP Server")
+    {
+        ui->label_targetIP->setText(tr("监听地址"));
+        ui->label_targetPort->setText(tr("监听端口"));
+        ui->networkSwitch->setText(tr("监听"));
+
+        ui->comboBox_targetIP->clear();
+        ui->comboBox_targetIP->setEditable(false);
+        ui->comboBox_targetIP->addItem(p_networkComm->getLocalIP());
+        ui->comboBox_targetIP->addItem("127.0.0.1");
+
+        ui->comboBox_remoteAddr->setEditable(true);
+        ui->comboBox_remoteAddr->setVisible(true);
+        ui->label_remoteAddr->setVisible(true);
+        ui->label_remoteAddr->setText(tr("远端地址"));
+    }
+    else if(arg1 == "UDP Client")
+    {
+        ui->label_targetIP->setText(tr("远端地址"));
+        ui->label_targetPort->setText(tr("远端端口"));
+        ui->networkSwitch->setText(tr("打开"));
+    }
+    last_arg1 = arg1;
+}
+
+/**
+ * @brief     设置所有网络相关UI的使能状态
+ * @param[in] 使能状态
+ */
+void MainWindow::setAllNetControlPanelEnabled(bool enable)
+{
+    ui->comboBox_targetPort->setEnabled(enable);
+    ui->networkModeBox->setEnabled(enable);
+//    ui->label_targetIP->setEnabled(enable);
+    ui->comboBox_targetIP->setEnabled(enable);
+    if(ui->networkModeBox->currentText() == "TCP Server"
+      || ui->networkModeBox->currentText() == "UDP Server")
+    {
+        ui->comboBox_remoteAddr->setEnabled(true);
+        ui->label_remoteAddr->setEnabled(true);
+    }
+    else
+    {
+        ui->comboBox_remoteAddr->setEnabled(enable);
+//        ui->label_remoteAddr->setEnabled(enable);
+    }
+}
+
+/**
+ * @brief     检查网络地址的输入合法性
+ */
+bool MainWindow::checkIPAddrIsValid(void)
+{
+    QString errMsg;
+    QRegExp validAddrFormat;
+    validAddrFormat.setPattern("\\d{1,3}.\\d{1,3}.\\d{1,3}.\\d{1,3}");
+    if(ui->comboBox_targetIP->isVisible()
+       && !ui->comboBox_targetIP->currentText().contains(validAddrFormat))
+    {
+        errMsg = ui->label_targetIP->text();
+        goto failed;
+    }
+    validAddrFormat.setPattern("\\d{1,5}");
+    if(ui->comboBox_targetPort->isVisible()
+       && !ui->comboBox_targetPort->currentText().contains(validAddrFormat))
+    {
+        errMsg = ui->label_targetPort->text();
+        goto failed;
+    }
+    validAddrFormat.setPattern("\\d{1,3}.\\d{1,3}.\\d{1,3}.\\d{1,3}:\\d{1,5}");
+    if(!ui->comboBox_remoteAddr->currentText().isEmpty()
+       && ui->comboBox_remoteAddr->isVisible()
+       && !ui->comboBox_remoteAddr->currentText().contains(validAddrFormat))
+    {
+        errMsg = ui->label_remoteAddr->text();
+        goto failed;
+    }
+    return true;
+failed:
+    QMessageBox::information(this, tr("提示"),
+                             tr("非法的") + errMsg);
+    return false;
+}
+
+/**
+ * @brief     添加网络地址到下拉列表中
+ * @note      建议先验证地址合法性
+ */
+void MainWindow::addNetAddrToComBoBox(void)
+{
+    if(ui->comboBox_targetIP->findText(ui->comboBox_targetIP->currentText()) == -1)
+    {
+        if(ui->comboBox_targetIP->currentText().isEmpty())
+            return;
+        ui->comboBox_targetIP->addItem(ui->comboBox_targetIP->currentText());
+    }
+    if(ui->comboBox_targetPort->findText(ui->comboBox_targetPort->currentText()) == -1)
+    {
+        if(ui->comboBox_targetPort->currentText().isEmpty())
+            return;
+        ui->comboBox_targetPort->addItem(ui->comboBox_targetPort->currentText());
+    }
+    if(ui->comboBox_remoteAddr->findText(ui->comboBox_remoteAddr->currentText()) == -1)
+    {
+        if(ui->comboBox_remoteAddr->currentText().isEmpty())
+            return;
+        ui->comboBox_remoteAddr->addItem(ui->comboBox_remoteAddr->currentText());
+    }
+}
+
+/**
+ * @brief     网络开关按钮
+ * @note      连接/断开网络
+ * @param[in] 开关动作
+ */
+void MainWindow::on_networkSwitch_clicked(bool checked)
+{
+    QString arg1 = ui->networkModeBox->currentText();
+    if(checked)
+    {
+        setAllNetControlPanelEnabled(true);
+
+        if(!checkIPAddrIsValid())
+        {
+            goto failed;
+        }
+
+        if(arg1 == "TCP Server")
+        {
+            emit connectToNetwork(TCP_SERVER,
+                                  ui->comboBox_targetIP->currentText(),
+                                  ui->comboBox_targetPort->currentText().toInt());
+        }
+        else if(arg1 == "TCP Client")
+        {
+            emit connectToNetwork(TCP_CLIENT,
+                                  ui->comboBox_targetIP->currentText(),
+                                  ui->comboBox_targetPort->currentText().toInt());
+        }
+        else if(arg1 == "UDP Server")
+        {
+            QString addr = ui->comboBox_remoteAddr->currentText();
+            p_networkComm->setRemoteUdpAddr(addr.mid(0, addr.indexOf(':')),
+                                             addr.mid(addr.indexOf(':') + 1).toUInt());
+            emit connectToNetwork(UDP_SERVER,
+                                  ui->comboBox_targetIP->currentText(),
+                                  ui->comboBox_targetPort->currentText().toInt());
+        }
+        else if(arg1 == "UDP Client")
+        {
+            emit connectToNetwork(UDP_CLIENT,
+                                  ui->comboBox_targetIP->currentText(),
+                                  ui->comboBox_targetPort->currentText().toInt());
+        }
+        //把网络地址加入combobox
+        addNetAddrToComBoBox();
+        setAllNetControlPanelEnabled(false);
+        updateNetworkSwitchText(arg1, true);
+        return;
+    }
+    emit disconnectFromNetwork();
+failed:
+    ui->networkSwitch->setChecked(false);
+    setAllNetControlPanelEnabled(true);
+    updateNetworkSwitchText(arg1, false);
+    return;
+}
+
+/**
+ * @brief     网络模式切换
+ * @note      切换TCP、UDP等
+ * @param[in] 切换动作
+ */
+void MainWindow::on_actionNetworkMode_triggered(bool checked)
+{
+    if(ui->comSwitch->isChecked() || ui->networkSwitch->isChecked())
+    {
+        QMessageBox::information(this, tr("提示"),
+                                 tr("请先关闭串口/网络后再进行操作。"));
+        ui->actionNetworkMode->setChecked(!checked);
+        return;
+    }
+    ui->actionNetworkMode->setChecked(checked);
+    changeCommMode(checked);
+}
+
+/**
+ * @brief     网络错误信息
+ * @note      集合了TCP、UDP等各模式的错误
+ * @param[in] 错误码
+ * @param[in] 人类可读的错误细节
+ */
+void MainWindow::errorNetwork(qint32 err, QString details)
+{
+    switch (err) {
+    case NET_ERR_CONNECT:
+        emit disconnectFromNetwork();
+        ui->networkSwitch->setChecked(false);
+        setAllNetControlPanelEnabled(true);
+        updateNetworkSwitchText(ui->networkModeBox->currentText(), false);
+        QMessageBox::information(this, tr("提示"),
+                                 tr("网络打开失败。") + "\n"
+                                 + details);
+        break;
+    case NET_ERR_DISCONNECT:
+        ui->networkSwitch->setChecked(false);
+        setAllNetControlPanelEnabled(true);
+        updateNetworkSwitchText(ui->networkModeBox->currentText(), false);
+        ui->statusBar->showMessage(details, 2000);
+        if(ui->networkModeBox->currentText() == "TCP Client")
+        {
+            appendMsgLogToBrowser("Client disconnected by server.");
+        }
+        break;
+    case NET_ERR_WRITE:
+        ui->statusBar->showMessage(tr("网络数据发送异常。"), 2000);
+        appendMsgLogToBrowser("Network data sending error.");
+        break;
+    case NET_ERR_READ:
+        ui->statusBar->showMessage(tr("网络数据接收异常。"), 2000);
+        appendMsgLogToBrowser("Network data receiving error.");
+        break;
+    case NET_ERR_MULTI_SOCKET:
+        // QMessageBox::information(this, tr("提示"),
+        //                          tr("连接已拒绝。") + "\n"
+        //                          + tr("暂未支持多客户端连接。"));
+        ui->statusBar->showMessage(details, 2000);
+        appendMsgLogToBrowser(details);
+        break;
+    default:
+        qDebug() << __FUNCTION__ << "unknown err" << err << details;
+        break;
+    }
+}
+
+/**
+ * @brief     网络状态信息更新槽
+ * @note      正常的网络连接、断开等信息的同步
+ * @param[in] 信息类型
+ * @param[in] 信息文本
+ */
+void MainWindow::msgNetwork(qint32 type, QString msg)
+{
+    switch (type) {
+    case NET_MSG_NEW_CONNECT:
+        if(ui->networkModeBox->currentText() == "TCP Server")
+        {
+            if(ui->comboBox_remoteAddr->findText(msg) == -1)
+            {
+                ui->comboBox_remoteAddr->addItem(msg);
+            }
+            ui->comboBox_remoteAddr->setCurrentText(msg);
+        }
+        else if(ui->networkModeBox->currentText() == "UDP Server")
+        {
+            if(ui->comboBox_remoteAddr->findText(msg) == -1)
+            {
+                ui->comboBox_remoteAddr->addItem(msg);
+            }
+            ui->comboBox_remoteAddr->setCurrentText(msg);
+        }
+        break;
+    case NET_MSG_DISCONNECT:
+        if(ui->networkModeBox->currentText() == "TCP Server")
+        {
+            int32_t index = 0;
+            index = ui->comboBox_remoteAddr->findText(msg);
+            ui->comboBox_remoteAddr->removeItem(index);
+        }
+        break;
+    default:
+        qDebug() << __FUNCTION__ << "unknown msg" << msg;
+        break;
+    }
+}
+
+/**
+ * @brief     远端地址激活了新的选项
+ * @param[in] 新的选项
+ */
+void MainWindow::on_comboBox_remoteAddr_activated(const QString &arg1)
+{
+    ui->comboBox_remoteAddr->setCurrentText(arg1);
+    if(ui->networkModeBox->currentText() == "UDP Server")
+    {
+        if(!checkIPAddrIsValid())
+            return;
+        p_networkComm->setRemoteUdpAddr(arg1.mid(0, arg1.indexOf(':')),
+                                         arg1.mid(arg1.indexOf(':') + 1).toUInt());
+    }
+}
+
+/**
+ * @brief     远端地址当前文本修改动作触发
+ * @param[in] 新的文本
+ */
+void MainWindow::on_comboBox_remoteAddr_currentTextChanged(const QString &arg1)
+{
+    if(arg1.isEmpty())
+        return;
+
+    ui->comboBox_remoteAddr->setCurrentText(arg1);
+    if(ui->networkModeBox->currentText() == "UDP Server")
+    {
+        if(!checkIPAddrIsValid())
+            return;
+        p_networkComm->setRemoteUdpAddr(arg1.mid(0, arg1.indexOf(':')),
+                                         arg1.mid(arg1.indexOf(':') + 1).toUInt());
+        if(ui->comboBox_remoteAddr->findText(arg1) == -1)
+        {
+            ui->comboBox_remoteAddr->addItem(arg1);
+        }
+//        ui->comboBox_remoteAddr->setCurrentText(msg);
+    }
+}
+
+/**
+ * @brief     网络模式清空按钮按下
+ */
+void MainWindow::on_clearWindows_simple_net_clicked()
+{
+    on_clearWindows_clicked();
 }

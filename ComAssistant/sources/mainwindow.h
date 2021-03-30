@@ -33,6 +33,7 @@
 #include <QInputDialog>
 #include <QList>
 #include <QThread>
+#include <QRegExpValidator>
 //绘图器类
 #include "myqcustomplot.h"
 #include "dataprotocol.h"
@@ -49,6 +50,7 @@
 #include "reg_match_engine.h"
 #include "plotter_manager.h"
 #include "tee_manager.h"
+#include "network_comm.h"
 //界面类
 #include "stm32isp_dialog.h"
 #include "about_me_dialog.h"
@@ -103,6 +105,7 @@ private slots:
     void on_sendButton_clicked();
     void on_clearWindows_clicked();
     void on_clearWindows_simple_clicked();
+    void on_clearWindows_simple_net_clicked();
     void on_cycleSendCheck_clicked(bool checked);
     void on_textEdit_textChanged();
     void on_hexSend_stateChanged(int arg1);
@@ -148,6 +151,11 @@ private slots:
     void on_actionHexConverter_triggered(bool checked);
     void on_actionPriorityTable_triggered();
     void on_actionSelectTheme_triggered();
+    void on_networkModeBox_activated(const QString &arg1);
+    void on_networkSwitch_clicked(bool checked);
+    void on_actionNetworkMode_triggered(bool checked);
+    void on_comboBox_remoteAddr_activated(const QString &arg1);
+    void on_comboBox_remoteAddr_currentTextChanged(const QString &arg1);
 
     //setting
     void on_actionCOM_Config_triggered();
@@ -250,6 +258,12 @@ private:
     int32_t checkBlankProblem();
     int32_t checkScrollBarTooLarge();
     void setWindowTheme(int32_t themeIndex);
+    void setAllNetControlPanelEnabled(bool enable);
+    bool checkIPAddrIsValid(void);
+    void addNetAddrToComBoBox(void);
+    void changeCommMode(bool isNetworkComm);
+    void updateNetworkSwitchText(const QString &networkMode, bool pressed);
+    void appendMsgLogToBrowser(QString str);
     Ui::MainWindow *ui;
     mySerialPort serial;
 
@@ -357,10 +371,16 @@ private:
     TextExtractEngine *p_textExtract;
 
     //正则匹配引擎
-    QThread *p_regMatchThread;
-    RegMatchEngine *p_regMatch;
+    QThread *p_regMatchThread = nullptr;
+    RegMatchEngine *p_regMatch = nullptr;
     QByteArray regMatchBuffer;//正则匹配缓冲（防止高频刷新带来的CPU压力）
     QMutex regMatchBufferLock;
+
+    //网络通信模块
+    NetworkComm* p_networkComm = nullptr;
+    QThread *p_networkCommThread = nullptr;
+    QStringList client_targetIP_backup_List;    //Client的目的地址记忆
+    QStringList server_remoteAddr_backup_list;  //其实就是UDP Server的远端地址记忆
 
     //fft window
     FFT_Dialog *fft_window = nullptr;
@@ -385,12 +405,18 @@ signals:
     void regM_parseData(void);
     void regM_clearData(void);
     qint32 regM_saveData(const QString &path);
+    void initNetwork();
+    void writeToNetwork(const QByteArray &str);
+    int32_t connectToNetwork(qint32 mode = TCP_CLIENT, QString ip = DEFAULT_IP, quint16 port = DEFAULT_PORT);
+    int32_t disconnectFromNetwork();
 
 public slots:
     void tee_textGroupsUpdate(const QString &name, const QByteArray &data);
     void tee_saveDataResult(const qint32& result, const QString &path, const qint32 fileSize);
     void regM_dataUpdated(const QByteArray &packData);
     void regM_saveDataResult(const qint32& result, const QString &path, const qint32 fileSize);
+    void errorNetwork(qint32 err, QString details);
+    void msgNetwork(qint32 type, QString msg);
 
 protected:
     void resizeEvent(QResizeEvent* event);

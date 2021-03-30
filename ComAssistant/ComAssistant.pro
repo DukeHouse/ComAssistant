@@ -82,6 +82,7 @@ SOURCES += \
     plotter/plotter_manager.cpp \
     plotter/qcustomplot.cpp \
     plotter/qcustomplotcontrol.cpp \
+    sources/network_comm.cpp \
     sources/tee_manager.cpp \
     sources/baseconversion.cpp \
     sources/config.cpp \
@@ -95,7 +96,7 @@ SOURCES += \
     sources/reg_match_engine.cpp \
     sources/text_extract_engine.cpp \
     sources/fft.cpp
-    
+
 HEADERS += \
     QHotkey/QHotkey/qhotkey.h \
     QHotkey/QHotkey/QHotkey \
@@ -161,6 +162,7 @@ HEADERS += \
     plotter/plotter_manager.h \
     plotter/qcustomplot.h \
     plotter/qcustomplotcontrol.h \
+    sources/network_comm.h \
     sources/tee_manager.h \
     sources/baseconversion.h \
     sources/common.h \

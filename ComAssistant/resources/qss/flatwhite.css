@@ -174,7 +174,8 @@ QLineEdit[echoMode="2"] {
 }
 
 /* 串口开关样式 */
-QPushButton#comSwitch {
+QPushButton#comSwitch,
+QPushButton#networkSwitch{
   border-style: none;
   padding: 8px;
   border-radius: 5px;
@@ -184,23 +185,28 @@ QPushButton#comSwitch {
   width: 85px;
   /* height: 30px; */
 }
-QPushButton#comSwitch:hover {
+QPushButton#comSwitch:hover,
+QPushButton#networkSwitch:hover{
   color: #fff5e7;
   background: #ec7064;
 }
-QPushButton#comSwitch:pressed {
+QPushButton#comSwitch:pressed,
+QPushButton#networkSwitch:pressed{
   color: #f5a996;
   background: #dc2d1a;
 }
-QPushButton#comSwitch:checked {
+QPushButton#comSwitch:checked,
+QPushButton#networkSwitch:checked{
   color: #ffffff;
   background: #00bb9e;
 }
-QPushButton#comSwitch:checked:hover {
+QPushButton#comSwitch:checked:hover,
+QPushButton#networkSwitch:checked:hover{
   color: #e7ffee;
   background: #5bdac7;
 }
-QPushButton#comSwitch:checked:pressed {
+QPushButton#comSwitch:checked:pressed,
+QPushButton#networkSwitch:checked:pressed{
   color: #81ecdc;
   background: #24bda6;
 }
