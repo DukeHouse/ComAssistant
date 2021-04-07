@@ -626,12 +626,37 @@ MainWindow::MainWindow(QWidget *parent) :
     if(g_agree_statement)
         http = new HTTP(this);
 
-    //debugger
+    //debugger模式控制
     ui->actionMAD->setVisible(false);
+    ui->actionNetworkMode->setVisible(false);
     if(g_debugger)
     {
        ui->actionMAD->setVisible(true);
        ui->actiondebug->setVisible(true);
+       ui->actionNetworkMode->setVisible(true);
+    }
+    else
+    {
+        QFile support_mode_file;
+        do{
+            support_mode_file.setFileName("work_in_serialport");
+            if(support_mode_file.exists())
+            {
+                g_network_comm_mode = 0;
+                on_actionNetworkMode_triggered(g_network_comm_mode);
+                ui->actionNetworkMode->setVisible(false);
+                break;
+            }
+            support_mode_file.setFileName("work_in_network");
+            if(support_mode_file.exists())
+            {
+                g_network_comm_mode = 1;
+                on_actionNetworkMode_triggered(g_network_comm_mode);
+                ui->actionNetworkMode->setVisible(false);
+                break;
+            }
+            ui->actionNetworkMode->setVisible(true);
+        }while(0);
     }
 
     readRecoveryFile();

@@ -274,7 +274,7 @@ int32_t NetworkComm::connect(qint32 mode, QString ip, quint16 port)
         QObject::connect(server, SIGNAL(newConnection()), this, SLOT(serverNewConnect()));
         break;
     case UDP_SERVER:
-        //这里只设置了接收地址
+        //监听这个地址，同时从这个地址发数据出去
         if(!udpSocket->bind(QHostAddress(ip), port))
         {
             errorDetail = udpSocket->errorString();
@@ -288,6 +288,7 @@ int32_t NetworkComm::connect(qint32 mode, QString ip, quint16 port)
             errorDetail = udpSocket->errorString();
             goto connect_failed;
         }
+        //只设置远端地址，发送端口未指定，因为指定后无法在本机进行回环通信
         remoteUdpIp = QHostAddress(ip);
         remoteUdpPort = port;
         QObject::connect(udpSocket, SIGNAL(readyRead()), this, SLOT(readData()));
