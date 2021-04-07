@@ -373,15 +373,8 @@ void MyQCustomPlot::rescaleXYAxis()
     this->replot();
 }
 
-void MyQCustomPlot::removeAllGraphs()
+void MyQCustomPlot::clear()
 {
-    QMessageBox::Button res;
-    res = QMessageBox::warning(this, tr("警告"), 
-                                tr("确定要移除所有曲线吗？"), 
-                                QMessageBox::Ok|QMessageBox::No);
-    if(res == QMessageBox::No)
-        return;
-
     if(p_protocol)
     {
         emit protocol_clearBuff(titleName);
@@ -395,6 +388,18 @@ void MyQCustomPlot::removeAllGraphs()
         this->yAxis->setRange(0, 5);
     this->xAxis->setRange(0, plotControl->getXAxisLength(), Qt::AlignRight);
     this->replot();
+}
+
+void MyQCustomPlot::removeAllGraphs()
+{
+    QMessageBox::Button res;
+    res = QMessageBox::warning(this, tr("警告"), 
+                                tr("确定要移除所有曲线吗？"), 
+                                QMessageBox::Ok|QMessageBox::No);
+    if(res == QMessageBox::No)
+        return;
+
+    clear();
 }
 
 void MyQCustomPlot::reNameSelectedGraph()

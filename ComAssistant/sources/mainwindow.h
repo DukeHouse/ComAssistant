@@ -353,6 +353,11 @@ private:
     int64_t statisticRegParseCnt = 0;
     int64_t statisticRecordCnt = 0;
 
+    //readSerialPort每秒执行次数统计，用于流控
+    int64_t readSlotCnt = 0;
+    int64_t lastReadSlotCnt = 0;
+    int64_t diff_slotCnt = 0;
+
     //布局
     QSplitter *splitter_output = NULL;
     QSplitter *splitter_io = NULL;

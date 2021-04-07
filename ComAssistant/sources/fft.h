@@ -46,7 +46,7 @@ private:
     void mul(complex a, complex b, complex *c);
     complex x[MAX_N], *W;   //定义输入序列和旋转因子
     double l[MAX_N] = {0};
-    int size = MAX_N;   //参与计算的信号序列长度，必须是2的幂次方
+    int32_t size = MAX_N;   //参与计算的信号序列长度，必须是2的幂次方
     const double PI = atan(1)*4; //定义π 因为tan(π/4)=1 所以arctan（1）* 4=π，增加π的精度
 public slots:
     /*
@@ -54,7 +54,7 @@ public slots:
      * sample_frq: 信号序列的采样频率，错误的采样频率会导致频谱图的映射关系出错
      * data: 参与计算的信号序列
     */
-    void fft_calculate(qint8 index, qint32 sample_frq, QVector<double> data);//index只是区分是哪个曲线的FFT结果
+    void fft_calculate(qint8 index, qint32 sample_frq, const QVector<double> &data);//index只是区分是哪个曲线的FFT结果
 signals:
     /*
      * 信号需要连接到槽才可使用
@@ -62,7 +62,7 @@ signals:
      * x_ticks: 频谱图的X轴
      * result : 频谱图的Y轴
     */
-    void fft_result(qint8 index, QVector<double> x_ticks, QVector<double> result);
+    void fft_result(qint8 index, const QVector<double> &x_ticks, const QVector<double> &result);
 };
 
 #endif // FFT_H

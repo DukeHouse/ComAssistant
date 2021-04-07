@@ -63,10 +63,10 @@ private:
 protected:
     void closeEvent(QCloseEvent *event);
 signals:
-    void start_fft_cal(qint8 index, qint32 sample_frq, QVector<double> data);
+    void start_fft_cal(qint8 index, qint32 sample_frq, const QVector<double> &data);
 private slots:
     void __100msTimerSlot();
-    void get_fft_result(qint8 index, QVector<double> x_ticks, QVector<double> result);
+    void get_fft_result(qint8 index, const QVector<double> &x_ticks, const QVector<double> &result);
     void on_cal_point_currentTextChanged(const QString &arg1);
     void on_sample_frq_currentTextChanged(const QString &arg1);
     void contextMenuRequest(QPoint pos);

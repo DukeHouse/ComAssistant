@@ -47,7 +47,7 @@ void fft_trans::change()
 
 void fft_trans::transform()
 {
-    int i;
+    int32_t i;
     memset(W, 0, sizeof(complex) * size);
     for(i = 0; i < size; i++)
     {
@@ -76,7 +76,7 @@ inline void fft_trans::mul(complex a,complex b,complex *c)
 
 void fft_trans::fft()
 {
-    int i = 0, j = 0, k = 0, m=0;
+    int32_t i = 0, j = 0, k = 0, m=0;
     complex q, y, z;
     change();
     for(i = 0; i < log(size) / log(2); i++)
@@ -118,23 +118,25 @@ double fft_trans::cal_norm_and_find_max(complex* x, int32_t size_of_x, double *n
     return max_norm;
 }
 
-void fft_trans::fft_calculate(qint8 index, qint32 sample_frq, QVector<double> data)
+void fft_trans::fft_calculate(qint8 index, qint32 sample_frq, const QVector<double> &data)
 {
 //    qDebug()<<"ThreadID:"<<QThread::currentThreadId()<<"fft_calculate";
-    int i;
+    int32_t i;
+    QVector<double> copy_data;
+    copy_data = data;
     //对齐
-    while(data.size() < size)
+    while(copy_data.size() < size)
     {
-        data.append(0);
+        copy_data.append(0);
     }
-    while(data.size() > size)
+    while(copy_data.size() > size)
     {
-        data.pop_front();
+        copy_data.pop_front();
     }
 
     for(i = 0; i < size; i++)
     {
-        x[i].real = data[i];
+        x[i].real = copy_data[i];
         x[i].imag = 0;
     }
     transform();//变换序列顺序
@@ -152,7 +154,7 @@ void fft_trans::fft_calculate(qint8 index, qint32 sample_frq, QVector<double> da
 
     //频率转换
     QVector<double> x_ticks;
-    for(int i = 0; i < size / 2; i++)
+    for(int32_t i = 0; i < size / 2; i++)
     {
         x_ticks << (double)i / size * sample_frq; //X轴由无单位序列转化为频率单位
     }

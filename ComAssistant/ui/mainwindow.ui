@@ -1628,6 +1628,9 @@ p, li { white-space: pre-wrap; }
    <property name="text">
     <string>网络模式</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+N</string>
+   </property>
   </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>

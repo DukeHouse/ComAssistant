@@ -65,6 +65,7 @@ public:
     int32_t getxAxisSource();
     int32_t useOpenGL(bool flag);
     bool getUseOpenGLState();
+    void clear();
 public slots:
     void recvKey(QKeyEvent *e, bool isPressAct);
 private slots:

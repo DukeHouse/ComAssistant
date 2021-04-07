@@ -58,8 +58,8 @@ FFT_Dialog::FFT_Dialog(QAction *checkHandler, QWidget *parent) :
     fft->moveToThread(fft_thread);
     qRegisterMetaType<QVector<double>>("QVector<double>");
     connect(fft_thread, SIGNAL(finished()), fft, SLOT(deleteLater()));
-    connect(this, SIGNAL(start_fft_cal(qint8, qint32, QVector<double>)), fft, SLOT(fft_calculate(qint8, qint32, QVector<double>)));
-    connect(fft, SIGNAL(fft_result(qint8, QVector<double>, QVector<double>)), this, SLOT(get_fft_result(qint8, QVector<double>, QVector<double>)));
+    connect(this, SIGNAL(start_fft_cal(qint8, qint32, const QVector<double> &)), fft, SLOT(fft_calculate(qint8, qint32, const QVector<double> &)));
+    connect(fft, SIGNAL(fft_result(qint8, const QVector<double> &, const QVector<double> &)), this, SLOT(get_fft_result(qint8, const QVector<double> &, const QVector<double> &)));
     fft_thread->start();
 
     __100msTimer = new QTimer(this);
@@ -503,7 +503,7 @@ void FFT_Dialog::__100msTimerSlot()
     cnt++;
 }
 
-void FFT_Dialog::get_fft_result(qint8 index, QVector<double> x_ticks, QVector<double> result)
+void FFT_Dialog::get_fft_result(qint8 index, const QVector<double> &x_ticks, const QVector<double> &result)
 {
     if(index >= fft_layer.size())
     {

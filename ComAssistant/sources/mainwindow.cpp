@@ -678,14 +678,15 @@ void MainWindow::quickHelp()
                 "  \"{title:string}\\n\"\n"
                 "  'title' can be any word. Dart will show data in windows according to title\n"
                 "  'string' can be any text containt. It's the data in windows\n"
-                "  '\\n' is wrap symbol\n\n"
+                "  '\\n' is wrap symbol\n"
+                "  It's recommended to select one title for each task\n\n"
                 "# Guide with C language\n"
                 "  1.Define macro function to simplify work\n"
                 "    #define PRINT(title, fmt, ...) printf(\"{\"#title\":\"fmt\"}\\n\", __VA_ARGS__)\n"
                 "  2.To draw graph, use it like this: \n"
-                "    PRINT(plotter, \"%f,%f,%f\", data1, data2, data3); It means 3 graphs.\n"
+                "    PRINT(plotter, \"%f,%f\", data1, data2); It means 2 graphs displayed on \'plotter\' window.\n"
                 "  3.To classify text, use it like this: \n"
-                "    PRINT(voltage, \"current voltage is %d V\", var); It means text associate with voltage\n";
+                "    PRINT(monitor, \"voltage is %f V\", data1); It means these text displayed on \'monitor\' window.\n";
         ui->textBrowser->setPlaceholderText(helpText);
         helpText = "Show the string contained the key word"
                 "\n\n"
@@ -701,16 +702,17 @@ void MainWindow::quickHelp()
             "# ASCII协议规则(字符串)：\n"
             "  \"{title:string}\\n\"\n"
             "  title为自定义英文标题，纸飞机将根据title对数据进行分窗显示。\n"
-            "  string为自定义英文字符串，这是被分窗显示的数据内容。\n"
+            "  string为自定义英文字符串，这是将被分窗显示的数据内容。\n"
             "  {和}为一组花括号，表示一组数据包。\n"
-            "  \\n为换行符，不可省略。\n\n"
+            "  \\n为换行符，不可省略。\n"
+            "  常推荐一种任务使用一种标题。\n\n"
             "# C语言使用方法：\n"
             "  1.定义宏函数可简化后期工作：\n"
             "    #define PRINT(title, fmt, ...) printf(\"{\"#title\":\"fmt\"}\\n\", __VA_ARGS__)\n"
             "  2.若要绘图可这样使用：\n"
-            "    PRINT(plotter, \"%f,%f,%f\", data1, data2, data3);即可，表示3条曲线数据。\n"
+            "    PRINT(plotter, \"%f,%f\", data1, data2); 表示2条曲线显示在plotter窗口。\n"
             "  3.若要分窗显示可这样使用：\n"
-            "    PRINT(voltage, \"current voltage is %d V\", var);即可，表示跟voltage有关的数据。\n";
+            "    PRINT(monitor, \"voltage is %f V\", data1); 表示电压数据显示在monitor窗口。\n";
     ui->textBrowser->setPlaceholderText(helpText);
     helpText = "该窗口显示包含关键字符的字符串"
             "\n\n"
@@ -854,12 +856,14 @@ int32_t MainWindow::parseDatFile(QString path, bool removeAfterRead)
     }
     QFile file(path);
     QByteArray buff;
+    int64_t fileSize = 0;
     //读文件
     if(file.open(QFile::ReadOnly)){
 //        on_clearWindows_clicked(); //不清空
         buff.clear();
         buff = file.readAll();
         file.close();
+        fileSize = file.size();
         if(removeAfterRead)
         {
             file.remove();
@@ -882,11 +886,11 @@ int32_t MainWindow::parseDatFile(QString path, bool removeAfterRead)
 //        RxBuff.clear();
 
 //        ui->textBrowser->clear();
-        ui->textBrowser->appendPlainText("File size: " + QString::number(file.size()) + " Byte");
+        ui->textBrowser->appendPlainText("File size: " + QString::number(fileSize) + " Byte");
         ui->textBrowser->appendPlainText("Read containt:\n");
 //        BrowserBuff.clear();
 //        BrowserBuff.append(ui->textBrowser->toPlainText());
-        BrowserBuff.append("File size: " + QString::number(file.size()) + " Byte\n");
+        BrowserBuff.append("File size: " + QString::number(fileSize) + " Byte\n");
         BrowserBuff.append("Read containt:\n");
 
         // 解析读取的数据
@@ -910,16 +914,21 @@ void MainWindow::readRecoveryFile()
     {
         qint32 button;
         button = QMessageBox::information(this, tr("提示"),
-                                          tr("检测到数据恢复文件，可能是上次未正确关闭程序导致的。") + "\n\n" +
-                                          tr("点击Ok重新加载上次数据") + "\n" +
-                                          tr("点击Discard丢弃上次数据") + "\n" +
-                                          tr("点击Cancel自行处理上次数据") + "\n",
-                                          QMessageBox::Ok, QMessageBox::Discard, QMessageBox::Cancel);
-        if(button == QMessageBox::Discard)
+                                          tr("检测到数据恢复文件，可能是上次未正确关闭纸飞机，或者多开纸飞机导致的。") + "\n\n" +
+                                          tr("点击Reload重载上次数据。") + "\n" +
+                                          tr("点击Discard丢弃上次数据。") + "\n" +
+                                          tr("点击Backup备份并丢弃上次数据。") + "\n",
+                                          "Reload", "Discard", "Backup");
+        if(button == 0)
+        {
+            //读文件
+            parseDatFile(RECOVERY_FILE_PATH, true);
+        }
+        else if(button == 1)
         {
             recoveryFile.remove();
         }
-        else if(button == QMessageBox::Cancel)
+        else if(button == 2)
         {
             //重命名前确保没有含新名字的文件
             QFile backFile(BACKUP_RECOVERY_FILE_PATH);
@@ -933,16 +942,10 @@ void MainWindow::readRecoveryFile()
             }
             //重命名
             recoveryFile.rename(BACKUP_RECOVERY_FILE_PATH);
-            QDir appDir(QCoreApplication::applicationDirPath());
             QMessageBox::information(this, tr("提示"),
-                                     tr("数据恢复文件已另存到程序所在目录：") + "\n" +
-                                     appDir.absoluteFilePath(BACKUP_RECOVERY_FILE_PATH) + "\n" +
+                                     tr("数据恢复文件已另存到程序所在目录下文件：") + "\n" +
+                                     BACKUP_RECOVERY_FILE_PATH + "\n" +
                                      tr("请自行处理。"));
-        }
-        else if(button == QMessageBox::Ok)
-        {
-            //读文件
-            parseDatFile(RECOVERY_FILE_PATH, true);
         }
     }
 }
@@ -1258,6 +1261,10 @@ void MainWindow::secTimerSlot()
 {
     static int64_t secCnt = 0;
     static int32_t msgIndex = 0;
+
+    //readSerialPort每秒执行次数统计，用于流控
+    diff_slotCnt = readSlotCnt - lastReadSlotCnt;
+    lastReadSlotCnt = readSlotCnt;
 
     //收发速度显示与颜色控制
     TxRxSpeedStatisticAndDisplay();
@@ -1728,7 +1735,7 @@ void MainWindow::on_comSwitch_clicked(bool checked)
  */
 void MainWindow::readSerialPort()
 {
-    QByteArray tmpReadBuff;
+    static QByteArray tmpReadBuff;
     QByteArray floatParseBuff;//用于绘图协议解析的缓冲。其中float协议不处理中文
 
     //先获取时间，避免解析数据导致时间消耗的影响
@@ -1736,10 +1743,12 @@ void MainWindow::readSerialPort()
     timeString = QDateTime::currentDateTime().toString("hh:mm:ss.zzz");
     timeString = "\n["+timeString+"]Rx<- ";
 
+    //本函数执行统计，用于流控
+    readSlotCnt++;
+
     //解析文件模式
     if(parseFile){
-        tmpReadBuff = parseFileBuff.at(parseFileBuffIndex++);
-        RxBuff.append(tmpReadBuff);
+        tmpReadBuff.append(parseFileBuff.at(parseFileBuffIndex++));
     }
     else{
         //网络或者串口模式
@@ -1747,8 +1756,7 @@ void MainWindow::readSerialPort()
         {
             if(serial.isOpen())
             {
-                tmpReadBuff = serial.readAll(); //tmpReadBuff一定不为空。
-                RxBuff.append(tmpReadBuff);
+                tmpReadBuff.append(serial.readAll());
             }
             else
             {
@@ -1759,21 +1767,35 @@ void MainWindow::readSerialPort()
         {
             if(p_networkComm->isOpen())
             {
-                tmpReadBuff = p_networkComm->readAll(); //tmpReadBuff一定不为空。
-                RxBuff.append(tmpReadBuff);
+                tmpReadBuff.append(p_networkComm->readAll());
             }
             else
             {
                 return;
             }
         }
-
     }
 
     //空数据检查
     if(tmpReadBuff.isEmpty()){
         return;
     }
+
+    //流控：当未勾选时间戳时可能启用流控，以降低后面的emit数量，大约能提升20%的性能
+    if(!ui->timeStampCheckBox->isChecked())
+    {
+        //每秒信号数量大于x时每y次slot解析一次buffer
+        if(diff_slotCnt > 1400 && readSlotCnt % 5)
+            return;
+        else if(diff_slotCnt > 800 && readSlotCnt % 4)
+            return;
+        else if(diff_slotCnt > 400 && readSlotCnt % 3)
+            return;
+        else if(diff_slotCnt > 200 && readSlotCnt % 2)
+            return;
+    }
+
+    RxBuff.append(tmpReadBuff);
 
     //速度统计，不能和下面的互换，否则不准确
     statisticRxByteCnt += tmpReadBuff.size();
@@ -1867,6 +1889,8 @@ void MainWindow::readSerialPort()
 
     //允许数据刷新
     TryRefreshBrowserCnt = TRY_REFRESH_BROWSER_CNT;
+
+    tmpReadBuff.clear();
 }
 
 /**
@@ -5350,13 +5374,43 @@ void MainWindow::on_tabWidget_tabCloseRequested(int index)
     //禁止删除主窗口
     if(selectName == MAIN_TAB_NAME)
     {
-        ui->statusBar->showMessage(tr("不允许删除该窗口"), 2000);
+        if(!ui->textBrowser->toPlainText().isEmpty())
+        {
+            QMessageBox::StandardButtons button;
+            button = QMessageBox::information(this, tr("提示"),
+                                            tr("不允许删除该窗口。是否要清除当前窗口数据？"),
+                                            QMessageBox::Ok, QMessageBox::Cancel);
+            if(button == QMessageBox::Ok)
+            {
+                clearTextBrowserSlot();
+                return;
+            }
+        }
+        else
+        {
+            ui->statusBar->showMessage(tr("不允许删除该窗口。"), 2000);
+        }
         return;
     }
     //禁止删除匹配窗口
     if(selectName == REGMATCH_TAB_NAME)
     {
-        ui->statusBar->showMessage(tr("不允许删除该窗口"), 2000);
+        if(!ui->regMatchBrowser->toPlainText().isEmpty())
+        {
+            QMessageBox::StandardButtons button;
+            button = QMessageBox::information(this, tr("提示"),
+                                            tr("不允许删除该窗口。是否要清除当前窗口数据？"),
+                                            QMessageBox::Ok, QMessageBox::Cancel);
+            if(button == QMessageBox::Ok)
+            {
+                ui->regMatchBrowser->clear();
+                return;
+            }
+        }
+        else
+        {
+            ui->statusBar->showMessage(tr("不允许删除该窗口。"), 2000);
+        }
         return;
     }
     emit tee_clearData(selectName);
@@ -5379,8 +5433,23 @@ void MainWindow::on_tabWidget_plotter_tabCloseRequested(int index)
     //禁止删除主窗口
     if(selectName == plotProtocol->getDefaultPlotterTitle())
     {
-        ui->statusBar->showMessage(tr("不允许删除默认绘图窗口，请先指定其他默认绘图窗口。"), 2000);
-        return;
+        if(plotterManager.getDefaultPlotter()->graph()->dataCount())
+        {
+            QMessageBox::StandardButtons button;
+            button = QMessageBox::information(this, tr("提示"),
+                                            tr("不允许删除默认绘图窗口。是否要清除该窗口数据？"),
+                                            QMessageBox::Ok, QMessageBox::Cancel);
+            if(button == QMessageBox::Ok)
+            {
+                plotterManager.getDefaultPlotter()->clear();
+                return;
+            }
+        }
+        else
+        {
+            ui->statusBar->showMessage(tr("不允许删除默认绘图窗口，请先指定其他默认绘图窗口。"), 2000);
+            return;
+        }
     }
     emit protocol_clearBuff(selectName);
     plotterManager.removePlotter(selectName);
@@ -5523,6 +5592,7 @@ void MainWindow::on_actionFFTShow_triggered(bool checked)
     {
 
         //手动选择FFT窗口或者自动选择当前窗口进行FFT
+#define SELECT_PLOTTER_TO_FFT
 #ifdef SELECT_PLOTTER_TO_FFT
         QVector<MyQCustomPlot*> plotters = plotterManager.getAllPlotters();
         QStringList list;
@@ -5534,13 +5604,22 @@ void MainWindow::on_actionFFTShow_triggered(bool checked)
             }
         }
         bool ok;
-        QString item = QInputDialog::getItem(this, tr("提示"),
-                                            tr("选择要进行FFT的绘图名称："),
-                                            list, 0, true, &ok);
-        if(!ok)
+        QString item;
+        if(list.size() > 1)
         {
-            ui->actionFFTShow->setChecked(false);
-            return;
+            item = QInputDialog::getItem(this, tr("提示"),
+                                                tr("选择要进行FFT的绘图名称："),
+                                                list, 0, true, &ok);
+            if(!ok)
+            {
+                ui->actionFFTShow->setChecked(false);
+                return;
+            }
+        }
+        else if(list.size() == 1)
+        {
+
+            item = list.at(0);
         }
 #else
         QString item = selectCurrentPlotter()->getPlotterTitle();
@@ -5645,6 +5724,12 @@ void MainWindow::on_actionRecordRawData_triggered(bool checked)
     if(checked)
     {
         QString savePath;
+        QString high_consume_mem_remind;
+        if(ui->actionTeeSupport->isChecked() || !ui->regMatchEdit->text().isEmpty())
+        {
+            high_consume_mem_remind = "\n\n" + tr("检测到数据分窗功能已开启或者filter窗口有数据要匹配，这可能成倍地增加内存消耗。") + "\n"
+                                     + tr("如果需要长时间记录数据建议关闭这两个功能。");
+        }
         //串口开启状态下则默认保存到程序所在目录，因为选择文件路径的对话框是阻塞型的，串口开启下会影响接收
         if(serial.isOpen() || p_networkComm->isOpen())
         {
@@ -5653,8 +5738,11 @@ void MainWindow::on_actionRecordRawData_triggered(bool checked)
             p_logger->init_logger(RAW_DATA_LOG, rawDataRecordPath);
             QMessageBox::information(this,
                                      tr("提示"),
-                                     tr("接下来的数据将被记录到程序所在目录：") + savePath + "\n\n" +
-                                     tr("如需更改数据记录位置，请先关闭串口再使用本功能。"));
+                                     tr("数据记录仪初始化完成！") + "\n\n" +
+                                     tr("后续数据将被记录到程序所在目录下文件：") + savePath + "\n\n" +
+                                     tr("如需更改记录位置，请先关闭串口/网络再使用本功能。") +
+                                     high_consume_mem_remind);
+
         }
         else
         {
@@ -5678,6 +5766,11 @@ void MainWindow::on_actionRecordRawData_triggered(bool checked)
             }
             rawDataRecordPath = savePath;
             p_logger->init_logger(RAW_DATA_LOG, rawDataRecordPath);
+            if(ui->actionTeeSupport->isChecked() || !ui->regMatchEdit->text().isEmpty())
+            {
+                QMessageBox::information(this, tr("提示"),
+                                         tr("数据记录仪初始化完成！") + high_consume_mem_remind);
+            }
         }
         updateFunctionButtonTitle();
         return;
@@ -5742,6 +5835,12 @@ void MainWindow::on_actionRecordGraphData_triggered(bool checked)
     if(checked)
     {
         QString savePath;
+        QString high_consume_mem_remind;
+        if(ui->actionTeeSupport->isChecked() || !ui->regMatchEdit->text().isEmpty())
+        {
+            high_consume_mem_remind = "\n\n" + tr("检测到数据分窗功能已开启或者filter窗口有数据要匹配，这可能成倍地增加内存消耗。") + "\n"
+                                     + tr("如果需要长时间记录数据建议关闭这两个功能。");
+        }
         //串口开启状态下则默认保存到程序所在目录，因为选择文件路径的对话框是阻塞型的，串口开启下会影响接收
         if(serial.isOpen() || p_networkComm->isOpen())
         {
@@ -5751,10 +5850,12 @@ void MainWindow::on_actionRecordGraphData_triggered(bool checked)
             p_logger->init_logger(GRAPH_DATA_LOG, graphDataRecordPath);
             QMessageBox::information(this,
                                      tr("提示"),
+                                     tr("数据记录仪初始化完成！") + "\n\n" +
                                      tr("默认绘图名称") + "[" + recordPlotTitle + "]" +
-                                     tr("将被记录到程序所在目录：") + "\n\n" +
+                                     tr("将被记录到程序所在目录下文件：") + "\n" +
                                      savePath + "\n\n" +
-                                     tr("如需更改记录位置或绘图名称，请先关闭串口再使用本功能。"));
+                                     tr("如需更改记录位置或绘图名称，请先关闭串口/网络再使用本功能。") +
+                                     high_consume_mem_remind);
         }
         else
         {
@@ -5774,12 +5875,7 @@ void MainWindow::on_actionRecordGraphData_triggered(bool checked)
             }
             items.sort();
             QString text;
-            text = QInputDialog::getItem(this, tr("提示"),
-                                        label,
-                                        items,
-                                        0,
-                                        true,
-                                        &ok);
+            text = QInputDialog::getItem(this, tr("提示"), label, items, 0, true, &ok);
             recordPlotTitle = text;
             if(!ok)
             {
@@ -5808,6 +5904,11 @@ void MainWindow::on_actionRecordGraphData_triggered(bool checked)
             }
             graphDataRecordPath = savePath;
             p_logger->init_logger(GRAPH_DATA_LOG, graphDataRecordPath);
+            if(ui->actionTeeSupport->isChecked() || !ui->regMatchEdit->text().isEmpty())
+            {
+                QMessageBox::information(this, tr("提示"),
+                                         tr("数据记录仪初始化完成！") + high_consume_mem_remind);
+            }
         }
         updateFunctionButtonTitle();
         return;
@@ -5992,7 +6093,8 @@ void MainWindow::on_regMatchSwitch_clicked(bool checked)
         QString item;
         QStringList items;
         bool ok;
-        label = tr("当前缓冲较多，请选择想要过滤的数据量：");
+        label = tr("当前缓冲较多，请选择想要过滤的数据量：") + "\n"
+                + tr("（数据量增大将增加处理时间。）");
         items << "1MB" << "1.5MB" << "2MB" << "ALL";
         item = QInputDialog::getItem(this, tr("提示"),
                                      label, items, current, false, &ok);
