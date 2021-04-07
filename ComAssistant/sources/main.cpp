@@ -64,27 +64,27 @@ void outputMessage(QtMsgType type, const QMessageLogContext &context, const QStr
     file.close();
 
     //文件大小限制(超出大小的将按log_header进行删除)
-    if(!first_run && file.size() > 1024*1024)
-    {
-        QByteArray temp;
-        file.open(QIODevice::ReadWrite);
-        temp = file.readAll();
-        //至少2个log记录
-        if(temp.indexOf(log_header) != -1 && temp.indexOf(log_header, log_header.size()) != -1)
-        {
-            file.close();
-            temp = temp.mid(log_header.size());
-            temp = temp.mid(temp.indexOf(log_header));
-            file.open(QIODevice::ReadWrite|QIODevice::Truncate);
-        }
-        else
-        {
-            temp.clear();
-        }
-        file.write(temp);
-        file.flush();
-        file.close();
-    }
+//    if(!first_run && file.size() > 1024*1024)
+//    {
+//        QByteArray temp;
+//        file.open(QIODevice::ReadWrite);
+//        temp = file.readAll();
+//        //至少2个log记录
+//        if(temp.indexOf(log_header) != -1 && temp.indexOf(log_header, log_header.size()) != -1)
+//        {
+//            file.close();
+//            temp = temp.mid(log_header.size());
+//            temp = temp.mid(temp.indexOf(log_header));
+//            file.open(QIODevice::ReadWrite|QIODevice::Truncate);
+//        }
+//        else
+//        {
+//            temp.clear();
+//        }
+//        file.write(temp);
+//        file.flush();
+//        file.close();
+//    }
     first_run = 1;
 
     mutex.unlock();

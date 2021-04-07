@@ -2228,6 +2228,13 @@ void MainWindow::on_clearWindows_clicked()
     regMatchBufferLock.unlock();
 
     //文本提取区
+    bool reset_to_mainwindow = true;
+    if(ui->tabWidget->tabText(ui->tabWidget->currentIndex()) == REGMATCH_TAB_NAME)
+    {
+        //如果当前激活窗口是REGMATCH_TAB_NAME则清空后继续维持这个状态
+        //否则重置回MAIN_TAB_NAME窗口
+        reset_to_mainwindow = false;
+    }
     emit tee_clearData("");//clear temp buff
     for(int32_t i = 0; i < ui->tabWidget->count(); i++)
     {
@@ -2243,6 +2250,17 @@ void MainWindow::on_clearWindows_clicked()
 //            ui->tabWidget->removeTab(i);
             i = 0;//重置计数器
         }
+    }
+    if(reset_to_mainwindow)
+    {
+        //重置回MAIN_TAB_NAME窗口
+        int32_t i = ui->tabWidget->count() - 1;
+        for(; i > 0; i--)
+        {
+            if(ui->tabWidget->tabText(i) == MAIN_TAB_NAME)
+                break;
+        }
+        ui->tabWidget->setCurrentIndex(i);
     }
 
     //绘图器相关，这个宏用于控制点击清空后是只清除数据还是把绘图器对象也删掉
