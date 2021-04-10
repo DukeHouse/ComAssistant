@@ -210,6 +210,11 @@ QPushButton#networkSwitch:checked:pressed{
   color: #81ecdc;
   background: #24bda6;
 }
+QPushButton#comSwitch:disabled,
+QPushButton#networkSwitch:disabled{
+    color:#f0f0f0;
+    background:#cccccc;
+}
 /* 点按交互区域 */
 QPushButton {
   font-family: Microsoft YaHei UI;

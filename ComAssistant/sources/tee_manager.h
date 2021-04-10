@@ -1,5 +1,5 @@
 /**
- * @brief   数据分窗引擎管理
+ * @brief   数据分窗管理
  * @file    tee_manager.h
  * @author  inhowe
  * @version 0.0.1
@@ -19,7 +19,7 @@
 #include <QMutex>
 
 /**
- * @brief     数据分窗引擎管理类
+ * @brief     数据分窗管理类
  * @note      可以集中管理分窗窗口和缓冲
  */
 class TeeManager : public QObject

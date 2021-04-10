@@ -1,3 +1,11 @@
+/**
+ * @brief   文件解包器，设置路径后自动将文件解包并通过信号发到绑定的槽上
+ * @file    file_unpacker.h
+ * @author  inhowe
+ * @version 0.0.1
+ * @date    2021-4月-11
+ * @note    每发完一个包必须收到应答才会发送下一个包
+ */
 #ifndef FILEUNPACKER_H
 #define FILEUNPACKER_H
 

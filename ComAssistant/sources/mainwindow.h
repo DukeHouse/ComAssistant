@@ -263,7 +263,12 @@ private:
     void changeCommMode(bool isNetworkComm);
     void updateNetworkSwitchText(const QString &networkMode, bool pressed);
     void appendMsgLogToBrowser(QString str);
-    int32_t unpack_file(QString path, bool deleteIfUnpackSuccess);
+    int32_t unpack_file(bool &actionType, QString path, bool deleteIfSuccess, int32_t pack_size);
+    int32_t readWriteAuthorityTest();
+    void debuggerModeControl();
+    int32_t writeDataToDevice(const QByteArray &data);
+    int32_t deviceIsOpen();
+    int32_t remindDeviceIsOpen();
     Ui::MainWindow *ui;
     mySerialPort serial;
 
@@ -275,10 +280,8 @@ private:
     QLabel *statusSpeedLabel, *statusStatisticLabel, *statusRemoteMsgLabel, *statusTimer; //状态栏标签
 
     bool sendFile = false;
-    bool parseFile = false;
-    QByteArray parseFileBuff;   //解析文件分包缓冲
-    QByteArrayList SendFileBuff;    //发送文件分包缓冲
-    int SendFileBuffIndex = 0;
+    bool readFile = false;
+    QByteArray readFileBuff;   //解析文件分包缓冲
 
     QByteArray RxBuff, TxBuff;      //原始数据的收发缓冲
     QByteArray hexBrowserBuff;      //十六进制格式的浏览器缓冲
@@ -291,7 +294,7 @@ private:
     const int32_t TEXT_SHOW_PERIOD    = 55;  //文本显示频率18FPS
 
     bool is_multi_str_double_click = false;
-    
+
     QTimer cycleSendTimer;  //循环发送定时器
     QTimer debugTimer;      //调试定时器
     QTimer secTimer;        //秒定时器

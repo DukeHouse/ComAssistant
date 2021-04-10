@@ -8,6 +8,9 @@
 #define RECOVERY_FILE_PATH          "ComAssistantRecovery.dat"
 #define BACKUP_RECOVERY_FILE_PATH   "ComAssistantRecovery_back.dat"
 
+#define UNPACK_SIZE_OF_RX           (4096)
+#define UNPACK_SIZE_OF_TX           (256)
+
 bool    g_agree_statement = false;  //同意相关声明标志
 bool    g_log_record      = false;  //日志记录开关
 bool    g_debugger        = false;  //调试开关
@@ -634,6 +637,24 @@ MainWindow::MainWindow(QWidget *parent) :
         http = new HTTP(this);
 
     //debugger模式控制
+    debuggerModeControl();
+
+    if(readWriteAuthorityTest())
+    {
+        QMessageBox::warning(this, tr("警告"),
+                       tr("纸飞机在当前路径下无法读写文件！") + "\n\n"
+                       + tr("请移动纸飞机至非系统路径，否则将导致数据记录、数据恢复、配置保存、数据保存等功能无法使用！"));
+    }
+
+    readRecoveryFile();
+
+}
+
+/**
+ * @brief     debugger模式设置
+ */
+void MainWindow::debuggerModeControl()
+{
     ui->actionMAD->setVisible(false);
     ui->actionNetworkMode->setVisible(false);
     if(g_debugger)
@@ -665,9 +686,55 @@ MainWindow::MainWindow(QWidget *parent) :
             ui->actionNetworkMode->setVisible(true);
         }while(0);
     }
+}
 
-    readRecoveryFile();
+/**
+ * @brief     读写测试，判断是否有权限在该路径写入文件
+ */
+int32_t MainWindow::readWriteAuthorityTest()
+{
+    int32_t failed = 0;
+    QString testData = "ComAssistantAccessTest";
+    QFile testFile(testData);
+    do{
+        if(!testFile.open(QIODevice::ReadWrite))
+        {
+            failed++;
+            break;
+        }
+        if(testFile.write(testData.toLocal8Bit()) != testData.size())
+        {
+            failed++;
+            testFile.close();
+            break;
+        }
+        if(!testFile.flush())
+        {
+            failed++;
+            testFile.close();
+            break;
+        }
+        testFile.close();
+        if(!testFile.open(QIODevice::ReadWrite))
+        {
+            failed++;
+            break;
+        }
+        if(testFile.readAll() != testData)
+        {
+            failed++;
+            testFile.close();
+            break;
+        }
+        testFile.close();
+    }while(0);
 
+    if(testFile.exists())
+        testFile.remove();
+
+    if(failed)
+        return -1;
+    return 0;
 }
 
 /**
@@ -759,6 +826,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
  */
 void MainWindow::openInteractiveUI()
 {
+    ui->networkSwitch->setEnabled(true);
     ui->comSwitch->setEnabled(true);
     ui->sendButton->setEnabled(true);
     ui->multiString->setEnabled(true);
@@ -773,6 +841,7 @@ void MainWindow::openInteractiveUI()
  */
 void MainWindow::closeInteractiveUI()
 {
+    ui->networkSwitch->setEnabled(false);
     ui->comSwitch->setEnabled(false);
     ui->sendButton->setEnabled(false);
     ui->multiString->setEnabled(false);
@@ -867,7 +936,10 @@ void MainWindow::readRecoveryFile()
         if(button == 0)
         {
             //读文件
-            unpack_file(RECOVERY_FILE_PATH, true);
+            if(unpack_file(readFile, RECOVERY_FILE_PATH, true, UNPACK_SIZE_OF_RX))
+            {
+                return;
+            }
         }
         else if(button == 1)
         {
@@ -961,16 +1033,83 @@ void MainWindow::regM_saveDataResult(const qint32& result, const QString &path, 
 }
 
 /**
+ * @brief     向设备发送数据
+ */
+int32_t MainWindow::writeDataToDevice(const QByteArray &data)
+{
+    if(!deviceIsOpen())
+    {
+        return -1;
+    }
+
+    if(g_network_comm_mode)
+    {
+        emit writeToNetwork(data);
+        return data.size();
+    }
+    else
+    {
+        return serial.write(data);
+    }
+}
+
+/**
+ * @brief     查询设备是否打开
+ */
+int32_t MainWindow::deviceIsOpen()
+{
+    if(g_network_comm_mode)
+    {
+        return p_networkComm->isOpen();
+    }
+    else
+    {
+        return serial.isOpen();
+    }
+}
+
+/**
+ * @brief     提醒设备是否打开
+ */
+int32_t MainWindow::remindDeviceIsOpen()
+{
+    if(g_network_comm_mode)
+    {
+        if(!p_networkComm->isOpen())
+        {
+            QMessageBox::information(this, tr("提示"), tr("网络未打开。"));
+            return 0;
+        }
+    }
+    else
+    {
+        if(!serial.isOpen())
+        {
+            QMessageBox::information(this, tr("提示"), tr("串口未打开。"));
+            return 0;
+        }
+    }
+    return 1;
+}
+
+/**
  * @brief     收到文件解析器发的包
  * @note      解析并更新进度
  */
 void MainWindow::recvNewFilePack(const QByteArray &pack, qint32 current_cnt, qint32 total_cnt)
 {
-//    qDebug() << __FUNCTION__ << pack.mid(0, 5) << current_cnt << total_cnt;
-    parseFileBuff = pack;
-    readSerialPort();
-    parseFileBuff.clear();
-    updateProgressBar(tr("解析进度："), 100.0*current_cnt/total_cnt);
+    if(readFile)
+    {
+        readFileBuff = pack;
+        readSerialPort();
+        readFileBuff.clear();
+        updateProgressBar(tr("解析进度："), 100.0*current_cnt/total_cnt);
+    }
+    else if(sendFile)
+    {
+        updateProgressBar(tr("发送进度："), 100.0*current_cnt/total_cnt);
+        writeDataToDevice(pack);
+    }
     fileUnpacker->unpack_ack();
 }
 
@@ -980,7 +1119,14 @@ void MainWindow::recvNewFilePack(const QByteArray &pack, qint32 current_cnt, qin
  */
 void MainWindow::recvUnpackResult(bool success, QString details)
 {
-    parseFile = false;
+    if(readFile)
+    {
+        readFile = false;
+    }
+    else if(sendFile)
+    {
+        sendFile = false;
+    }
     openInteractiveUI();
     progressBar->setValue(0);
     progressBar->setVisible(false);
@@ -988,7 +1134,8 @@ void MainWindow::recvUnpackResult(bool success, QString details)
     {
         return;
     }
-    QMessageBox::information(this, tr("提示"), tr("解析文件失败！") + "\n" + details);
+    QMessageBox::information(this, tr("提示"),
+                            tr("文件解包失败！") + "\n" + details);
 }
 
 /**
@@ -1327,19 +1474,7 @@ void MainWindow::debugTimerSlot()
                "{cnt:the cnt is $$$}\n";
         tmp.replace("###", QString::number(3.3 + qrand()/static_cast<double>(RAND_MAX)/10.0, 'f', 3));
         tmp.replace("$$$", QString::number(static_cast<qint32>(debugTimerSlotCnt)));
-        if(g_network_comm_mode)
-        {
-            if(p_networkComm->isOpen()){
-                p_networkComm->write(tmp.toLocal8Bit());
-            }
-        }
-        else
-        {
-            if(serial.isOpen()){
-                serial.write(tmp.toLocal8Bit());
-            }
-        }
-
+        writeDataToDevice(tmp.toLocal8Bit());
     }else if(ui->actionFloat->isChecked()){
         QByteArray tmp;
         tmp.append(BYTE0(num1));tmp.append(BYTE1(num1));tmp.append(BYTE2(num1));tmp.append(BYTE3(num1));
@@ -1348,18 +1483,7 @@ void MainWindow::debugTimerSlot()
         tmp.append(BYTE0(num4));tmp.append(BYTE1(num4));tmp.append(BYTE2(num4));tmp.append(BYTE3(num4));
         tmp.append(static_cast<char>(0x00));tmp.append(static_cast<char>(0x00));tmp.append(static_cast<char>(0x80));tmp.append(static_cast<char>(0x7F));
 
-        if(g_network_comm_mode)
-        {
-            if(p_networkComm->isOpen()){
-                p_networkComm->write(tmp);
-            }
-        }
-        else
-        {
-            if(serial.isOpen()){
-                serial.write(tmp);
-            }
-        }
+        writeDataToDevice(tmp);
     }
 
     debugTimerSlotCnt = debugTimerSlotCnt + 1;
@@ -1692,9 +1816,6 @@ void MainWindow::on_comSwitch_clicked(bool checked)
     }
     else
     {
-        //清空文件缓冲
-        SendFileBuff.clear();
-        SendFileBuffIndex = 0;
         //关闭定时器
         if(cycleSendTimer.isActive()){
             cycleSendTimer.stop();
@@ -1727,32 +1848,18 @@ void MainWindow::readSerialPort()
     readSlotCnt++;
 
     //解析文件模式
-    if(parseFile){
-        tmpReadBuff.append(parseFileBuff);
+    if(readFile){
+        tmpReadBuff.append(readFileBuff);
     }
     else{
         //网络或者串口模式
         if(!g_network_comm_mode)
         {
-            if(serial.isOpen())
-            {
-                tmpReadBuff.append(serial.readAll());
-            }
-            else
-            {
-                return;
-            }
+            tmpReadBuff.append(serial.readAll());
         }
         else
         {
-            if(p_networkComm->isOpen())
-            {
-                tmpReadBuff.append(p_networkComm->readAll());
-            }
-            else
-            {
-                return;
-            }
+            tmpReadBuff.append(p_networkComm->readAll());
         }
     }
 
@@ -2026,32 +2133,6 @@ void MainWindow::serialBytesWritten(qint64 bytes)
 {
     //发送速度统计
     statisticTxByteCnt += bytes;
-
-    if(SendFileBuff.size() > 0 && SendFileBuffIndex != SendFileBuff.size())
-    {
-        double percent = 100.0 * (SendFileBuffIndex + 1) / SendFileBuff.size();
-        updateProgressBar(tr("发送进度："), percent);
-        if(g_network_comm_mode)
-        {
-            p_networkComm->write(SendFileBuff.at(SendFileBuffIndex++));
-        }
-        else
-        {
-            serial.write(SendFileBuff.at(SendFileBuffIndex++));
-        }
-        if(SendFileBuffIndex == SendFileBuff.size())
-        {
-            SendFileBuffIndex = 0;
-            SendFileBuff.clear();
-            sendFile = false;
-            ui->sendButton->setEnabled(true);
-            ui->multiString->setEnabled(true);
-            ui->cycleSendCheck->setEnabled(true);
-            ui->clearWindows->setText(tr("清  空"));
-            ui->clearWindows_simple->setText(ui->clearWindows->text());
-            ui->clearWindows_simple_net->setText(ui->clearWindows->text());
-        }
-    }
 }
 
 /**
@@ -2259,22 +2340,8 @@ void MainWindow::on_sendButton_clicked()
     QByteArray tmp;
     QString tail;
 
-    if(g_network_comm_mode)
-    {
-        if(!p_networkComm->isOpen())
-        {
-            QMessageBox::information(this, tr("提示"), tr("网络未打开。"));
-            return;
-        }
-    }
-    else
-    {
-        if(!serial.isOpen())
-        {
-            QMessageBox::information(this, tr("提示"), tr("串口未打开。"));
-            return;
-        }
-    }
+    if(!remindDeviceIsOpen())
+        return;
 
     tmp = ui->textEdit->toPlainText().toLocal8Bit();
 
@@ -2306,14 +2373,7 @@ void MainWindow::on_sendButton_clicked()
         bool ok;
         sendArr = HexStringToByteArray(tmp,ok); //hex转发送数据流
         if(ok){
-            if(g_network_comm_mode)
-            {
-                emit writeToNetwork(sendArr);
-            }
-            else
-            {
-                serial.write(sendArr);
-            }
+            writeDataToDevice(sendArr);
         }else{
             ui->statusBar->showMessage(tr("文本输入区数据转换失败，放弃此次发送！"), 2000);
         }
@@ -2322,14 +2382,7 @@ void MainWindow::on_sendButton_clicked()
     {
         sendArr = tmp;
         //utf8编码
-        if(g_network_comm_mode)
-        {
-            emit writeToNetwork(sendArr);
-        }
-        else
-        {
-            serial.write(sendArr);
-        }
+        writeDataToDevice(sendArr);
     }
 
     //周期发送开启则立刻发送
@@ -2412,10 +2465,10 @@ void MainWindow::on_clearWindows_clicked()
     }
 
     //文件解析中止，第二次才清空
-    if(parseFile)
+    if(readFile)
     {
         fileUnpacker->abort_unpack_file();
-        parseFile = 0;
+        readFile = false;
         openInteractiveUI();
         return;
     }
@@ -2423,8 +2476,7 @@ void MainWindow::on_clearWindows_clicked()
     //文件发送中止
     if(sendFile)
     {
-        SendFileBuffIndex = 0;
-        SendFileBuff.clear();
+        fileUnpacker->abort_unpack_file();
         sendFile = false;
         openInteractiveUI();
         return;
@@ -2572,25 +2624,11 @@ void MainWindow::on_cycleSendCheck_clicked(bool checked)
         ui->statusBar->showMessage(tr("发送间隔较小可能不够准确。"), 2000);
     }
 
-    if(g_network_comm_mode)
+    if(!remindDeviceIsOpen())
     {
-        if(!p_networkComm->isOpen())
-        {
-            QMessageBox::information(this, tr("提示"), tr("网络未打开。"));
-            ui->cycleSendCheck->setChecked(false);
-            return;
-        }
+        ui->cycleSendCheck->setChecked(false);
+        return;
     }
-    else
-    {
-        if(!serial.isOpen())
-        {
-            QMessageBox::information(this, tr("提示"), tr("串口未打开。"));
-            ui->cycleSendCheck->setChecked(false);
-            return;
-        }
-    }
-
 
     //启停定时器
     if(checked)
@@ -2820,11 +2858,17 @@ void MainWindow::on_actionSaveOriginData_triggered()
 /**
  * @brief     解包文件
  * @note      测试文件可访问性并使能解包
+ * @param[in] 应该为readFile或者sendFile
+ * @param[in] 文件路径
+ * @param[in] 解包成功后是否删除文件
+ * @param[in] 解包大小
  */
-int32_t MainWindow::unpack_file(QString path, bool deleteIfUnpackSuccess)
+int32_t MainWindow::unpack_file(bool &actionType, QString path, bool deleteIfSuccess, int32_t pack_size)
 {
-    if(parseFile)
+    closeInteractiveUI();
+    if(readFile || sendFile)
     {
+        openInteractiveUI();
         QMessageBox::information(this, tr("提示"), tr("请等待上一个文件解析完毕。"));
         return -1;
     }
@@ -2833,12 +2877,13 @@ int32_t MainWindow::unpack_file(QString path, bool deleteIfUnpackSuccess)
     QFile file(path);
     if(!file.open(QIODevice::ReadOnly))
     {
+        openInteractiveUI();
+        QMessageBox::information(this, tr("提示"), tr("解包文件打开失败。"));
         return -1;
     }
     file.close();
-    closeInteractiveUI();
-    parseFile = true;
-    fileUnpacker->unpack_file(path, deleteIfUnpackSuccess, 4096);
+    actionType = true;
+    fileUnpacker->unpack_file(path, deleteIfSuccess, pack_size);
     return 0;
 }
 
@@ -2864,7 +2909,7 @@ void MainWindow::on_actionOpenOriginData_triggered()
     lastFileDialogPath = lastFileDialogPath.mid(0, lastFileDialogPath.lastIndexOf('/')+1);
 
     //开始解包
-    if(unpack_file(readPath, false))
+    if(unpack_file(readFile, readPath, false, UNPACK_SIZE_OF_RX))
     {
         lastFileName.clear();
         return;
@@ -4643,7 +4688,7 @@ void MainWindow::on_actionUsageStatistic_triggered()
     str.append(tr("   - 共接收数据：") + currentRxStr + "\n");
     str.append(tr("   - 共运行本软件：") + currentRunTimeStr + "\n");
     str.append(tr("   - 绘制数据点数：") + currentPlotterNumStr + "\n");
-    str.append(tr("   - 数据分窗引擎解析数据：") + currentTeeParseStr + "\n");
+    str.append(tr("   - 数据分窗解析数据：") + currentTeeParseStr + "\n");
     str.append(tr("   - filter解析数据：") + currentRegParseStr + "\n");
     str.append("\n");
     str.append(tr("   ### 自首次启动软件以来，阁下：") + "\n");
@@ -4656,12 +4701,12 @@ void MainWindow::on_actionUsageStatistic_triggered()
     str.append(tr("   - 绘制数据点数：") + totalPlotterNumStr + "\n");
     str.append(tr("   - 使用数值显示器次数：") + totalValueDisplayUseStr + "\n");
     str.append(tr("   - 使用频谱图次数：") + totalFFTUseStr + "\n");
-    str.append(tr("   - 使用数据分窗引擎次数：") + totalTeeUseStr + "\n");
-    str.append(tr("   - 数据分窗引擎解析数据：") + totalTeeParseStr + "\n");
+    str.append(tr("   - 使用数据分窗次数：") + totalTeeUseStr + "\n");
+    str.append(tr("   - 数据分窗解析数据：") + totalTeeParseStr + "\n");
     str.append(tr("   - filter解析数据：") + totalRegParseStr + "\n");
     str.append(tr("   - 使用多字符串次数：") + totalMultiStrUseStr + "\n");
     str.append(tr("   - 使用ASCII码表次数：") + totalAsciiTableUseStr + "\n");
-    str.append(tr("   - 使用运算符优先级表次数：") + totalPriorityTableUseStr + "\n");
+    str.append(tr("   - 使用运算优先级表次数：") + totalPriorityTableUseStr + "\n");
     str.append(tr("   - 使用STM32ISP次数：") + totalStm32IspUseStr + "\n");
     str.append(tr("   - 使用HEX Tool次数：") + totalHexToolUseStr + "\n");
     str.append(tr("   - 使用ASCII协议次数：") + totalASCIIUseStr + "\n");
@@ -4696,23 +4741,10 @@ void MainWindow::on_actionUsageStatistic_triggered()
  */
 void MainWindow::on_actionSendFile_triggered()
 {
-    if(g_network_comm_mode)
+    if(!remindDeviceIsOpen())
     {
-        if(!p_networkComm->isOpen())
-        {
-            QMessageBox::information(this, tr("提示"), tr("请先打开网络。"));
-            return;
-        }
+        return;
     }
-    else
-    {
-        if(!serial.isOpen())
-        {
-            QMessageBox::information(this, tr("提示"), tr("请先打开串口。"));
-            return;
-        }
-    }
-
 
     static QString lastFileName;
     //打开文件对话框
@@ -4727,55 +4759,18 @@ void MainWindow::on_actionSendFile_triggered()
 
     //记录上次路径
     lastFileDialogPath = readPath;
-    lastFileDialogPath = lastFileDialogPath.mid(0, lastFileDialogPath.lastIndexOf('/')+1);
-    //读取文件
-    QFile file(readPath);
+    lastFileDialogPath = lastFileDialogPath.mid(0, lastFileDialogPath.lastIndexOf('/') + 1);
 
-    //读文件
-    if(file.open(QFile::ReadOnly)){
-        //记录上一次文件名
-        lastFileName = readPath;
-        while(lastFileName.indexOf('/')!=-1){
-            lastFileName = lastFileName.mid(lastFileName.indexOf('/')+1);
-        }
+    //解包文件
+    if(unpack_file(sendFile, readPath, false, UNPACK_SIZE_OF_TX))
+    {
+        return;
+    }
 
-        TxBuff.clear();
-        TxBuff = file.readAll();
-        file.close();
-
-        //文件分包
-        #define PACKSIZE_SENDFILE 256
-        SendFileBuffIndex = 0;
-        SendFileBuff.clear();
-        sendFile = true;
-        if(divideDataToPacks(TxBuff, SendFileBuff, PACKSIZE_SENDFILE, sendFile))
-            return ;
-
-        if(serial.isOpen() || p_networkComm->isOpen()){
-            ui->textBrowser->clear();
-            ui->textBrowser->appendPlainText("File size: "+QString::number(file.size())+" Bytes");
-            ui->textBrowser->appendPlainText("One pack size: "+QString::number(PACKSIZE_SENDFILE)+" Bytes");
-            ui->textBrowser->appendPlainText("Total packs: "+QString::number(SendFileBuff.size())+" packs");
-            ui->textBrowser->appendPlainText("");
-            QString str = ui->textBrowser->toPlainText();
-            BrowserBuff.clear();
-            BrowserBuff.append(str);
-            hexBrowserBuff.clear();
-            hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
-
-            if(serial.isOpen())
-                serial.write(SendFileBuff.at(SendFileBuffIndex++));//后续缓冲的发送在串口发送完成的槽里
-            else if(p_networkComm->isOpen())
-                emit writeToNetwork(SendFileBuff.at(SendFileBuffIndex++));
-        }
-        else{
-            openInteractiveUI();
-            sendFile = false;
-            QMessageBox::information(this,tr("提示"),tr("请先打开串口。"));
-        }
-    }else{
-        QMessageBox::information(this,tr("提示"),tr("文件打开失败。"));
-        lastFileName.clear();
+    //记录上一次文件名
+    lastFileName = readPath;
+    while(lastFileName.indexOf('/') != -1){
+        lastFileName = lastFileName.mid(lastFileName.indexOf('/') + 1);
     }
 }
 
@@ -5553,7 +5548,7 @@ void MainWindow::dropEvent(QDropEvent *e)
         return;
     }
     //开始解包
-    unpack_file(path, false);
+    unpack_file(readFile, path, false, UNPACK_SIZE_OF_RX);
 }
 
 /**
@@ -6104,8 +6099,8 @@ void MainWindow::on_regMatchSwitch_clicked(bool checked)
 }
 
 /**
- * @brief     运算符优先级表触发
- * @note      打开运算符优先级表
+ * @brief     运算优先级表触发
+ * @note      打开运算优先级表
  */
 void MainWindow::on_actionPriorityTable_triggered()
 {

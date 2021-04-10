@@ -1507,7 +1507,7 @@ p, li { white-space: pre-wrap; }
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>数据分窗引擎</string>
+    <string>数据分窗</string>
    </property>
    <property name="statusTip">
     <string>勾选以使能数据分窗显示功能。例{name:text contain}\n</string>
@@ -1610,7 +1610,7 @@ p, li { white-space: pre-wrap; }
   </action>
   <action name="actionPriorityTable">
    <property name="text">
-    <string>运算符优先级表</string>
+    <string>运算优先级表</string>
    </property>
   </action>
   <action name="actionSelectTheme">

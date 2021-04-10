@@ -1066,7 +1066,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <location filename="../ui/mainwindow.ui" line="1386"/>
-        <source>运算符优先级表</source>
+        <source>运算优先级表</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1162,7 +1162,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <location filename="../ui/mainwindow.ui" line="1283"/>
-        <source>数据分窗引擎</source>
+        <source>数据分窗</source>
         <translation>Text classification engine</translation>
     </message>
     <message>
@@ -1798,13 +1798,13 @@ Is the cable loose?</translation>
     </message>
     <message>
         <location filename="../sources/mainwindow.cpp" line="4355"/>
-        <source>   - 使用数据分窗引擎次数：</source>
+        <source>   - 使用数据分窗次数：</source>
         <translation>  - usage count of text classification engine:</translation>
     </message>
     <message>
         <location filename="../sources/mainwindow.cpp" line="4342"/>
         <location filename="../sources/mainwindow.cpp" line="4356"/>
-        <source>   - 数据分窗引擎解析数据：</source>
+        <source>   - 数据分窗解析数据：</source>
         <translation>  - data size parsed by text classification enging:</translation>
     </message>
     <message>
@@ -2198,7 +2198,7 @@ Is the cable loose?</translation>
     </message>
     <message>
         <location filename="../sources/mainwindow.cpp" line="4360"/>
-        <source>   - 使用运算符优先级表次数：</source>
+        <source>   - 使用运算优先级表次数：</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
