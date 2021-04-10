@@ -82,6 +82,7 @@ SOURCES += \
     plotter/plotter_manager.cpp \
     plotter/qcustomplot.cpp \
     plotter/qcustomplotcontrol.cpp \
+    sources/file_unpacker.cpp \
     sources/network_comm.cpp \
     sources/tee_manager.cpp \
     sources/baseconversion.cpp \
@@ -162,6 +163,7 @@ HEADERS += \
     plotter/plotter_manager.h \
     plotter/qcustomplot.h \
     plotter/qcustomplotcontrol.h \
+    sources/file_unpacker.h \
     sources/network_comm.h \
     sources/tee_manager.h \
     sources/baseconversion.h \
@@ -229,3 +231,6 @@ TRANSLATIONS = resources/en_US.ts
 # 优化等级
 QMAKE_CXXFLAGS_DEBUG   += -O0
 QMAKE_CXXFLAGS_RELEASE += -O3
+
+# 调整栈大小
+#QMAKE_LFLAGS += -Wl,-stack,64000000

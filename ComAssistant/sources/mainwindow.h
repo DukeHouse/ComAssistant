@@ -51,6 +51,7 @@
 #include "plotter_manager.h"
 #include "tee_manager.h"
 #include "network_comm.h"
+#include "file_unpacker.h"
 //界面类
 #include "stm32isp_dialog.h"
 #include "about_me_dialog.h"
@@ -90,8 +91,6 @@ public:
 signals:
     void parseFileSignal();
 private slots:
-    void parseFileSlot();
-
     void on_refreshCom_clicked();
     void tryOpenSerial();
     void readSerialPort();
@@ -264,6 +263,7 @@ private:
     void changeCommMode(bool isNetworkComm);
     void updateNetworkSwitchText(const QString &networkMode, bool pressed);
     void appendMsgLogToBrowser(QString str);
+    int32_t unpack_file(QString path, bool deleteIfUnpackSuccess);
     Ui::MainWindow *ui;
     mySerialPort serial;
 
@@ -276,8 +276,7 @@ private:
 
     bool sendFile = false;
     bool parseFile = false;
-    QByteArrayList parseFileBuff;   //解析文件分包缓冲
-    int parseFileBuffIndex = 0;     //即单次处理最多2G的数据
+    QByteArray parseFileBuff;   //解析文件分包缓冲
     QByteArrayList SendFileBuff;    //发送文件分包缓冲
     int SendFileBuffIndex = 0;
 
@@ -292,9 +291,7 @@ private:
     const int32_t TEXT_SHOW_PERIOD    = 55;  //文本显示频率18FPS
 
     bool is_multi_str_double_click = false;
-
-    int32_t forceTrigParse = 0;     //强制触发解析
-
+    
     QTimer cycleSendTimer;  //循环发送定时器
     QTimer debugTimer;      //调试定时器
     QTimer secTimer;        //秒定时器
@@ -313,6 +310,8 @@ private:
 
     int32_t TryRefreshBrowserCnt = TRY_REFRESH_BROWSER_CNT; //数据显示区刷新标记，大于0的时候会继续刷新
     bool autoRefreshYAxisFlag;
+
+    FileUnpacker* fileUnpacker = nullptr;
 
     //数据记录
     QString rawDataRecordPath       = "";
@@ -416,6 +415,8 @@ signals:
     int32_t disconnectFromNetwork();
 
 public slots:
+    void recvNewFilePack(const QByteArray &pack, qint32 current_cnt, qint32 total_cnt);
+    void recvUnpackResult(bool success, QString details);
     void tee_textGroupsUpdate(const QString &name, const QByteArray &data);
     void tee_saveDataResult(const qint32& result, const QString &path, const qint32 fileSize);
     void regM_dataUpdated(const QByteArray &packData);

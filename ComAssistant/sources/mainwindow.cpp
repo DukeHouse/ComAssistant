@@ -402,7 +402,6 @@ MainWindow::MainWindow(QWidget *parent) :
     on_actionLogRecord_triggered(Config::getLogRecord());
 
     //槽
-    connect(this, SIGNAL(parseFileSignal()),this,SLOT(parseFileSlot()));
     connect(&cycleSendTimer, SIGNAL(timeout()), this, SLOT(cycleSendTimerSlot()));
     connect(&secTimer, SIGNAL(timeout()), this, SLOT(secTimerSlot()));
     connect(&printToTextBrowserTimer, SIGNAL(timeout()), this, SLOT(printToTextBrowserTimerSlot()));
@@ -442,6 +441,14 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->baudrateList->setValidator(new QIntValidator(0, 9999999, this));
     ui->sendInterval->setValidator(new QIntValidator(0, 99999, this));
     ui->timeStampTimeOut->setValidator(new QIntValidator(0, 99999, this));
+
+    //文件解包器初始化
+    fileUnpacker = new FileUnpacker(this);
+    connect(fileUnpacker, SIGNAL(newPack(const QByteArray &, qint32, qint32)),
+            this, SLOT(recvNewFilePack(const QByteArray &, qint32, qint32)));
+    connect(fileUnpacker, SIGNAL(unpackResult(bool, QString)),
+            this, SLOT(recvUnpackResult(bool, QString)));
+    fileUnpacker->start();
 
     //fft
     fft_window = new FFT_Dialog(ui->actionFFTShow, this);
@@ -840,68 +847,6 @@ int32_t MainWindow::divideDataToPacks(QByteArray &input, QByteArrayList &output,
     return 0;
 }
 
-/**
- * @brief     解析文件
- * @param[in] 文件路径
- * @param[in] 解析完成后是否删除文件
- *           （解析的是恢复文件则可能需要删除）
- * @return    解析结果
- */
-int32_t MainWindow::parseDatFile(QString path, bool removeAfterRead)
-{
-    if(parseFile)
-    {
-        QMessageBox::information(this, tr("提示"), tr("请等待上一个文件解析完成后再进行该操作"));
-        return -1;
-    }
-    QFile file(path);
-    QByteArray buff;
-    int64_t fileSize = 0;
-    //读文件
-    if(file.open(QFile::ReadOnly)){
-//        on_clearWindows_clicked(); //不清空
-        buff.clear();
-        buff = file.readAll();
-        file.close();
-        fileSize = file.size();
-        if(removeAfterRead)
-        {
-            file.remove();
-        }
-
-        //文件分包（分包太大会可能导致绘图解析那边卡顿甚至崩溃，应该是一个包解出来的数据太多了.
-        //限制包数量，过多了好像会崩溃。5K大小的包好像是只能解析15M
-        #define MIN_PACKSIZE    4096
-        #define PACK_NUM        3000
-        int32_t pack_size = buff.size() / PACK_NUM;
-        if(pack_size < MIN_PACKSIZE)
-        {
-            pack_size = MIN_PACKSIZE;
-        }
-        parseFileBuffIndex = 0;
-        parseFileBuff.clear();
-        parseFile = true;
-        if(divideDataToPacks(buff, parseFileBuff, pack_size, parseFile))
-            return -1;
-//        RxBuff.clear();
-
-//        ui->textBrowser->clear();
-        ui->textBrowser->appendPlainText("File size: " + QString::number(fileSize) + " Byte");
-        ui->textBrowser->appendPlainText("Read containt:\n");
-//        BrowserBuff.clear();
-//        BrowserBuff.append(ui->textBrowser->toPlainText());
-        BrowserBuff.append("File size: " + QString::number(fileSize) + " Byte\n");
-        BrowserBuff.append("Read containt:\n");
-
-        // 解析读取的数据
-//        unshowedRxBuff.clear();
-        emit parseFileSignal();
-    }else{
-        QMessageBox::information(this,tr("提示"),tr("文件打开失败。"));
-        return -1;
-    }
-    return 0;
-}
 
 /**
  * @brief     读取恢复文件
@@ -922,7 +867,7 @@ void MainWindow::readRecoveryFile()
         if(button == 0)
         {
             //读文件
-            parseDatFile(RECOVERY_FILE_PATH, true);
+            unpack_file(RECOVERY_FILE_PATH, true);
         }
         else if(button == 1)
         {
@@ -1013,6 +958,37 @@ void MainWindow::regM_dataUpdated(const QByteArray &packData)
 void MainWindow::regM_saveDataResult(const qint32& result, const QString &path, const qint32 fileSize)
 {
     tee_saveDataResult(result, path, fileSize);
+}
+
+/**
+ * @brief     收到文件解析器发的包
+ * @note      解析并更新进度
+ */
+void MainWindow::recvNewFilePack(const QByteArray &pack, qint32 current_cnt, qint32 total_cnt)
+{
+//    qDebug() << __FUNCTION__ << pack.mid(0, 5) << current_cnt << total_cnt;
+    parseFileBuff = pack;
+    readSerialPort();
+    parseFileBuff.clear();
+    updateProgressBar(tr("解析进度："), 100.0*current_cnt/total_cnt);
+    fileUnpacker->unpack_ack();
+}
+
+/**
+ * @brief     收到文件解析器发的最终结果
+ * @note      关闭文件解析模式
+ */
+void MainWindow::recvUnpackResult(bool success, QString details)
+{
+    parseFile = false;
+    openInteractiveUI();
+    progressBar->setValue(0);
+    progressBar->setVisible(false);
+    if(success || details.indexOf("aborted") != -1)
+    {
+        return;
+    }
+    QMessageBox::information(this, tr("提示"), tr("解析文件失败！") + "\n" + details);
 }
 
 /**
@@ -1164,9 +1140,9 @@ void MainWindow::TxRxSpeedStatisticAndDisplay()
     int32_t txLoad, rxLoad;
 
     //传输速度统计与显示
-    rxSpeedKB = static_cast<double>(statisticRxByteCnt) / 1024.0;
+    rxSpeedKB = static_cast<double>(statisticRxByteCnt) / 1000.0;
     statisticRxByteCnt = 0;
-    txSpeedKB = static_cast<double>(statisticTxByteCnt) / 1024.0;
+    txSpeedKB = static_cast<double>(statisticTxByteCnt) / 1000.0;
     statisticTxByteCnt = 0;
     //负载率计算(公式中的1是起始位)(网络模式下不显示负载率)
     if(g_network_comm_mode)
@@ -1175,7 +1151,7 @@ void MainWindow::TxRxSpeedStatisticAndDisplay()
     }
     else
     {
-        idealSpeed = (double)serial.baudRate()/(serial.stopBits()+serial.parity()+serial.dataBits()+1)/1024.0;
+        idealSpeed = (double)serial.baudRate()/(serial.stopBits()+serial.parity()+serial.dataBits()+1)/1000.0;
     }
 
     txLoad = 100 * txSpeedKB / idealSpeed;
@@ -1200,7 +1176,9 @@ void MainWindow::TxRxSpeedStatisticAndDisplay()
     }
     else
     {
-        txSpeedStr = " T:" + QString::number(txSpeedKB, 'g', 2) + "KB/s(" +
+        //转MB
+        txSpeedKB = txSpeedKB / 1000;
+        txSpeedStr = " T:" + QString::number(txSpeedKB, 'f', 2) + "MB/s(" +
                      QString::number(txLoad) + "%)";
     }
     if(txLoad > HIGH_LOAD_WARNING)
@@ -1227,7 +1205,9 @@ void MainWindow::TxRxSpeedStatisticAndDisplay()
     }
     else
     {
-        rxSpeedStr = " R:" + QString::number(rxSpeedKB, 'g', 2) + "KB/s(" +
+        //转MB
+        rxSpeedKB = rxSpeedKB / 1000;
+        rxSpeedStr = " R:" + QString::number(rxSpeedKB, 'f', 2) + "MB/s(" +
                      QString::number(rxLoad) + "%)";
     }
     if(rxLoad > HIGH_LOAD_WARNING)
@@ -1748,7 +1728,7 @@ void MainWindow::readSerialPort()
 
     //解析文件模式
     if(parseFile){
-        tmpReadBuff.append(parseFileBuff.at(parseFileBuffIndex++));
+        tmpReadBuff.append(parseFileBuff);
     }
     else{
         //网络或者串口模式
@@ -1893,30 +1873,6 @@ void MainWindow::readSerialPort()
     tmpReadBuff.clear();
 }
 
-/**
- * @brief     分包解析文件的槽
- * @note      好像有一个bug，这个函数执行多了会蹦，也就是文件大的时候就可能蹦？
- *            所以增大单文件包就提高可解析最大文件？
- */
-void MainWindow::parseFileSlot()
-{
-    readSerialPort();
-    parseTimer100hzSlot();
-    plotterShowTimerSlot();
-    qApp->processEvents(); //要在emit parseFileSignal()前
-    if(parseFileBuffIndex < parseFileBuff.size()){
-        double percent = 100.0 * (parseFileBuffIndex + 1) / parseFileBuff.size();
-        updateProgressBar(tr("解析进度："), percent);
-        emit parseFileSignal();
-    }else{
-        parseFile = false;
-        parseFileBuffIndex = 0;
-        parseFileBuff.clear();
-        openInteractiveUI();
-        //不知道为啥有概率最后一包数据已加入buffer却未触发解析，这里强制触发一下
-        forceTrigParse = 1;
-    }
-}
 
 /**
  * @brief     打印数据到TextBrowser
@@ -2252,12 +2208,6 @@ void MainWindow::parseTimer100hzSlot()
 {
     static uint32_t cnt = 0;
 
-    if(forceTrigParse)
-    {
-        forceTrigParse--;
-        parsePlotterAndTee();
-    }
-
     if(cnt % (PLOTTER_SHOW_PERIOD/10) == 0)
     {
         //协议解析控制
@@ -2464,8 +2414,7 @@ void MainWindow::on_clearWindows_clicked()
     //文件解析中止，第二次才清空
     if(parseFile)
     {
-        parseFileBuff.clear();
-        parseFileBuffIndex = 0;
+        fileUnpacker->abort_unpack_file();
         parseFile = 0;
         openInteractiveUI();
         return;
@@ -2869,6 +2818,31 @@ void MainWindow::on_actionSaveOriginData_triggered()
 }
 
 /**
+ * @brief     解包文件
+ * @note      测试文件可访问性并使能解包
+ */
+int32_t MainWindow::unpack_file(QString path, bool deleteIfUnpackSuccess)
+{
+    if(parseFile)
+    {
+        QMessageBox::information(this, tr("提示"), tr("请等待上一个文件解析完毕。"));
+        return -1;
+    }
+
+    //检测是否可访问并开始解包
+    QFile file(path);
+    if(!file.open(QIODevice::ReadOnly))
+    {
+        return -1;
+    }
+    file.close();
+    closeInteractiveUI();
+    parseFile = true;
+    fileUnpacker->unpack_file(path, deleteIfUnpackSuccess, 4096);
+    return 0;
+}
+
+/**
  * @brief     读取数据动作触发
  */
 void MainWindow::on_actionOpenOriginData_triggered()
@@ -2889,11 +2863,13 @@ void MainWindow::on_actionOpenOriginData_triggered()
     lastFileDialogPath = readPath;
     lastFileDialogPath = lastFileDialogPath.mid(0, lastFileDialogPath.lastIndexOf('/')+1);
 
-    if (parseDatFile(readPath, false))
+    //开始解包
+    if(unpack_file(readPath, false))
     {
         lastFileName.clear();
         return;
     }
+
     //记录上一次文件名
     lastFileName = readPath;
     while(lastFileName.indexOf('/')!=-1){
@@ -5576,7 +5552,8 @@ void MainWindow::dropEvent(QDropEvent *e)
     {
         return;
     }
-    parseDatFile(path, false);
+    //开始解包
+    unpack_file(path, false);
 }
 
 /**
