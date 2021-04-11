@@ -536,7 +536,7 @@ MainWindow::MainWindow(QWidget *parent) :
     p_networkComm->moveToThread(p_networkCommThread);
     connect(p_networkCommThread, SIGNAL(finished()), p_networkComm, SLOT(deleteLater()));
     connect(this, SIGNAL(initNetwork()), p_networkComm, SLOT(init()));
-    connect(p_networkComm, SIGNAL(readReady()), this, SLOT(readSerialPort()));
+    connect(p_networkComm, SIGNAL(readBytes(const QByteArray&)), this, SLOT(readDataNetwork(const QByteArray&)));
     connect(p_networkComm, SIGNAL(bytesWritten(qint64)), this, SLOT(serialBytesWritten(qint64)));
     connect(this, SIGNAL(writeToNetwork(const QByteArray&)), p_networkComm, SLOT(write(const QByteArray&)));
     connect(this, SIGNAL(connectToNetwork(qint32, QString , quint16)), p_networkComm, SLOT(connect(qint32, QString , quint16)));
@@ -979,10 +979,8 @@ void MainWindow::tee_saveDataResult(const qint32& result, const QString &path, c
     QString str;
     switch (result) {
     case TextExtractEngine::SAVE_OK:
-        str = "\nTotal saved " + QString::number(fileSize) + " Bytes in " + path + "\n";
-        BrowserBuff.append(str);
-        hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
-        printToTextBrowser();
+        str = "Total saved " + QString::number(fileSize) + " Bytes in " + path;
+        appendMsgLogToBrowser(str);
         lastFileDialogPath = path;
         lastFileDialogPath = lastFileDialogPath.mid(0, lastFileDialogPath.lastIndexOf('/')+1);
         break;
@@ -1859,7 +1857,9 @@ void MainWindow::readSerialPort()
         }
         else
         {
-            tmpReadBuff.append(p_networkComm->readAll());
+            int32_t len = networkRxBuff.size();
+            tmpReadBuff.append(networkRxBuff.mid(0, len));
+            networkRxBuff.remove(0, len);
         }
     }
 
@@ -1947,7 +1947,7 @@ void MainWindow::readSerialPort()
         emit logger_append(RAW_DATA_LOG, tmpReadBuff);
     }
 
-    //时间戳选项
+    //时间戳选项(toHexDisplay是比较耗时的，不建议用于带宽高于2Mbps的场景)
     if(ui->timeStampCheckBox->isChecked() && timeStampTimer.isActive()==false){
         //hex解析
         hexBrowserBuff.append(timeString + toHexDisplay(tmpReadBuff).toLatin1());//换行符在前面判断没有数据时自动追加一次
@@ -2842,10 +2842,8 @@ void MainWindow::on_actionSaveOriginData_triggered()
         file.flush();
         file.close();
 
-        QString str = "\nTotal saved " + QString::number(file.size()) + " Bytes in " + savePath + "\n";
-        BrowserBuff.append(str);
-        hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
-        printToTextBrowser();
+        QString str = "Total saved " + QString::number(file.size()) + " Bytes in " + savePath;
+        appendMsgLogToBrowser(str);
     }else{
         QMessageBox::information(this,tr("提示"),tr("文件打开失败。"));
     }
@@ -3090,10 +3088,8 @@ void MainWindow::on_actionSaveShowedData_triggered()
         }
         file.close();
 
-        QString str = "\nTotal saved " + QString::number(file.size()) + " Bytes in " + savePath + "\n";
-        BrowserBuff.append(str);
-        hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
-        printToTextBrowser();
+        QString str = "Total saved " + QString::number(file.size()) + " Bytes in " + savePath;
+        appendMsgLogToBrowser(str);
     }else{
         QMessageBox::information(this,tr("提示"),tr("文件打开失败。"));
     }
@@ -6196,10 +6192,10 @@ void MainWindow::on_actionSelectTheme_triggered()
  */
 void MainWindow::appendMsgLogToBrowser(QString str)
 {
-    str = QDateTime::currentDateTime().toString("[hh:mm:ss]# ") + str;
-    ui->textBrowser->appendPlainText(str);
+    str = QDateTime::currentDateTime().toString("[hh:mm:ss]# ") + str + "\n";
     BrowserBuff.append(str);
     hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
+    printToTextBrowser();
 }
 
 /**
@@ -6606,6 +6602,14 @@ void MainWindow::errorNetwork(qint32 err, QString details)
         ui->statusBar->showMessage(details, 2000);
         appendMsgLogToBrowser(details);
         break;
+    case NET_ERR_ACCEPT_ERR:
+        ui->statusBar->showMessage(details, 2000);
+        appendMsgLogToBrowser(details);
+        break;
+    case NET_ERR_SOCKET_ERR:
+        ui->statusBar->showMessage(details, 2000);
+        appendMsgLogToBrowser(details);
+        break;
     default:
         qDebug() << __FUNCTION__ << "unknown err" << err << details;
         break;
@@ -6651,6 +6655,12 @@ void MainWindow::msgNetwork(qint32 type, QString msg)
         qDebug() << __FUNCTION__ << "unknown msg" << msg;
         break;
     }
+}
+
+void MainWindow::readDataNetwork(const QByteArray &data)
+{
+    networkRxBuff.append(data);
+    readSerialPort();
 }
 
 /**

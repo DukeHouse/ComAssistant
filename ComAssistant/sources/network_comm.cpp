@@ -15,14 +15,14 @@ NetworkComm::~NetworkComm()
  */
 void NetworkComm::init(void)
 {
-    socket = new QTcpSocket();
+    socket = new QTcpSocket(this);
     socket->setProxy(QNetworkProxy::NoProxy);   // 设置不使用代理
 
-    server = new QTcpServer();
+    server = new QTcpServer(this);
     server->setMaxPendingConnections(1);        // 设置最大连接数量
     server->setProxy(QNetworkProxy::NoProxy);
 
-    udpSocket = new QUdpSocket();
+    udpSocket = new QUdpSocket(this);
     udpSocket->setProxy(QNetworkProxy::NoProxy);
 
 //    qDebug() << "Network ThreadID" << QThread::currentThreadId() << QThread::currentThread();
@@ -187,20 +187,6 @@ QString NetworkComm::getLocalIP(void)
 }
 
 /**
- * @brief     读取所有数据
- * @return    读取的数据
- */
-QByteArray NetworkComm::readAll(void)
-{
-    int32_t len = 0;
-    QByteArray tmp;
-    len = readBuffer.size();
-    tmp = readBuffer.mid(0, len);
-    readBuffer.remove(0, len);
-    return tmp;
-}
-
-/**
  * @brief     设置远端UDP地址
  * @note      常用于UDP模式下发送数据前设置接收者
  * @param[in] 远端IP
@@ -255,6 +241,8 @@ int32_t NetworkComm::connect(qint32 mode, QString ip, quint16 port)
                 goto connect_failed;
             }
         }
+        QObject::connect(socket, SIGNAL(error(QAbstractSocket::SocketError)),
+                         this, SLOT(abstractSocketError(QAbstractSocket::SocketError)));
         QObject::connect(socket, SIGNAL(readyRead()), this, SLOT(readData()));
         QObject::connect(socket, SIGNAL(disconnected()), this, SLOT(clientDisconnect()));
         break;
@@ -272,6 +260,8 @@ int32_t NetworkComm::connect(qint32 mode, QString ip, quint16 port)
             goto connect_failed;
         }
         QObject::connect(server, SIGNAL(newConnection()), this, SLOT(serverNewConnect()));
+        QObject::connect(server, SIGNAL(acceptError(QAbstractSocket::SocketError)),
+                         this, SLOT(serverAcceptError(QAbstractSocket::SocketError)));
         break;
     case UDP_SERVER:
         //监听这个地址，同时从这个地址发数据出去
@@ -281,6 +271,8 @@ int32_t NetworkComm::connect(qint32 mode, QString ip, quint16 port)
             goto connect_failed;
         }
         QObject::connect(udpSocket, SIGNAL(readyRead()), this, SLOT(readData()));
+        QObject::connect(udpSocket, SIGNAL(error(QAbstractSocket::SocketError)),
+                         this, SLOT(abstractSocketError(QAbstractSocket::SocketError)));
         break;
     case UDP_CLIENT:
         if(!udpSocket->open(QIODevice::ReadWrite))
@@ -292,6 +284,8 @@ int32_t NetworkComm::connect(qint32 mode, QString ip, quint16 port)
         remoteUdpIp = QHostAddress(ip);
         remoteUdpPort = port;
         QObject::connect(udpSocket, SIGNAL(readyRead()), this, SLOT(readData()));
+        QObject::connect(udpSocket, SIGNAL(error(QAbstractSocket::SocketError)),
+                         this, SLOT(abstractSocketError(QAbstractSocket::SocketError)));
         break;
     default:
         errorDetail = "unknown connection mode";
@@ -322,12 +316,17 @@ int32_t NetworkComm::disconnectServerSocket()
     //断开前记录要断开的地址
     QString peerAddress = serverSocket->peerAddress().toString();
     QString peerPort = QString::number(serverSocket->peerPort());
-    serverSocket->disconnectFromHost();
-    if (serverSocket->state() == QAbstractSocket::ConnectedState &&
-        !serverSocket->waitForDisconnected(DEFAULT_TIME_OUT))
+    if(serverSocket->state() == QAbstractSocket::ConnectedState)
     {
-        return -1;
+        serverSocket->disconnectFromHost();
+        if(serverSocket->state() == QAbstractSocket::ConnectedState &&
+            !serverSocket->waitForDisconnected(DEFAULT_TIME_OUT))
+        {
+            return -1;
+        }
     }
+    QObject::disconnect(serverSocket, SIGNAL(error(QAbstractSocket::SocketError)),  //TODO:能不能一直链接信号？
+                     this, SLOT(abstractSocketError(QAbstractSocket::SocketError)));
     serverSocket->close();
     emit message(NET_MSG_DISCONNECT,
                  peerAddress + ":" + peerPort);
@@ -364,6 +363,8 @@ int32_t NetworkComm::disconnect()
         }
         QObject::disconnect(socket, SIGNAL(connected()), this, SLOT(socketConnected()));
         QObject::disconnect(socket, SIGNAL(readyRead()), this, SLOT(readData()));
+        QObject::disconnect(socket, SIGNAL(error(QAbstractSocket::SocketError)),
+                         this, SLOT(abstractSocketError(QAbstractSocket::SocketError)));
         socket->close();
         socketConnectedFlag = false;
         break;
@@ -376,15 +377,21 @@ int32_t NetworkComm::disconnect()
         if(!server)
             goto failed;
         QObject::disconnect(server, SIGNAL(newConnection()), this, SLOT(serverNewConnect()));
+        QObject::disconnect(server, SIGNAL(acceptError(QAbstractSocket::SocketError)),
+                         this, SLOT(serverAcceptError(QAbstractSocket::SocketError)));
         server->close();
         break;
     case UDP_SERVER:
         udpSocket->close();
         QObject::disconnect(udpSocket, SIGNAL(readyRead()), this, SLOT(readData()));
+        QObject::disconnect(udpSocket, SIGNAL(error(QAbstractSocket::SocketError)),
+                         this, SLOT(abstractSocketError(QAbstractSocket::SocketError)));
         break;
     case UDP_CLIENT:
         udpSocket->close();
         QObject::disconnect(udpSocket, SIGNAL(readyRead()), this, SLOT(readData()));
+        QObject::disconnect(udpSocket, SIGNAL(error(QAbstractSocket::SocketError)),
+                         this, SLOT(abstractSocketError(QAbstractSocket::SocketError)));
         break;
     default:
         goto failed;
@@ -449,7 +456,7 @@ int64_t NetworkComm::write(const QByteArray &data)
 
 /**
  * @brief     读取数据
- * @note      该函数为内部函数，读取的数据被放在readBuffer中，可通过readAll()获取
+ * @note      该函数为内部函数
  * @return
  */
 void NetworkComm::readData(void)
@@ -464,13 +471,16 @@ void NetworkComm::readData(void)
     case TCP_CLIENT:
         if(!socket)
             return;
+        array.resize(socket->bytesAvailable());
+        socket->read(array.data(), array.size());
         array = socket->readAll();
         errorDetails = socket->errorString();
         break;
     case TCP_SERVER:
         if(!serverSocket)
             return;
-        array = serverSocket->readAll();
+        array.resize(serverSocket->bytesAvailable());
+        serverSocket->read(array.data(), array.size());
         errorDetails = serverSocket->errorString();
         break;
     case UDP_SERVER:
@@ -506,10 +516,9 @@ void NetworkComm::readData(void)
 
     if(ret > 0)
     {
-        readBuffer.append(array);
         RxCnt += ret;
         totalRxCnt += ret;
-        emit readReady();
+        emit readBytes(array);//不知道为什么不能模仿串口使用readReady并配合readAll使用
     }
     else
     {
@@ -534,6 +543,8 @@ void NetworkComm::clientDisconnect(void)
         QObject::disconnect(socket, SIGNAL(connected()), this, SLOT(socketConnected()));
         QObject::disconnect(socket, SIGNAL(readyRead()), this, SLOT(readData()));
         QObject::disconnect(socket, SIGNAL(disconnected()), this, SLOT(clientDisconnect()));
+        QObject::disconnect(socket, SIGNAL(error(QAbstractSocket::SocketError)),
+                         this, SLOT(abstractSocketError(QAbstractSocket::SocketError)));
         socket->close();
         socketConnectedFlag = false;
         workMode = NET_UNKNOWN;
@@ -565,12 +576,12 @@ void NetworkComm::serverNewConnect(void)
 {
     if(serverSocket)
     {
-        qDebug() << "Connection refused, multi-client connection is not supported";
+        qDebug() << "Connection refused, multi-client is not supported";
         QTcpSocket *nextSocket = server->nextPendingConnection();
         nextSocket->disconnectFromHost();
         nextSocket->close();
         emit error(NET_ERR_MULTI_SOCKET,
-                "Connection refused, multi-client connection is not supported");
+                "Connection refused, multi-client is not supported");
         return;
     }
 
@@ -585,4 +596,47 @@ void NetworkComm::serverNewConnect(void)
     emit message(NET_MSG_NEW_CONNECT,
                  serverSocket->peerAddress().toString()
                  + ":" + QString::number(serverSocket->peerPort()));
+}
+
+/**
+ * @brief     TCP Server模式下的错误
+ */
+void NetworkComm::serverAcceptError(QAbstractSocket::SocketError err)
+{
+    qDebug() << __FUNCTION__ << err << server->errorString();
+    emit error(NET_ERR_ACCEPT_ERR, "code:" + QString(err) + " server_err_str:" + server->errorString());
+}
+
+/**
+ * @brief     抽象socket错误
+ */
+void NetworkComm::abstractSocketError(QAbstractSocket::SocketError err)
+{
+    QString errorStr = __FUNCTION__;
+    switch (workMode) {
+    case NET_UNKNOWN:
+        errorStr += QString(" mode:NET_UNKNOWN code:") + QString(err);
+        break;
+    case TCP_CLIENT:
+        errorStr += QString(" mode:TCP_CLIENT code:") + QString(err) + " socket_err_str:" + socket->errorString();
+        break;
+    case TCP_SERVER:
+        errorStr += QString(" mode:TCP_SERVER code:") + QString(err) + " server_err_str:" + server->errorString();
+        if(serverSocket)
+        {
+            errorStr += " serverSocket_err_str:" + serverSocket->errorString();
+        }
+        break;
+    case UDP_CLIENT:
+        errorStr += QString(" mode:UDP_CLIENT code:") + QString(err) + " udp_err_str:" + udpSocket->errorString();
+        break;
+    case UDP_SERVER:
+        errorStr += QString(" mode:UDP_SERVER code:") + QString(err) + " udp_err_str:" + udpSocket->errorString();
+        break;
+    default:
+        errorStr += QString(" mode:unknown code:") + QString(err);
+        break;
+    }
+    qDebug() << errorStr;
+    emit error(NET_ERR_SOCKET_ERR, errorStr);
 }

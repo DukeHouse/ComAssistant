@@ -35,6 +35,8 @@
 #define NET_ERR_WRITE           (2)
 #define NET_ERR_READ            (3)
 #define NET_ERR_MULTI_SOCKET    (4)
+#define NET_ERR_ACCEPT_ERR      (5)
+#define NET_ERR_SOCKET_ERR      (6)
 
 //网络消息类型
 #define NET_MSG_NEW_CONNECT     (0)
@@ -53,7 +55,6 @@ class NetworkComm : public QObject
 public:
     explicit NetworkComm(QObject *parent = nullptr);
     ~NetworkComm();
-    QByteArray readAll(void);
     QString getLocalIP(void);
     void setRemoteUdpAddr(QString ip, quint16 port);
     //获取收发统计值
@@ -76,7 +77,7 @@ public slots:
     int32_t connect(qint32 mode = TCP_CLIENT, QString ip = DEFAULT_IP, quint16 port = DEFAULT_PORT);
 
 signals:
-    void readReady();
+    void readBytes(const QByteArray &data);
     void bytesWritten(qint64);
     void error(qint32 errorCode, QString errorDetail);
     void message(qint32 type, QString msg);
@@ -96,14 +97,15 @@ private:
     int64_t RxCnt = 0;
     int64_t totalTxCnt = 0;
     int64_t totalRxCnt = 0;
-    QByteArray readBuffer;
     bool socketConnectedFlag = false;
 
 private slots:
     void readData(void);
     void clientDisconnect(void);
     void serverNewConnect(void);
+    void serverAcceptError(QAbstractSocket::SocketError error);
     void socketConnected(void);
+    void abstractSocketError(QAbstractSocket::SocketError error);
 };
 
 #endif // NETWORK_COMM_H

@@ -289,6 +289,7 @@ private:
     QByteArray BrowserBuff;         //浏览器缓冲
     int BrowserBuffIndex = 0;       //显示指示(逆序)
     QByteArray unshowedRxBuff;      //未上屏的接收缓冲
+    QByteArray networkRxBuff;       //网络接收缓冲
 
     const int32_t PLOTTER_SHOW_PERIOD = 40;  //绘图器显示频率25FPS（解析频率由parseTimer100hz控制）
     const int32_t TEXT_SHOW_PERIOD    = 55;  //文本显示频率18FPS
@@ -426,6 +427,7 @@ public slots:
     void regM_saveDataResult(const qint32& result, const QString &path, const qint32 fileSize);
     void errorNetwork(qint32 err, QString details);
     void msgNetwork(qint32 type, QString msg);
+    void readDataNetwork(const QByteArray &data);
 
 protected:
     void resizeEvent(QResizeEvent* event);
