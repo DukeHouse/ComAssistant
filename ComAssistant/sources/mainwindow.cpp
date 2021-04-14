@@ -609,6 +609,9 @@ MainWindow::MainWindow(QWidget *parent) :
     parseTimer100hz.setTimerType(Qt::PreciseTimer);
     parseTimer100hz.start(10);
 
+    //textBrowser右键内容初始化
+    textBrowser_rightClickContext_init();
+
     //计时器
     g_lastSecsSinceEpoch = QDateTime::currentSecsSinceEpoch();
 
@@ -1794,7 +1797,7 @@ void MainWindow::on_comSwitch_clicked(bool checked)
 
     if(checked)
     {
-        if(serial.open(com,baud)){
+        if(serial.open(com, baud)){
             ui->comSwitch->setText(tr("关闭串口"));
             ui->comSwitch->setChecked(true);
             g_lastSecsSinceEpoch = QDateTime::currentSecsSinceEpoch();
@@ -3252,6 +3255,11 @@ void MainWindow::on_multiString_customContextMenuRequested(const QPoint &pos)
     delete popMenu;
     delete clearSeeds;
     delete deleteSeed;
+    delete editSeed;
+    delete editCommentSeed;
+    delete moveUpSeed;
+    delete moveDownSeed;
+    delete addSeed;
 }
 
 /**
@@ -4853,6 +4861,28 @@ void MainWindow::showAllTextBrowser_triggered()
 }
 
 /**
+ * @brief     开关textBrowser文本编辑模式
+ */
+void MainWindow::editMode_triggered(bool checked)
+{
+    editMode->setChecked(checked);
+    if(checked)
+    {
+        QMessageBox::StandardButton button;
+        button = QMessageBox::information(this, tr("提示"),
+                                 tr("编辑模式仅修改显示在GUI上的数据，原始数据无法修改。") + "\n\n" +
+                                 tr("注意：所有可能触发GUI更新的操作都将导致修改丢失，如数据接收更新、滚动条上滑触顶、HEX显示切换等。"),
+                                 QMessageBox::Ok, QMessageBox::Cancel);
+        if(button == QMessageBox::Cancel)
+        {
+            editMode->setChecked(false);
+            return;
+        }
+    }
+    ui->textBrowser->setReadOnly(!checked);
+}
+
+/**
  * @brief     复制所选文本到剪贴板
  */
 void MainWindow::copySelectedTextBrowser_triggered(void)
@@ -4887,52 +4917,30 @@ void MainWindow::copyAllData_triggered(void)
 }
 
 /**
- * @brief     main窗口右键菜单
- * @param[in] 右键位置
+ * @brief     textBrowser右键内容初始化
  */
-void MainWindow::on_textBrowser_customContextMenuRequested(const QPoint &pos)
+void MainWindow::textBrowser_rightClickContext_init()
 {
-    QPoint noWarning = pos;
-    noWarning.x();
-
-    QAction *stopRefresh = nullptr;
-    QAction *showAllText = nullptr;
-    QAction *copyText = nullptr;
-    QAction *copyAllText = nullptr;
-    QAction *copyAllData = nullptr;
-    QAction *clearTextBrowser = nullptr;
-    QAction *saveOriginData = nullptr;
-    QAction *saveShowedData = nullptr;
-
-    QMenu *popMenu = new QMenu( this );
+    popMenu = new QMenu( this );
     //添加右键菜单
     stopRefresh = new QAction(tr("暂停刷新数据"), this);
+    stopRefresh->setCheckable(true);
     showAllText = new QAction(tr("显示所有文本"), this);
+    editMode = new QAction(tr("编辑模式"), this);
+    editMode->setCheckable(true);
     copyText = new QAction(tr("复制所选文本"), this);
-    if(ui->textBrowser->textCursor().selectedText().isEmpty())
-        copyText->setEnabled(false);
     copyAllText = new QAction(tr("复制全部显示数据"), this);
     copyAllData = new QAction(tr("复制全部原始数据"), this);
     saveShowedData = new QAction(tr("保存显示数据"), this);
     saveOriginData = new QAction(tr("保存原始数据"), this);
     clearTextBrowser = new QAction(tr("清空数据显示区"), this);
 
-    stopRefresh->setCheckable(true);
-    if(disableRefreshWindow)
-    {
-        stopRefresh->setChecked(true);
-    }
-    else
-    {
-        stopRefresh->setChecked(false);
-    }
-
     popMenu->addAction( stopRefresh );
     popMenu->addSeparator();
     popMenu->addAction( showAllText );
+    popMenu->addAction( editMode );
     popMenu->addSeparator();
     popMenu->addAction( copyText );
-    popMenu->addSeparator();
     popMenu->addAction( copyAllText );
     popMenu->addAction( copyAllData );
     popMenu->addSeparator();
@@ -4944,22 +4952,36 @@ void MainWindow::on_textBrowser_customContextMenuRequested(const QPoint &pos)
     connect( stopRefresh, SIGNAL(triggered(bool) ),
              this, SLOT( disableRefreshWindow_triggered(bool)) );
     connect( showAllText, SIGNAL(triggered() ), this, SLOT( showAllTextBrowser_triggered()) );
+    connect( editMode, SIGNAL(triggered(bool) ), this, SLOT( editMode_triggered(bool)) );
     connect( copyText, SIGNAL(triggered() ), this, SLOT( copySelectedTextBrowser_triggered()) );
     connect( copyAllText, SIGNAL(triggered() ), this, SLOT( copyAllTextBrowser_triggered()) );
     connect( copyAllData, SIGNAL(triggered() ), this, SLOT( copyAllData_triggered()) );
     connect( saveOriginData, SIGNAL(triggered() ), this, SLOT( on_actionSaveOriginData_triggered()) );
     connect( saveShowedData, SIGNAL(triggered() ), this, SLOT( on_actionSaveShowedData_triggered()) );
     connect( clearTextBrowser, SIGNAL(triggered() ), this, SLOT( clearTextBrowserSlot()) );
+}
+
+/**
+ * @brief     main窗口右键菜单
+ * @param[in] 右键位置
+ */
+void MainWindow::on_textBrowser_customContextMenuRequested(const QPoint &pos)
+{
+    Q_UNUSED(pos)
+
+    //暂停刷新
+    if(disableRefreshWindow)
+        stopRefresh->setChecked(true);
+    else
+        stopRefresh->setChecked(false);
+
+    //复制所选文本
+    if(ui->textBrowser->textCursor().selectedText().isEmpty())
+        copyText->setEnabled(false);
+    else
+        copyText->setEnabled(true);
+
     popMenu->exec( QCursor::pos() );
-    delete popMenu;
-    delete clearTextBrowser;
-    delete saveOriginData;
-    delete saveShowedData;
-    delete copyAllData;
-    delete copyAllText;
-    delete copyText;
-    delete showAllText;
-    delete stopRefresh;
 }
 
 /**
@@ -6533,6 +6555,11 @@ void MainWindow::on_networkSwitch_clicked(bool checked)
         updateNetworkSwitchText(arg1, true);
         return;
     }
+    //关闭定时器
+    if(cycleSendTimer.isActive()){
+        cycleSendTimer.stop();
+        ui->cycleSendCheck->setChecked(false);
+    }
     emit disconnectFromNetwork();
 failed:
     ui->networkSwitch->setChecked(false);
@@ -6589,11 +6616,11 @@ void MainWindow::errorNetwork(qint32 err, QString details)
         break;
     case NET_ERR_WRITE:
         ui->statusBar->showMessage(tr("网络数据发送异常。"), 2000);
-        appendMsgLogToBrowser("Network data sending error.");
+        appendMsgLogToBrowser("WRITE_ERR: " + details);
         break;
     case NET_ERR_READ:
         ui->statusBar->showMessage(tr("网络数据接收异常。"), 2000);
-        appendMsgLogToBrowser("Network data receiving error.");
+        appendMsgLogToBrowser("READ_ERR: " + details);
         break;
     case NET_ERR_MULTI_SOCKET:
         // QMessageBox::information(this, tr("提示"),
@@ -6681,6 +6708,7 @@ void MainWindow::on_comboBox_remoteAddr_activated(const QString &arg1)
 
 /**
  * @brief     远端地址当前文本修改动作触发
+ * @note      textChanged事件内不要用setText否则每次修改后光标会调到文本末尾
  * @param[in] 新的文本
  */
 void MainWindow::on_comboBox_remoteAddr_currentTextChanged(const QString &arg1)
@@ -6688,18 +6716,20 @@ void MainWindow::on_comboBox_remoteAddr_currentTextChanged(const QString &arg1)
     if(arg1.isEmpty())
         return;
 
-    ui->comboBox_remoteAddr->setCurrentText(arg1);
     if(ui->networkModeBox->currentText() == "UDP Server")
     {
-        if(!checkIPAddrIsValid())
+        QString errMsg;
+        QRegExp validAddrFormat;
+        validAddrFormat.setPattern("\\d{1,3}.\\d{1,3}.\\d{1,3}.\\d{1,3}:\\d{1,5}");
+        if(ui->comboBox_remoteAddr->isVisible()
+           && !arg1.contains(validAddrFormat))
+        {
             return;
+        }
+
         p_networkComm->setRemoteUdpAddr(arg1.mid(0, arg1.indexOf(':')),
                                          arg1.mid(arg1.indexOf(':') + 1).toUInt());
-        if(ui->comboBox_remoteAddr->findText(arg1) == -1)
-        {
-            ui->comboBox_remoteAddr->addItem(arg1);
-        }
-//        ui->comboBox_remoteAddr->setCurrentText(msg);
+        //不自动添加进combobox，否则配合自动补全功能，会把没输入完的地址添加进去然后又给你补全提示
     }
 }
 

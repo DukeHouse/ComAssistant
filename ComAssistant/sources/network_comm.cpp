@@ -449,7 +449,9 @@ int64_t NetworkComm::write(const QByteArray &data)
     }
     else
     {
-        emit error(NET_ERR_WRITE, errorDetails);
+        if (!errorDetails.isEmpty())
+            emit error(NET_ERR_WRITE, errorDetails);
+        qDebug() << __FILE__ << __FUNCTION__ << "write error:" << errorDetails;
     }
     return ret;
 }
@@ -461,6 +463,7 @@ int64_t NetworkComm::write(const QByteArray &data)
  */
 void NetworkComm::readData(void)
 {
+    int64_t readSize = 0;
     QString errorDetails;
     QHostAddress recvUdpIP;
     quint16 recvUdpPort;
@@ -472,21 +475,20 @@ void NetworkComm::readData(void)
         if(!socket)
             return;
         array.resize(socket->bytesAvailable());
-        socket->read(array.data(), array.size());
-        array = socket->readAll();
+        readSize = socket->read(array.data(), array.size());
         errorDetails = socket->errorString();
         break;
     case TCP_SERVER:
         if(!serverSocket)
             return;
         array.resize(serverSocket->bytesAvailable());
-        serverSocket->read(array.data(), array.size());
+        readSize = serverSocket->read(array.data(), array.size());
         errorDetails = serverSocket->errorString();
         break;
     case UDP_SERVER:
-        ret = udpSocket->bytesAvailable();
-        array.resize(ret);
-        udpSocket->readDatagram(array.data(), array.size(), &recvUdpIP, &recvUdpPort);
+        array.resize(udpSocket->bytesAvailable());// bytesAvailable好像不准要偏多一些，通过readDatagram的返回值更准确
+        readSize = udpSocket->readDatagram(array.data(), array.size(), &recvUdpIP, &recvUdpPort);
+        //检查接收地址是否异常：为0或者空
         if(recvUdpPort == 0 && recvUdpIP.isNull())
         {
             qDebug() << "error remote udp addr" << recvUdpIP << recvUdpPort << "at" << __FILE__ << __FUNCTION__;
@@ -494,6 +496,7 @@ void NetworkComm::readData(void)
                        "Error recv UDP addr:" + recvUdpIP.toString() + QString::number(recvUdpPort));
             return;
         }
+        //收到新的地址，更新地址信息到remoteAddr控件
         if(recvUdpPort != remoteUdpPort || recvUdpIP != remoteUdpIp)
         {
             remoteUdpIp = recvUdpIP;
@@ -504,13 +507,23 @@ void NetworkComm::readData(void)
         errorDetails = udpSocket->errorString();
         break;
     case UDP_CLIENT:
-        ret = udpSocket->bytesAvailable();
-        array.resize(ret);
-        udpSocket->readDatagram(array.data(), array.size());
+        array.resize(udpSocket->bytesAvailable());// bytesAvailable好像不准要偏多一些，通过readDatagram的返回值更准确
+        readSize = udpSocket->readDatagram(array.data(), array.size());
         errorDetails = udpSocket->errorString();
         break;
     default:
         break;
+    }
+    //判断实际读取大小是否和数据大小一致
+    if(readSize != array.size())
+    {
+        array = array.mid(0, readSize);
+        if(readSize > array.size())
+        {
+            qDebug() << "read size is bigger than array size, data may lost!!!!";
+            emit error(NET_ERR_READ,
+                       "read size is bigger than array size, data may lost!!!!");
+        }
     }
     ret = array.size();
 
@@ -522,7 +535,9 @@ void NetworkComm::readData(void)
     }
     else
     {
-        emit error(NET_ERR_READ, errorDetails);
+        if (!errorDetails.isEmpty())
+            emit error(NET_ERR_READ, errorDetails);
+        qDebug() << __FILE__ << __FUNCTION__ << "read error:" << errorDetails;
     }
     return;
 }

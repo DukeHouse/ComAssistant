@@ -123,6 +123,7 @@ private slots:
     void on_timeStampTimeOut_textChanged(const QString &arg1);
     void disableRefreshWindow_triggered(bool checked);
     void showAllTextBrowser_triggered();
+    void editMode_triggered(bool checked);
     void copySelectedTextBrowser_triggered(void);
     void copyAllTextBrowser_triggered(void);
     void copyAllData_triggered(void);
@@ -269,6 +270,7 @@ private:
     int32_t writeDataToDevice(const QByteArray &data);
     int32_t deviceIsOpen();
     int32_t remindDeviceIsOpen();
+    void textBrowser_rightClickContext_init();
     Ui::MainWindow *ui;
     mySerialPort serial;
 
@@ -315,7 +317,20 @@ private:
     int32_t TryRefreshBrowserCnt = TRY_REFRESH_BROWSER_CNT; //数据显示区刷新标记，大于0的时候会继续刷新
     bool autoRefreshYAxisFlag;
 
+    //文件解包（分包）器
     FileUnpacker* fileUnpacker = nullptr;
+
+    //textBrowser右键菜单
+    QMenu *popMenu = nullptr;
+    QAction *stopRefresh = nullptr;
+    QAction *showAllText = nullptr;
+    QAction *editMode = nullptr;
+    QAction *copyText = nullptr;
+    QAction *copyAllText = nullptr;
+    QAction *copyAllData = nullptr;
+    QAction *clearTextBrowser = nullptr;
+    QAction *saveOriginData = nullptr;
+    QAction *saveShowedData = nullptr;
 
     //数据记录
     QString rawDataRecordPath       = "";
