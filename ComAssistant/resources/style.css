@@ -64,57 +64,57 @@ QPushButton#networkSwitch:disabled{
 }
 /* 点按交互区域 */
 QPushButton{
-  font-family: Microsoft YaHei UI;
+  font-family: Microsoft YaHei UI, FreeSans;
 }
 QCheckBox{
-  font-family: Microsoft YaHei UI;
+  font-family: Microsoft YaHei UI, FreeSans;
 }
 QComboBox{
-  font-family: Microsoft YaHei UI;
+  font-family: Microsoft YaHei UI, FreeSans;
 }
 QMessageBox{
-  font-family: Microsoft YaHei UI;
+  font-family: Microsoft YaHei UI, FreeSans;
 }
 QInputDialog{
-  font-family: Courier New, Consolas, Microsoft YaHei UI;
+  font-family: Courier New, Consolas, Microsoft YaHei UI, FreeSans;
 }
 QLineEdit{
-  font-family: Courier New, Consolas, Microsoft YaHei UI;
+  font-family: Courier New, Consolas, Microsoft YaHei UI, FreeSans;
 }
 
 /* 菜单栏 */
 QMenuBar{
-  font-family: Microsoft YaHei UI;
+  font-family: Microsoft YaHei UI, FreeSans;
 }
 QMenu{
-  font-family: Microsoft YaHei UI;
+  font-family: Microsoft YaHei UI, FreeSans;
 }
 QAction{
-  font-family: Microsoft YaHei UI;
+  font-family: Microsoft YaHei UI, FreeSans;
 }
 
 /* 状态栏 */
 QStatusBar{
-  font-family: Microsoft YaHei UI;
+  font-family: Microsoft YaHei UI, FreeSans;
 }
 QLabel{
-  font-family: Microsoft YaHei UI;
+  font-family: Microsoft YaHei UI, FreeSans;
 }
 
 /* 显示区 */
 /*QListWidget{
-  font-family: Courier New, Consolas, Microsoft YaHei UI;
+  font-family: Courier New, Consolas, Microsoft YaHei UI, FreeSans;
   font-size: 10pt;
 }
 QTextEdit{
-  font-family: Courier New, Consolas, Microsoft YaHei UI;
+  font-family: Courier New, Consolas, Microsoft YaHei UI, FreeSans;
   font-size: 10pt;
 }
 QTextBrowser{
-  font-family: Courier New, Consolas, Microsoft YaHei UI;
+  font-family: Courier New, Consolas, Microsoft YaHei UI, FreeSans;
   font-size: 10pt;
 }
 QTableWidget{
-  font-family: Courier New, Consolas, Microsoft YaHei UI;
+  font-family: Courier New, Consolas, Microsoft YaHei UI, FreeSans;
   font-size: 10pt;
 }*/

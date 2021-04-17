@@ -13,7 +13,6 @@ int32_t version_to_number(QString str)
 
 Config::Config()
 {
-
 }
 
 void Config::writeCommentMsgAtFileTop()
@@ -23,7 +22,7 @@ void Config::writeCommentMsgAtFileTop()
     QString header;
     if(file.open(QFile::ReadOnly))
     {
-        header = QObject::tr("; 本文件用于记录配置和统计信息，请勿修改。") + "\n";
+        header = QObject::tr("; Do not modify this file which used for configuration and statistics.") + "\n";
         temp = file.readAll();
         temp = header.append(temp).toLocal8Bit();
         file.close();
@@ -775,7 +774,7 @@ void Config::setTotalRunTime(int64_t currentRunTime){
     int64_t total = getTotalRunTime().toLongLong();
     total += currentRunTime;
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    iniFile->setValue(SECTION_STATISTIC+KEY_TOTALRUNTIME, total);
+    iniFile->setValue(SECTION_STATISTIC+KEY_TOTALRUNTIME, QVariant::fromValue(total));
     delete iniFile;
 }
 QString Config::getTotalRunTime(void){
@@ -788,7 +787,7 @@ QString Config::getTotalRunTime(void){
 void Config::setLastTxCnt(int64_t cnt){
     createDefaultIfNotExist();
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    iniFile->setValue(SECTION_STATISTIC+KEY_LASTTXCNT, cnt);
+    iniFile->setValue(SECTION_STATISTIC+KEY_LASTTXCNT, QVariant::fromValue(cnt));
     delete iniFile;
 }
 QString Config::getLastTxCnt(void){
@@ -801,7 +800,7 @@ QString Config::getLastTxCnt(void){
 void Config::setLastRxCnt(int64_t cnt){
     createDefaultIfNotExist();
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    iniFile->setValue(SECTION_STATISTIC+KEY_LASTRXCNT, cnt);
+    iniFile->setValue(SECTION_STATISTIC+KEY_LASTRXCNT, QVariant::fromValue(cnt));
     delete iniFile;
 }
 QString Config::getLastRxCnt(void){
@@ -816,7 +815,7 @@ void Config::setTotalTxCnt(int64_t currentTxCnt){
     int64_t total = getTotalTxCnt().toLongLong();
     total += currentTxCnt;
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    iniFile->setValue(SECTION_STATISTIC+KEY_TOTALTXCNT, total);
+    iniFile->setValue(SECTION_STATISTIC+KEY_TOTALTXCNT, QVariant::fromValue(total));
     delete iniFile;
 }
 QString Config::getTotalTxCnt(void){
@@ -831,7 +830,7 @@ void Config::setTotalRxCnt(int64_t currentRxCnt){
     int64_t total = getTotalRxCnt().toLongLong();
     total += currentRxCnt;
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    iniFile->setValue(SECTION_STATISTIC+KEY_TOTALRXCNT, total);
+    iniFile->setValue(SECTION_STATISTIC+KEY_TOTALRXCNT, QVariant::fromValue(total));
     delete iniFile;
 }
 QString Config::getTotalRxCnt(void){
@@ -846,7 +845,7 @@ void Config::setTotalRunCnt(int64_t runCnt){
     int64_t total = getTotalRunCnt().toLongLong();
     total += runCnt;
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    iniFile->setValue(SECTION_STATISTIC+KEY_TOTALRUNCNT, total);
+    iniFile->setValue(SECTION_STATISTIC+KEY_TOTALRUNCNT, QVariant::fromValue(total));
     delete iniFile;
 }
 QString Config::getTotalRunCnt(void){
@@ -862,7 +861,7 @@ void Config::addCurrentStatistic(QString key, int64_t cnt){
     int64_t total = getTotalStatistic(key);
     total += cnt;
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    iniFile->setValue(SECTION_STATISTIC+key, total);
+    iniFile->setValue(SECTION_STATISTIC+key, QVariant::fromValue(total));
     delete iniFile;
 }
 int64_t Config::getTotalStatistic(QString key){
@@ -906,13 +905,13 @@ void Config::setConfigNumber(QString section, QString key, int64_t num)
 {
     createDefaultIfNotExist();
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    iniFile->setValue(section + key, num);
+    iniFile->setValue(section + key, QVariant::fromValue(num));
     delete iniFile;
 }
 int64_t Config::getConfigNumber(QString section, QString key, int64_t defaultNum)
 {
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
-    int64_t value = iniFile->value(section + key, defaultNum).toLongLong();
+    int64_t value = iniFile->value(section + key, QVariant::fromValue(defaultNum)).toLongLong();
     delete iniFile;
     return value;
 }

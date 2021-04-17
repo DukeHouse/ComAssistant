@@ -20,9 +20,11 @@
 #include <QFont>
 #include <QColor>
 #include "dataprotocol.h"
+#include <QApplication>
 
 //保存路径
-#define SAVE_PATH                   "ComAssistantConfig.ini"
+#define SAVE_PATH                   (QCoreApplication::applicationDirPath() + "/ComAssistantConfig.ini")
+
 //默认发送间隔
 #define DEFAULT_SEND_INTERVAL       (100)
 //节

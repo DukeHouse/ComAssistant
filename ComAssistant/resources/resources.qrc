@@ -64,5 +64,6 @@
         <file>qss/flatwhite.css</file>
         <file>qss/lightblue.css</file>
         <file>qss/psblack.css</file>
+        <file>logo.ico</file>
     </qresource>
 </RCC>

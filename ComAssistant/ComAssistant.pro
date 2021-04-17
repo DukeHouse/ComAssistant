@@ -12,8 +12,12 @@ QT       += network
 QT       += gui-private
 # 支持OpenGL
 DEFINES += QCUSTOMPLOT_USE_OPENGL
+win32:{
 LIBS += -lOpengl32 \
         -lglu32
+}
+
+unix: DEFINES += UNIX_SYSTEM
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 

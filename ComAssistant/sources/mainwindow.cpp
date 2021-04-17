@@ -5,8 +5,8 @@
 #define BIRTHDAY_YEAR               "2020"
 #define BIRTHDAY_DATE               "02-16"
 
-#define RECOVERY_FILE_PATH          "ComAssistantRecovery.dat"
-#define BACKUP_RECOVERY_FILE_PATH   "ComAssistantRecovery_back.dat"
+#define RECOVERY_FILE_PATH          (QCoreApplication::applicationDirPath() + "/ComAssistantRecovery.dat")
+#define BACKUP_RECOVERY_FILE_PATH   (QCoreApplication::applicationDirPath() + "/ComAssistantRecovery_back.dat")
 
 #define UNPACK_SIZE_OF_RX           (4096)
 #define UNPACK_SIZE_OF_TX           (256)
@@ -339,9 +339,11 @@ void MainWindow::layoutConfig()
 
 /**
  * @brief     软件首次运行通知
+ * @return    是否为首次运行
  */
 int32_t MainWindow::firstRunNotify()
 {
+    int32_t ret = 1;
     if(Config::getFirstRun())
     {
         Config::setFirstStartTime(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
@@ -376,6 +378,7 @@ int32_t MainWindow::firstRunNotify()
     }
     else
     {
+        ret = 0;
         g_agree_statement = true;
         if(Config::versionCompare(Config::readVersion(), "0.5.3") > 0
         || Config::isEvalVersionFromIniFile())
@@ -391,7 +394,7 @@ int32_t MainWindow::firstRunNotify()
                                     QMessageBox::Ok);
         }
     }
-    return 0;
+    return ret;
 }
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -570,13 +573,6 @@ MainWindow::MainWindow(QWidget *parent) :
         statusStatisticLabel->setText(serial.getTxRxString_with_color());
     }
 
-    //搜寻可用串口，并尝试打开
-    if(!g_network_comm_mode)
-    {
-        refreshCom();
-        tryOpenSerial();
-    }
-
     //数值显示器初始化
     ui->valueDisplay->setColumnCount(2);
     ui->valueDisplay->setHorizontalHeaderItem(0, new QTableWidgetItem(tr("名称")));
@@ -633,7 +629,23 @@ MainWindow::MainWindow(QWidget *parent) :
     adjustLayout();
 
     //是否首次运行
-    firstRunNotify();
+    if(firstRunNotify())
+    {
+        //首次运行则只扫描串口
+        if(!g_network_comm_mode)
+        {
+            refreshCom();
+        }
+    }
+    else
+    {
+        //不是首次运行则尝试打开串口
+        if(!g_network_comm_mode)
+        {
+            refreshCom();
+            tryOpenSerial();
+        }
+    }
 
     //http
     if(g_agree_statement)
@@ -642,7 +654,8 @@ MainWindow::MainWindow(QWidget *parent) :
     //debugger模式控制
     debuggerModeControl();
 
-    if(readWriteAuthorityTest())
+    //文件读写权限测试
+    if(readWriteAuthorityTest(QCoreApplication::applicationDirPath() + "/test"))
     {
         QMessageBox::warning(this, tr("警告"),
                        tr("纸飞机在当前路径下无法读写文件！") + "\n\n"
@@ -665,6 +678,7 @@ void MainWindow::debuggerModeControl()
        ui->actionMAD->setVisible(true);
        ui->actiondebug->setVisible(true);
        ui->actionNetworkMode->setVisible(true);
+       on_actionLogRecord_triggered(true);
     }
     else
     {
@@ -694,10 +708,10 @@ void MainWindow::debuggerModeControl()
 /**
  * @brief     读写测试，判断是否有权限在该路径写入文件
  */
-int32_t MainWindow::readWriteAuthorityTest()
+int32_t MainWindow::readWriteAuthorityTest(QString testPath)
 {
     int32_t failed = 0;
-    QString testData = "ComAssistantAccessTest";
+    QString testData = testPath;
     QFile testFile(testData);
     do{
         if(!testFile.open(QIODevice::ReadWrite))
@@ -931,22 +945,22 @@ void MainWindow::readRecoveryFile()
     {
         qint32 button;
         button = QMessageBox::information(this, tr("提示"),
-                                          tr("检测到数据恢复文件，可能是上次未正确关闭纸飞机，或者多开纸飞机导致的。") + "\n\n" +
+                                          tr("检测到数据恢复文件，可能是上次未正确关闭纸飞机，或者开启了多个纸飞机进程的缘故。") + "\n\n" +
+                                          tr("点击Cancel不做任何处理。") + "\n" +
                                           tr("点击Reload重载上次数据。") + "\n" +
-                                          tr("点击Discard丢弃上次数据。") + "\n" +
                                           tr("点击Backup备份并丢弃上次数据。") + "\n",
-                                          "Reload", "Discard", "Backup");
+                                          "Cancel", "Reload", "Backup", 0, 0);
         if(button == 0)
+        {
+//            recoveryFile.remove();
+        }
+        else if(button == 1)
         {
             //读文件
             if(unpack_file(readFile, RECOVERY_FILE_PATH, true, UNPACK_SIZE_OF_RX))
             {
                 return;
             }
-        }
-        else if(button == 1)
-        {
-            recoveryFile.remove();
         }
         else if(button == 2)
         {
@@ -1811,7 +1825,8 @@ void MainWindow::on_comSwitch_clicked(bool checked)
                           tr("# 线缆是否松动？\n")+
                           tr("# 是否选择了正确的串口设备？\n")+
                           tr("# 该串口是否被其他程序占用？\n")+
-                          tr("# 是否设置了过高的波特率？\n");
+                          tr("# 是否设置了过高的波特率？\n")+
+                          tr("# 是否有串口读写权限？\n");
             QMessageBox::critical(this, tr("串口打开失败!"), msg, QMessageBox::Ok);
         }
     }
@@ -4236,10 +4251,8 @@ void MainWindow::on_actionSavePlotData_triggered()
                     if(MyXlsx::write(plotter, savePath))
                     {
                         //打印成功信息
-                        QString str = "\nSave successful in " + savePath + "\n";
-                        BrowserBuff.append(str);
-                        hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
-                        printToTextBrowser();
+                        QString str = "Save successful in " + savePath;
+                        appendMsgLogToBrowser(str);
                     }
                 }
             }
@@ -4290,10 +4303,8 @@ void MainWindow::on_actionSavePlotData_triggered()
     lastFileDialogPath = lastFileDialogPath.mid(0, lastFileDialogPath.lastIndexOf('/') + 1);
 
     if(ok){
-        QString str = "\nSave successful in " + savePath + "\n";
-        BrowserBuff.append(str);
-        hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
-        printToTextBrowser();
+        QString str = "Save successful in " + savePath;
+        appendMsgLogToBrowser(str);
     }else{
         QMessageBox::warning(this, tr("警告"), tr("保存失败。文件是否被其他软件占用？"));
     }
@@ -4338,12 +4349,7 @@ void MainWindow::on_actionSavePlotAsPicture_triggered()
         }
         items.insert(0, save_all);
 
-        selectName = QInputDialog::getItem(this, tr("提示"),
-                                    label,
-                                    items,
-                                    0,
-                                    false,
-                                    &ok);
+        selectName = QInputDialog::getItem(this, tr("提示"), label, items, 0, false, &ok);
         if(!ok)
         {
             return;
@@ -4391,10 +4397,8 @@ void MainWindow::on_actionSavePlotAsPicture_triggered()
                     if(plotter->saveBmp(savePath))
                     {
                         //打印成功信息
-                        QString str = "\nSave successful in " + savePath + "\n";
-                        BrowserBuff.append(str);
-                        hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
-                        printToTextBrowser();
+                        QString str = "Save successful in " + savePath;
+                        appendMsgLogToBrowser(str);
                     }
                 }
             }
@@ -4432,19 +4436,19 @@ void MainWindow::on_actionSavePlotAsPicture_triggered()
     //保存
     bool ok = false;
     if(savePath.endsWith(".jpg")){
-        if(ui->customPlot->saveJpg(savePath,0,0,1,100))
+        if(plotter->saveJpg(savePath,0,0,1,100))
             ok = true;
     }
     if(savePath.endsWith(".bmp")){
-        if(ui->customPlot->saveBmp(savePath))
+        if(plotter->saveBmp(savePath))
             ok = true;
     }
     if(savePath.endsWith(".png")){
-        if(ui->customPlot->savePng(savePath,0,0,1,100))
+        if(plotter->savePng(savePath,0,0,1,100))
             ok = true;
     }
     if(savePath.endsWith(".pdf")){
-        if(ui->customPlot->savePdf(savePath))
+        if(plotter->savePdf(savePath))
             ok = true;
     }
 
@@ -4453,10 +4457,8 @@ void MainWindow::on_actionSavePlotAsPicture_triggered()
     lastFileDialogPath = lastFileDialogPath.mid(0, lastFileDialogPath.lastIndexOf('/') + 1);
 
     if(ok){
-        QString str = "\nSave successful in " + savePath + "\n";
-        BrowserBuff.append(str);
-        hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
-        printToTextBrowser();
+        QString str = "Save successful in " + savePath;
+        appendMsgLogToBrowser(str);
     }else{
         QMessageBox::warning(this, tr("警告"), tr("保存失败。文件是否被其他软件占用？"));
     }
@@ -5535,14 +5537,34 @@ void MainWindow::dragEnterEvent(QDragEnterEvent *e)
  */
 void MainWindow::dropEvent(QDropEvent *e)
 {
+    QString text = e->mimeData()->text();
+    QString path;
+#ifdef UNIX_SYSTEM
+    if(text.endsWith('\n'))
+        text.remove(text.size() - 1, 1);
+    if(text.endsWith('\r'))
+        text.remove(text.size() - 1, 1);
+#endif
     //获取文件路径列表
-    if(e->mimeData()->text().indexOf('\n') != -1)
+    if(text.indexOf('\n') != -1)
     {
         QMessageBox::information(this, tr("提示"), tr("仅支持单文件解析。"));
         return;
     }
     //e->mimeData()->text()好像是QT bug无法识别{}等符号，这里做一下转换
-    QString text = e->mimeData()->text();
+#ifdef UNIX_SYSTEM
+    text.replace("%5B", "[");
+    text.replace("%5D", "]");
+    text.replace("%23", "#");
+    text.replace("%25", "%");
+    text.replace("%5E", "^");
+    text.replace("%60", "`");
+    text.replace("%3B", ";");
+    text.replace("%7D", "}");
+    text.replace("%7B", "{");
+    path = text;
+    path = path.mid(7);
+#else
     text.replace("%7B", "{");
     text.replace("%7D", "}");
     text.replace("%23", "#");
@@ -5550,9 +5572,9 @@ void MainWindow::dropEvent(QDropEvent *e)
     text.replace("%5E", "^");
     text.replace("%60", "`");
     //获取单个文件路径并剔除前缀
-    QString path;
     path = text;
     path = path.mid(8);
+#endif
     if(!path.endsWith("dat"))
     {
         QMessageBox::information(this, tr("提示"), tr("仅支持dat文件解析。"));
@@ -5729,7 +5751,7 @@ void MainWindow::on_actionRecordRawData_triggered(bool checked)
             QMessageBox::information(this,
                                      tr("提示"),
                                      tr("数据记录仪初始化完成！") + "\n\n" +
-                                     tr("后续数据将被记录到程序所在目录下文件：") + savePath + "\n\n" +
+                                     tr("后续数据将被记录到程序所在目录下文件：") + "\n" + rawDataRecordPath + "\n\n" +
                                      tr("如需更改记录位置，请先关闭串口/网络再使用本功能。") +
                                      high_consume_mem_remind);
 
@@ -5843,7 +5865,7 @@ void MainWindow::on_actionRecordGraphData_triggered(bool checked)
                                      tr("数据记录仪初始化完成！") + "\n\n" +
                                      tr("默认绘图名称") + "[" + recordPlotTitle + "]" +
                                      tr("将被记录到程序所在目录下文件：") + "\n" +
-                                     savePath + "\n\n" +
+                                     graphDataRecordPath + "\n\n" +
                                      tr("如需更改记录位置或绘图名称，请先关闭串口/网络再使用本功能。") +
                                      high_consume_mem_remind);
         }
@@ -6215,6 +6237,8 @@ void MainWindow::on_actionSelectTheme_triggered()
 void MainWindow::appendMsgLogToBrowser(QString str)
 {
     str = QDateTime::currentDateTime().toString("[hh:mm:ss]# ") + str + "\n";
+    if(!BrowserBuff.endsWith('\n'))
+        str = '\n' + str;
     BrowserBuff.append(str);
     hexBrowserBuff.append(toHexDisplay(str.toLocal8Bit()));
     printToTextBrowser();
@@ -6323,9 +6347,9 @@ void MainWindow::on_networkModeBox_activated(const QString &arg1)
     ui->comboBox_targetIP->setEditable(true);
     ui->comboBox_targetPort->setEditable(true);
     ui->comboBox_remoteAddr->setEditable(true);
-    ui->comboBox_targetIP->setStyleSheet("QComboBox{ font-family: Microsoft YaHei UI;}");
-    ui->comboBox_targetPort->setStyleSheet("QComboBox{ font-family: Microsoft YaHei UI;}");
-    ui->comboBox_remoteAddr->setStyleSheet("QComboBox{ font-family: Microsoft YaHei UI;}");
+    ui->comboBox_targetIP->setStyleSheet("QComboBox{ font-family: Microsoft YaHei UI, FreeSans;}");
+    ui->comboBox_targetPort->setStyleSheet("QComboBox{ font-family: Microsoft YaHei UI, FreeSans;}");
+    ui->comboBox_remoteAddr->setStyleSheet("QComboBox{ font-family: Microsoft YaHei UI, FreeSans;}");
     ui->comboBox_remoteAddr->setVisible(false);
     ui->label_remoteAddr->setVisible(false);
 

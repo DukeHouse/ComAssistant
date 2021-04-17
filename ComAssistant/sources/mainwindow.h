@@ -265,7 +265,7 @@ private:
     void updateNetworkSwitchText(const QString &networkMode, bool pressed);
     void appendMsgLogToBrowser(QString str);
     int32_t unpack_file(bool &actionType, QString path, bool deleteIfSuccess, int32_t pack_size);
-    int32_t readWriteAuthorityTest();
+    int32_t readWriteAuthorityTest(QString testPath);
     void debuggerModeControl();
     int32_t writeDataToDevice(const QByteArray &data);
     int32_t deviceIsOpen();

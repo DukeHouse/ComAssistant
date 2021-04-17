@@ -100,6 +100,10 @@ int main(int argc, char *argv[])
     qInstallMessageHandler(outputMessage);
 #endif
 
+    //set window icon
+    QIcon ico(":/logo.ico");
+    QApplication::setWindowIcon(ico);
+
     //国际化
     QTranslator translator;
     if (QLocale::system().name() != "zh_CN")

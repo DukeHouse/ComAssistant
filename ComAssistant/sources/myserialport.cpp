@@ -62,6 +62,7 @@ QList<QString> mySerialPort::refreshSerialPort()
 
     //排序
     QList<QString> sorted;
+#ifndef UNIX_SYSTEM
     if(false == tmp.isEmpty()){
         QList<QString> tmp2;//用于存放COM0-COM9的条目
         QList<QString> tmp3;//用于存放COM10-COM99的条目
@@ -82,6 +83,9 @@ QList<QString> mySerialPort::refreshSerialPort()
     }else{
         sorted = tmp;
     }
+#else
+    sorted = tmp;
+#endif
 
     return sorted;
 }
