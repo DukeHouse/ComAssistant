@@ -132,7 +132,11 @@ bool HTTP::downloadMessages(void)
         return false;
 
     //下载远端信息
+#ifdef UNIX_SYSTEM
     QUrl url("http://www.inhowe.com/ComAssistant/Request/msg.txt");
+#else
+    QUrl url("http://www.inhowe.com/ComAssistant/Request/msgLinux.txt");
+#endif
     QNetworkRequest request;
     request.setSslConfiguration(QSslConfiguration::defaultConfiguration());
     request.setUrl(url);
@@ -159,6 +163,16 @@ void HTTP::addTask(HttpFunction_e name)
 QStringList HTTP::getMsgList()
 {
     return msgList;
+}
+
+bool HTTP::find_new_version()
+{
+    return findNewVersion;
+}
+
+QString HTTP::get_new_version_details()
+{
+    return newVersionDetails;
 }
 
 void HTTP::httpTimeoutHandle()
@@ -270,23 +284,25 @@ void HTTP::httpFinishedSlot(QNetworkReply *reply)
             //版本号比较
             if(Config::versionCompare(localVersion, remoteVersion) > 0)
             {
+                findNewVersion = true;
+                newVersionDetails = tr("当前版本号：") + localVersion + "\n"
+                                    + tr("远端版本号：") + remoteVersion + "\n"
+                                    + tr("发布时间：") + publishedTime + "\n"
+                                    + tr("更新内容：") + "\n" + remoteNote + "\n";
                 if(cur_task == GetVersion || GetVersion_failed > 0)
                 {
                     GetVersion_failed = 0;
                     QMessageBox::Button button;
                     button = QMessageBox::information(nullptr, tr("提示"),
-                                                      tr("当前版本号：") + localVersion + "\n"
-                                                      + tr("远端版本号：") + remoteVersion + "\n"
-                                                      + tr("发布时间：") + publishedTime + "\n"
-                                                      + tr("更新内容：") + "\n" + remoteNote + "\n\n"
-                                                      + tr("点击ok将打开外链进行下载（若下载缓慢或32位系统请通过底部状态栏的下载链接进行更新）。")
+                                                      newVersionDetails + "\n"
+                                                      + tr("点击Ok将打开外链。")
                                                       , QMessageBox::Ok | QMessageBox::No);
                     if(button == QMessageBox::Ok)
                     {
-                        QDesktopServices::openUrl(QUrl("https://github.com/inhowe/ComAssistant/releases/latest/download/ComAssistant_x64.zip"));
+                        QDesktopServices::openUrl(QUrl(NEW_VERSION_ADDR));
                     }
                 }
-                parent->setWindowTitle(tr("纸飞机串口助手") + " " + tr("当前版本：V") + localVersion + " " + tr("发现新版本：V") + remoteVersion);
+                parent->setWindowTitle(tr("纸飞机串口助手") + " - " + localVersion + " " + tr("新版本：V") + remoteVersion);
             }
             else
             {
@@ -357,15 +373,6 @@ void HTTP::httpFinishedSlot(QNetworkReply *reply)
                 QMessageBox::information(nullptr, tr("提示"),
                                          tr("当前版本号：") + Config::getVersion() + "\n" +
                                          tr("检查更新失败。"));
-//                QMessageBox::Button button;
-//                button = QMessageBox::information(nullptr, tr("提示"),
-//                                                  tr("当前版本号：") + Config::getVersion() + "\n" +
-//                                                  tr("检查更新失败。") + "\n" +
-//                                                  tr("请访问：https://github.com/inhowe/ComAssistant/releases") + "\n" +
-//                                                  tr("点击确认后将打开网页"),
-//                                                  QMessageBox::Ok | QMessageBox::No);
-//                if(button == QMessageBox::Ok)
-//                    QDesktopServices::openUrl(QUrl("https://github.com/inhowe/ComAssistant/releases"));
             }
         }else if(cur_task == PostStatic){
 

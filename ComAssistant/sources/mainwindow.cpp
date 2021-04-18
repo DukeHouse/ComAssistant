@@ -1420,6 +1420,11 @@ void MainWindow::secTimerSlot()
             if(msgIndex == http->getMsgList().size())
                 msgIndex = 0;
         }
+        if(http->find_new_version())
+        {
+            ui->help->setTitle(tr("发现新版本"));
+            ui->actionUpdate->setText(tr("下载新版本"));
+        }
     }
 
     if(ui->comSwitch->isChecked() || ui->networkSwitch->isChecked())
@@ -3120,6 +3125,12 @@ void MainWindow::on_actionUpdate_triggered()
 {
     if(http)
     {
+        if(http->find_new_version())
+        {
+            QMessageBox::information(this, tr("提示"), http->get_new_version_details());
+            QDesktopServices::openUrl(QUrl(NEW_VERSION_ADDR));
+            return;
+        }
         ui->statusBar->showMessage(tr("正在检查更新……"), 2000);
         http->addTask(HTTP::GetVersion);
         http->addTask(HTTP::DownloadMSGs);

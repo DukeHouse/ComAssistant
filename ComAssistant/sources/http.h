@@ -35,6 +35,12 @@ namespace Ui {
 class MainWindow;
 }
 
+#ifdef UNIX_SYSTEM
+#define NEW_VERSION_ADDR  "http://www.inhowe.com/ComAssistant/Request/ReleaseLinux.html"
+#else
+#define NEW_VERSION_ADDR  "http://www.inhowe.com/ComAssistant/Request/ReleaseNote.html"
+#endif
+
 class HTTP: public QObject
 {
     Q_OBJECT
@@ -58,6 +64,8 @@ public:
     bool downloadMessages(void);
     void addTask(HttpFunction_e name);
     QStringList getMsgList();
+    bool find_new_version();
+    QString get_new_version_details();
 
 private:
     int32_t parseReleaseInfo(QString &inputStr, QString &remoteVersion, QString &remoteNote, QString &publishedTime);
@@ -75,6 +83,8 @@ private:
     int httpTimeout = 0;
     QStringList msgList;//远端下载的信息列表
     HttpFunction_e cur_task = Idle;
+    bool findNewVersion = false;
+    QString newVersionDetails;
 private slots:
     void httpTimeoutHandle();
     void httpFinishedSlot(QNetworkReply *reply);
