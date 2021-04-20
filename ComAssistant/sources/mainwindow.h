@@ -38,6 +38,7 @@
 #include "myqcustomplot.h"
 #include "dataprotocol.h"
 //自定义类
+#include <QHotkey>
 #include "common.h"
 #include "dataprotocol.h"
 #include "myxlsx.h"
@@ -72,8 +73,19 @@ extern bool g_agree_statement;
 extern bool g_log_record;
 extern bool g_debugger;
 
+#define BIRTHDAY_YEAR               "2020"
+#define BIRTHDAY_DATE               "02-16"
+
+#define RECOVERY_FILE_PATH          (QCoreApplication::applicationDirPath() + "/ComAssistantRecovery.dat")
+#define BACKUP_RECOVERY_FILE_PATH   (QCoreApplication::applicationDirPath() + "/ComAssistantRecovery_back.dat")
+
+#define UNPACK_SIZE_OF_RX           (4096)
+#define UNPACK_SIZE_OF_TX           (256)
+
 #define TRY_REFRESH_BROWSER_CNT     (10)    //500ms内持续刷新
 #define DO_NOT_REFRESH_BROWSER      (0)
+
+#define NETWORK_SECRET_KEY          "HELLONETWORK"
 
 //菜单栏的设置按钮的实现宏，保留功能：点击后可以自动对所有绘图器进行设置。
 //由于感觉必要性不是很强，在考虑是删除还是使用
@@ -271,8 +283,20 @@ private:
     int32_t deviceIsOpen();
     int32_t remindDeviceIsOpen();
     void textBrowser_rightClickContext_init();
+    bool networkAuthorityCheck(bool checked, bool remind);
     Ui::MainWindow *ui;
     mySerialPort serial;
+
+    int32_t  g_network_comm_mode = 0;    // 串口网络切换开关
+    qint32   g_multiStr_cur_index = -1;  // -1 means closed this function
+    QColor   g_background_color;
+    QFont    g_font;
+    bool     g_enableSumCheck;
+    qint64   g_lastSecsSinceEpoch;
+    QString  g_popupHotKeySequence;
+    QHotkey  *g_popupHotkey = nullptr;
+    int32_t  g_theme_index = 0;
+    bool initOK = false;
 
     //绘图解析器
     DataProtocol *plotProtocol = nullptr;
@@ -404,6 +428,7 @@ private:
     QThread *p_networkCommThread = nullptr;
     QStringList client_targetIP_backup_List;    //Client的目的地址记忆
     QStringList server_remoteAddr_backup_list;  //其实就是UDP Server的远端地址记忆
+    QString networkSecretKey;
 
     //fft window
     FFT_Dialog *fft_window = nullptr;

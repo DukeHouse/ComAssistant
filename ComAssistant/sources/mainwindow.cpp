@@ -1,29 +1,9 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include <QHotkey>
-
-#define BIRTHDAY_YEAR               "2020"
-#define BIRTHDAY_DATE               "02-16"
-
-#define RECOVERY_FILE_PATH          (QCoreApplication::applicationDirPath() + "/ComAssistantRecovery.dat")
-#define BACKUP_RECOVERY_FILE_PATH   (QCoreApplication::applicationDirPath() + "/ComAssistantRecovery_back.dat")
-
-#define UNPACK_SIZE_OF_RX           (4096)
-#define UNPACK_SIZE_OF_TX           (256)
 
 bool    g_agree_statement = false;  //同意相关声明标志
 bool    g_log_record      = false;  //日志记录开关
 bool    g_debugger        = false;  //调试开关
-
-static int32_t  g_network_comm_mode = 0;    // 串口网络切换开关
-static qint32   g_multiStr_cur_index = -1;  // -1 means closed this function
-static QColor   g_background_color;
-static QFont    g_font;
-static bool     g_enableSumCheck;
-static qint64   g_lastSecsSinceEpoch;
-static QString  g_popupHotKeySequence;
-static QHotkey  *g_popupHotkey = new QHotkey(nullptr);
-static int32_t  g_theme_index = 0;
 
 /**
  * @brief     注册全局快捷键
@@ -33,6 +13,8 @@ bool MainWindow::registPopupHotKey(QString keySequence)
 {
     if(keySequence == g_popupHotKeySequence)
         return true;
+
+    g_popupHotkey = new QHotkey(nullptr);
 
     if(keySequence.isEmpty())
     {
@@ -374,6 +356,10 @@ int32_t MainWindow::firstRunNotify()
         g_network_comm_mode = QMessageBox::information(this, tr("提示"),
                                           tr("请选择常用的工作模式，后续可在\"功能\"选项中进行重设。"),
                                           tr("串口调试"), tr("网络调试"));
+        if(g_network_comm_mode)
+        {
+            g_network_comm_mode = networkAuthorityCheck(g_network_comm_mode, true);
+        }
         on_actionNetworkMode_triggered(g_network_comm_mode);
     }
     else
@@ -664,6 +650,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     readRecoveryFile();
 
+    initOK = true;
 }
 
 /**
@@ -672,36 +659,11 @@ MainWindow::MainWindow(QWidget *parent) :
 void MainWindow::debuggerModeControl()
 {
     ui->actionMAD->setVisible(false);
-    ui->actionNetworkMode->setVisible(false);
     if(g_debugger)
     {
        ui->actionMAD->setVisible(true);
        ui->actiondebug->setVisible(true);
-       ui->actionNetworkMode->setVisible(true);
        on_actionLogRecord_triggered(true);
-    }
-    else
-    {
-        QFile support_mode_file;
-        do{
-            support_mode_file.setFileName("work_in_serialport");
-            if(support_mode_file.exists())
-            {
-                g_network_comm_mode = 0;
-                on_actionNetworkMode_triggered(g_network_comm_mode);
-                ui->actionNetworkMode->setVisible(false);
-                break;
-            }
-            support_mode_file.setFileName("work_in_network");
-            if(support_mode_file.exists())
-            {
-                g_network_comm_mode = 1;
-                on_actionNetworkMode_triggered(g_network_comm_mode);
-                ui->actionNetworkMode->setVisible(false);
-                break;
-            }
-            ui->actionNetworkMode->setVisible(true);
-        }while(0);
     }
 }
 
@@ -1558,6 +1520,7 @@ MainWindow::~MainWindow()
         Config::setConfigString(SECTION_GLOBAL, KEY_REG_MATCH_STR,
                                 ui->regMatchEdit->text());
         //网络
+        Config::setConfigString(SECTION_NETWORK, KEY_NET_SECRET_KEY, networkSecretKey);
         Config::setConfigNumber(SECTION_GLOBAL, KEY_WORKMODE, g_network_comm_mode);
         Config::setConfigString(SECTION_NETWORK, KEY_NETWORK_MODE, ui->networkModeBox->currentText());
         QString udps_addr_list;
@@ -4481,7 +4444,6 @@ void MainWindow::on_actionSavePlotAsPicture_triggered()
  */
 void MainWindow::on_actionKeyWordHighlight_triggered(bool checked)
 {
-    static int32_t first_run = 1;
     if(checked){
         if(highlighter == nullptr)
         {
@@ -4498,11 +4460,8 @@ void MainWindow::on_actionKeyWordHighlight_triggered(bool checked)
         highlighter1 = nullptr;
     }
 
-    if(first_run)
-    {
-        first_run = 0;
+    if(!initOK)
         return;
-    }
     QMessageBox::information(this, tr("提示"), tr("高亮设置将应用于新的显示窗口。"));
 }
 
@@ -5317,12 +5276,8 @@ void MainWindow::resizeEvent(QResizeEvent* event)
     Q_UNUSED(event)
 
     //首次启动不运行，防止卡死
-    static uint8_t first_run = 1;
-    if(first_run)
-    {
-        first_run = 0;
+    if(!initOK)
         return;
-    }
 
     //只响应显示主窗口时的窗口改变动作，其他类型的窗口只做记录，下次显示主窗口时进行响应
     if(ui->tabWidget->tabText(ui->tabWidget->currentIndex()) != MAIN_TAB_NAME)
@@ -6604,12 +6559,61 @@ failed:
 }
 
 /**
+ * @brief     网络模式授权验证
+ * @note      简单验证输入秘钥是否和内置代码一致
+ * @param[in] 网络模式开关
+ * @param[in] 初始化完成前若验证失败是否需要提示
+ * @return    新的网络模式开关
+ */
+bool MainWindow::networkAuthorityCheck(bool checked, bool remind)
+{
+    //暂时不开启授权功能，还要调整
+    return checked;
+    networkSecretKey = Config::getConfigString(SECTION_NETWORK, KEY_NET_SECRET_KEY, "");
+    //初始化完成后的验证逻辑：失败的进行输入提示
+    if(initOK && checked
+        && networkSecretKey != NETWORK_SECRET_KEY)
+    {
+need_remind:
+        bool ok;
+        networkSecretKey = QInputDialog::getText(this,
+                              tr("提示"),
+                              tr("请输入秘钥解锁网络调试功能：") + "               ",
+                              QLineEdit::PasswordEchoOnEdit, "" ,
+                              &ok, Qt::WindowCloseButtonHint);
+        if(!ok)
+        {
+            return false;
+        }
+        if(networkSecretKey != NETWORK_SECRET_KEY)
+        {
+            QMessageBox::information(this, tr("提示"),
+                                     tr("秘钥错误。") + "                      ");
+            return false;
+        }
+        Config::setConfigString(SECTION_NETWORK, KEY_NET_SECRET_KEY, networkSecretKey);
+        return true;
+    }
+    //初始化完成前的验证逻辑：除非明确要求提示，否则失败的静默拒绝
+    if(networkSecretKey != NETWORK_SECRET_KEY)
+    {
+        if(remind)
+            goto need_remind;
+        return false;
+    }
+    //通常是“直通”模式
+    return checked;
+}
+
+/**
  * @brief     网络模式切换
  * @note      切换TCP、UDP等
  * @param[in] 切换动作
  */
 void MainWindow::on_actionNetworkMode_triggered(bool checked)
 {
+    checked = networkAuthorityCheck(checked, false);
+
     if(ui->comSwitch->isChecked() || ui->networkSwitch->isChecked())
     {
         QMessageBox::information(this, tr("提示"),

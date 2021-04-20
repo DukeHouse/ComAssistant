@@ -70,6 +70,7 @@
 #define KEY_FLOWCONTROL             QString("FlowControl")
 
 //network键
+#define KEY_NET_SECRET_KEY          QString("Key")
 #define KEY_NETWORK_MODE            QString("NetworkMode")
 #define KEY_UDPS_REMOTE_ADDR        QString("UDPServerRemoteAddr")
 #define KEY_CLIENT_TARGET_IP        QString("ClientTargetIp")
