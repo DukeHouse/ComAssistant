@@ -673,8 +673,8 @@ void MainWindow::debuggerModeControl()
 int32_t MainWindow::readWriteAuthorityTest(QString testPath)
 {
     int32_t failed = 0;
-    QString testData = testPath;
-    QFile testFile(testData);
+    QString testData = "test";
+    QFile testFile(testPath);
     do{
         if(!testFile.open(QIODevice::ReadWrite))
         {
