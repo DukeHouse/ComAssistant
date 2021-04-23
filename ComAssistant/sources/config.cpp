@@ -600,13 +600,13 @@ bool Config::getPlotterState(){
     delete iniFile;
     return value;
 }
-void Config::setPlotterType(ProtocolType_e type){
+void Config::setProtocolType(ProtocolType_e type){
     createDefaultIfNotExist();
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
     iniFile->setValue(SECTION_PLOTTER+KEY_PROTOCOLTYPE, type);
     delete iniFile;
 }
-ProtocolType_e Config::getPlotterType(){
+ProtocolType_e Config::getProtocolType(){
     QSettings *iniFile = new QSettings(SAVE_PATH, QSettings::IniFormat);
     int value = iniFile->value(SECTION_PLOTTER+KEY_PROTOCOLTYPE, ProtocolType_e::Ascii).toInt();
     delete iniFile;

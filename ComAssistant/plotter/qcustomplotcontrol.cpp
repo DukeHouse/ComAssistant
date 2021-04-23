@@ -287,6 +287,8 @@ void QCustomPlotControl::clearPlotter(int index)
         customPlot->graph(index)->setData(empty, empty);
     }
     customPlot->replot();
+
+    recentRowData.clear();
 }
 
 void QCustomPlotControl::setupFont(QFont font)

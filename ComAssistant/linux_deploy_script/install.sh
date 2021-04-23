@@ -4,11 +4,18 @@ ubuntuStr="Ubuntu"
 centosStr="CentOS"
 deepinStr="Deepin"
 
+# 把当前路径下所有文件复制到指定目录
+installPath=$HOME/ComAssistant
+mkdir $installPath
+cp -rf $(pwd)/. $installPath
+
+# 添加环境变量
 chmod +x ComAssistant
 echo -e "\033[33m add current path to enviroment variable. \033[0m"
-echo "export PATH=$(pwd):$PATH" >> ~/.bashrc
+echo "export PATH=$installPath:$PATH" >> ~/.bashrc
 source ~/.bashrc
 
+# 判断操作系统类型并把当前用户添加进dialout用户组
 echo -e "\033[33m add current user to dialout group to access ttys device. \033[0m"
 # IS Ubuntu
 if [[ $linuxType == *$ubuntuStr* ]]
@@ -47,7 +54,7 @@ exit 1
 
 fi
 
-# final output
+# 成功
 echo -e "\033[32m ----------------------------------------------------- \033[0m"
 echo -e "\033[32m                   CONGRATULATIONS!  \033[0m"
 echo -e "\033[32m Next RESTART your PC for the settings to take effect. \033[0m"

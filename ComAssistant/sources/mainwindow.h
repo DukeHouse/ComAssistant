@@ -284,6 +284,8 @@ private:
     int32_t remindDeviceIsOpen();
     void textBrowser_rightClickContext_init();
     bool networkAuthorityCheck(bool checked, bool remind);
+    QByteArray popDataSafety(QByteArray &data);
+    void SendTmpBuffDataToFunctionModule();
     Ui::MainWindow *ui;
     mySerialPort serial;
 
@@ -291,8 +293,8 @@ private:
     qint32   g_multiStr_cur_index = -1;  // -1 means closed this function
     QColor   g_background_color;
     QFont    g_font;
-    bool     g_enableSumCheck;
-    qint64   g_lastSecsSinceEpoch;
+    bool     g_enableSumCheck = false;
+    qint64   g_lastSecsSinceEpoch = 0;
     QString  g_popupHotKeySequence;
     QHotkey  *g_popupHotkey = nullptr;
     int32_t  g_theme_index = 0;
@@ -309,13 +311,19 @@ private:
     bool readFile = false;
     QByteArray readFileBuff;   //解析文件分包缓冲
 
-    QByteArray RxBuff, TxBuff;      //原始数据的收发缓冲
-    QByteArray hexBrowserBuff;      //十六进制格式的浏览器缓冲
-    int hexBrowserBuffIndex = 0;    //显示指示(逆序)
-    QByteArray BrowserBuff;         //浏览器缓冲
-    int BrowserBuffIndex = 0;       //显示指示(逆序)
-    QByteArray unshowedRxBuff;      //未上屏的接收缓冲
-    QByteArray networkRxBuff;       //网络接收缓冲
+    QByteArray RxBuff, TxBuff;          //原始数据的收发缓冲
+    QByteArray hexBrowserBuff;          //十六进制格式的浏览器缓冲
+    int32_t hexBrowserBuffIndex = 0;    //显示指示(逆序)
+    QByteArray BrowserBuff;             //浏览器缓冲
+    int32_t BrowserBuffIndex = 0;       //显示指示(逆序)
+    QByteArray unshowedRxBuff;          //未上屏的接收缓冲
+    QByteArray networkRxBuff;           //网络接收缓冲
+
+    QByteArray plotterTmpBuff;      //数据绘图功能中转缓冲
+    QByteArray teeTmpBuff;          //数据分窗功能中转缓冲
+    QByteArray regMTmpBuff;         //数据过滤功能中转缓冲
+    QByteArray recoveryTmpBuff;     //数据恢复功能中转缓冲
+    QByteArray rawRecordTmpBuff;    //数据记录功能中转缓冲
 
     const int32_t PLOTTER_SHOW_PERIOD = 40;  //绘图器显示频率25FPS（解析频率由parseTimer100hz控制）
     const int32_t TEXT_SHOW_PERIOD    = 55;  //文本显示频率18FPS
@@ -339,7 +347,6 @@ private:
     HTTP *http = nullptr;
 
     int32_t TryRefreshBrowserCnt = TRY_REFRESH_BROWSER_CNT; //数据显示区刷新标记，大于0的时候会继续刷新
-    bool autoRefreshYAxisFlag;
 
     //文件解包（分包）器
     FileUnpacker* fileUnpacker = nullptr;
@@ -394,11 +401,6 @@ private:
     int64_t statisticTeeParseCnt = 0;
     int64_t statisticRegParseCnt = 0;
     int64_t statisticRecordCnt = 0;
-
-    //readSerialPort每秒执行次数统计，用于流控
-    int64_t readSlotCnt = 0;
-    int64_t lastReadSlotCnt = 0;
-    int64_t diff_slotCnt = 0;
 
     //布局
     QSplitter *splitter_output = NULL;

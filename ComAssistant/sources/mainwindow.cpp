@@ -141,31 +141,31 @@ void MainWindow::readConfig()
     on_actionPlotterSwitch_triggered(Config::getPlotterState());
 
     //协议类型
-    if(Config::getPlotterType()==ProtocolType_e::Ascii||
-       Config::getPlotterType()==ProtocolType_e::Ascii_SumCheck){
+    if(Config::getProtocolType()==ProtocolType_e::Ascii||
+       Config::getProtocolType()==ProtocolType_e::Ascii_SumCheck){
         on_actionAscii_triggered(true);
-        if(Config::getPlotterType()==ProtocolType_e::Ascii_SumCheck){
+        if(Config::getProtocolType()==ProtocolType_e::Ascii_SumCheck){
             on_actionSumCheck_triggered(true);
         }
     }
-    else if(Config::getPlotterType()==ProtocolType_e::Float||
-            Config::getPlotterType()==ProtocolType_e::Float_SumCheck){
+    else if(Config::getProtocolType()==ProtocolType_e::Float||
+            Config::getProtocolType()==ProtocolType_e::Float_SumCheck){
         on_actionFloat_triggered(true);
-        if(Config::getPlotterType()==ProtocolType_e::Float_SumCheck){
+        if(Config::getProtocolType()==ProtocolType_e::Float_SumCheck){
             on_actionSumCheck_triggered(true);
         }
     }
-    else if(Config::getPlotterType()==ProtocolType_e::CSV||
-            Config::getPlotterType()==ProtocolType_e::CSV_SumCheck){
+    else if(Config::getProtocolType()==ProtocolType_e::CSV||
+            Config::getProtocolType()==ProtocolType_e::CSV_SumCheck){
         on_actionCSV_triggered(true);
-        if(Config::getPlotterType()==ProtocolType_e::CSV_SumCheck){
+        if(Config::getProtocolType()==ProtocolType_e::CSV_SumCheck){
             on_actionSumCheck_triggered(true);
         }
     }
-    else if(Config::getPlotterType()==ProtocolType_e::MAD||
-            Config::getPlotterType()==ProtocolType_e::MAD_SumCheck){
+    else if(Config::getProtocolType()==ProtocolType_e::MAD||
+            Config::getProtocolType()==ProtocolType_e::MAD_SumCheck){
         on_actionMAD_triggered(true);
-        if(Config::getPlotterType()==ProtocolType_e::MAD_SumCheck){
+        if(Config::getProtocolType()==ProtocolType_e::MAD_SumCheck){
             on_actionSumCheck_triggered(true);
         }
     }
@@ -1366,10 +1366,6 @@ void MainWindow::secTimerSlot()
     static int64_t secCnt = 0;
     static int32_t msgIndex = 0;
 
-    //readSerialPort每秒执行次数统计，用于流控
-    diff_slotCnt = readSlotCnt - lastReadSlotCnt;
-    lastReadSlotCnt = readSlotCnt;
-
     //收发速度显示与颜色控制
     TxRxSpeedStatisticAndDisplay();
 
@@ -1545,29 +1541,29 @@ MainWindow::~MainWindow()
         Config::setPlotterState(ui->actionPlotterSwitch->isChecked());
         if(ui->actionAscii->isChecked()){
             if(ui->actionSumCheck->isChecked())
-                Config::setPlotterType(ProtocolType_e::Ascii_SumCheck);
+                Config::setProtocolType(ProtocolType_e::Ascii_SumCheck);
             else
-                Config::setPlotterType(ProtocolType_e::Ascii);
+                Config::setProtocolType(ProtocolType_e::Ascii);
         }
         else if(ui->actionFloat->isChecked()){
             if(ui->actionSumCheck->isChecked())
-                Config::setPlotterType(ProtocolType_e::Float_SumCheck);
+                Config::setProtocolType(ProtocolType_e::Float_SumCheck);
             else
-                Config::setPlotterType(ProtocolType_e::Float);
+                Config::setProtocolType(ProtocolType_e::Float);
         }
         else if(ui->actionCSV->isChecked())
         {
             if(ui->actionSumCheck->isChecked())
-                Config::setPlotterType(ProtocolType_e::CSV_SumCheck);
+                Config::setProtocolType(ProtocolType_e::CSV_SumCheck);
             else
-                Config::setPlotterType(ProtocolType_e::CSV);
+                Config::setProtocolType(ProtocolType_e::CSV);
         }
         else if(ui->actionMAD->isChecked())
         {
             if(ui->actionSumCheck->isChecked())
-                Config::setPlotterType(ProtocolType_e::MAD_SumCheck);
+                Config::setProtocolType(ProtocolType_e::MAD_SumCheck);
             else
-                Config::setPlotterType(ProtocolType_e::MAD);
+                Config::setProtocolType(ProtocolType_e::MAD);
         }
         Config::setValueDisplayState(ui->actionValueDisplay->isChecked());
         //保存默认绘图器配置，不能用ui->customPlot了
@@ -1815,6 +1811,56 @@ void MainWindow::on_comSwitch_clicked(bool checked)
 }
 
 /**
+ * @brief     以较为安全的方式提取并移除字节数组的数据
+ * @note      主要用于这边append，那边remove，时不时再来个clear的情况
+ */
+QByteArray MainWindow::popDataSafety(QByteArray &data)
+{
+    int64_t len = 0;
+    QByteArray tmp;
+    len = data.size();
+    tmp = data.mid(0, len);
+    data.remove(0, len);
+    return tmp;
+}
+
+/**
+ * @brief     把中转缓冲数据发送给各功能模块中
+ */
+void MainWindow::SendTmpBuffDataToFunctionModule()
+{
+    //数据交付给文本解析引擎(追加数据和解析分开防止高频解析带来的CPU压力)
+    if(textExtractEnable && teeTmpBuff.size())
+    {
+        emit tee_appendData(popDataSafety(teeTmpBuff));
+    }
+
+    //数据交付正则匹配引擎
+    if(!ui->regMatchEdit->text().isEmpty() && regMTmpBuff.size())
+        emit regM_appendData(popDataSafety(regMTmpBuff));
+
+    //数据交付绘图解析引擎
+
+    if(ui->actionPlotterSwitch->isChecked() ||
+       ui->actionValueDisplay->isChecked() ||
+       ui->actionFFTShow->isChecked())
+    {
+        if(plotterTmpBuff.size())
+        {
+            emit protocol_appendData(popDataSafety(plotterTmpBuff));
+        }
+    }
+
+    //数据恢复文件和数据记录文件
+    if(recoveryTmpBuff.size())
+        emit logger_append(RECOVERY_LOG, popDataSafety(recoveryTmpBuff));
+    if(!rawDataRecordPath.isEmpty() && rawRecordTmpBuff.size())
+    {
+        emit logger_append(RAW_DATA_LOG, popDataSafety(rawRecordTmpBuff));
+    }
+}
+
+/**
  * @brief     读取串口数据
  * @note      串口对象的数据更新的槽
  */
@@ -1828,9 +1874,6 @@ void MainWindow::readSerialPort()
     timeString = QDateTime::currentDateTime().toString("hh:mm:ss.zzz");
     timeString = "\n["+timeString+"]Rx<- ";
 
-    //本函数执行统计，用于流控
-    readSlotCnt++;
-
     //解析文件模式
     if(readFile){
         tmpReadBuff.append(readFileBuff);
@@ -1843,29 +1886,13 @@ void MainWindow::readSerialPort()
         }
         else
         {
-            int32_t len = networkRxBuff.size();
-            tmpReadBuff.append(networkRxBuff.mid(0, len));
-            networkRxBuff.remove(0, len);
+            tmpReadBuff.append(popDataSafety(networkRxBuff));
         }
     }
 
     //空数据检查
     if(tmpReadBuff.isEmpty()){
         return;
-    }
-
-    //流控：当未勾选时间戳时可能启用流控，以降低后面的emit数量，大约能提升20%的性能
-    if(!ui->timeStampCheckBox->isChecked())
-    {
-        //每秒信号数量大于x时每y次slot解析一次buffer
-        if(diff_slotCnt > 1400 && readSlotCnt % 5)
-            return;
-        else if(diff_slotCnt > 800 && readSlotCnt % 4)
-            return;
-        else if(diff_slotCnt > 400 && readSlotCnt % 3)
-            return;
-        else if(diff_slotCnt > 200 && readSlotCnt % 2)
-            return;
     }
 
     RxBuff.append(tmpReadBuff);
@@ -1911,26 +1938,29 @@ void MainWindow::readSerialPort()
         }
     }
 
-    //数据交付给文本解析引擎(追加数据和解析分开防止高频解析带来的CPU压力)
+
+    //数据放到文本解析引擎中转缓冲
+    //（不直接使用emit减少高频下信号数量）
     if(textExtractEnable)
-        emit tee_appendData(tmpReadBuff);
-
-    //数据交付正则匹配引擎
+        teeTmpBuff.append(tmpReadBuff);
+    
+    //数据放到正则匹配引擎中转缓冲    
     if(!ui->regMatchEdit->text().isEmpty())
-        emit regM_appendData(tmpReadBuff);
-
-    //数据交付绘图解析引擎
+        regMTmpBuff.append(tmpReadBuff);
+        
+    //数据放到绘图引擎中转缓冲    
     if(ui->actionPlotterSwitch->isChecked() ||
        ui->actionValueDisplay->isChecked() ||
        ui->actionFFTShow->isChecked())
     {
-        emit protocol_appendData(tmpReadBuff);
+        plotterTmpBuff.append(tmpReadBuff);
     }
-
-    emit logger_append(RECOVERY_LOG, tmpReadBuff);
+    
+    //数据放到数据记录模块中转缓冲
+    recoveryTmpBuff.append(tmpReadBuff);
     if(!rawDataRecordPath.isEmpty())
     {
-        emit logger_append(RAW_DATA_LOG, tmpReadBuff);
+        rawRecordTmpBuff.append(tmpReadBuff);
     }
 
     //时间戳选项(toHexDisplay是比较耗时的，不建议用于带宽高于2Mbps的场景)
@@ -2283,6 +2313,9 @@ void MainWindow::parseTimer100hzSlot()
 
         parsePlotterAndTee();
     }
+
+    SendTmpBuffDataToFunctionModule();
+
     cnt++;
 }
 
@@ -2493,6 +2526,13 @@ void MainWindow::on_clearWindows_clicked()
     BrowserBuff.clear();
     BrowserBuffIndex = 0;
     unshowedRxBuff.clear();
+
+    //中转缓冲
+    plotterTmpBuff.clear();
+    teeTmpBuff.clear();
+    regMTmpBuff.clear();
+    recoveryTmpBuff.clear();
+    rawRecordTmpBuff.clear();
 
     //正则匹配区
 //    emit regM_clearData();
@@ -3683,9 +3723,8 @@ void MainWindow::fillDataToValueDisplay(MyQCustomPlot *plotter)
     }
     while(ui->valueDisplay->rowCount() > min)
     {
-        //TODO:注意下有没有内存泄漏或者非法访问
-        delete ui->valueDisplay->takeItem(ui->valueDisplay->rowCount()-1 , 0);
-        delete ui->valueDisplay->takeItem(ui->valueDisplay->rowCount()-1 , 1);
+        delete ui->valueDisplay->takeItem(ui->valueDisplay->rowCount() - 1, 0);
+        delete ui->valueDisplay->takeItem(ui->valueDisplay->rowCount() - 1, 1);
         ui->valueDisplay->removeRow(ui->valueDisplay->rowCount()-1);
     }
 }
@@ -5006,9 +5045,12 @@ void MainWindow::on_valueDisplay_customContextMenuRequested(const QPoint &pos)
 void MainWindow::deleteValueDisplayRowSlot()
 {
     QList<QTableWidgetItem*> selectedItems = ui->valueDisplay->selectedItems();
-
+    int32_t row = 0;
     while(selectedItems.size()){
-        ui->valueDisplay->removeRow(selectedItems.at(0)->row());
+        row = selectedItems.at(0)->row();
+        delete ui->valueDisplay->takeItem(row, 0);
+        delete ui->valueDisplay->takeItem(row, 1);
+        ui->valueDisplay->removeRow(row);
         selectedItems.pop_front();
     }
 }
@@ -5019,8 +5061,12 @@ void MainWindow::deleteValueDisplayRowSlot()
  */
 void MainWindow::deleteValueDisplaySlot()
 {
-    while(ui->valueDisplay->rowCount()>0){
-        ui->valueDisplay->removeRow(0);
+    int32_t row = 0;
+    while(ui->valueDisplay->rowCount() > 0){
+        row = ui->valueDisplay->rowCount() - 1;
+        delete ui->valueDisplay->takeItem(row, 0);
+        delete ui->valueDisplay->takeItem(row, 1);
+        ui->valueDisplay->removeRow(row);
     }
 }
 

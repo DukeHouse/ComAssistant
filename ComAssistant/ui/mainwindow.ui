@@ -1510,7 +1510,7 @@ p, li { white-space: pre-wrap; }
     <string>数据分窗</string>
    </property>
    <property name="statusTip">
-    <string>勾选以使能数据分窗显示功能。例{name:text contain}\n</string>
+    <string>使能数据分窗。例{title:string}\n</string>
    </property>
   </action>
   <action name="actionTimeStampMode">
@@ -1626,7 +1626,7 @@ p, li { white-space: pre-wrap; }
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>网络模式</string>
+    <string>网络调试模式</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+N</string>

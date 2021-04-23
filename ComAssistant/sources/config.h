@@ -232,8 +232,8 @@ public:
     //plotter
     static void setPlotterState(bool checked);
     static bool getPlotterState();
-    static void setPlotterType(ProtocolType_e type);
-    static ProtocolType_e getPlotterType();
+    static void setProtocolType(ProtocolType_e type);
+    static ProtocolType_e getProtocolType();
     static void setPlotterGraphNames(QVector<QString> names);
     static QVector<QString> getPlotterGraphNames(int maxValidGraphNumber);
     static void setXAxisName(QString str);
