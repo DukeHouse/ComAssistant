@@ -37,8 +37,10 @@ class MainWindow;
 
 #ifdef UNIX_SYSTEM
 #define NEW_VERSION_ADDR  "http://www.inhowe.com/ComAssistant/Request/ReleaseLinux.html"
+#define NEW_MSG_ADDR      "http://www.inhowe.com/ComAssistant/Request/msgLinux.txt"
 #else
 #define NEW_VERSION_ADDR  "http://www.inhowe.com/ComAssistant/Request/ReleaseNote.html"
+#define NEW_MSG_ADDR      "http://www.inhowe.com/ComAssistant/Request/msg.txt"
 #endif
 
 class HTTP: public QObject

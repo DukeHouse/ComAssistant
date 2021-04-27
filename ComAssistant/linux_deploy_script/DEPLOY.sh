@@ -7,12 +7,13 @@ echo "collect dependence files"
 ./linuxdeployqt-7-x86_64.AppImage ComAssistant -appimage
 
 echo "prepare file to folder"
-releaseFolder="ComAssistantLinux"
+releaseFolder="ComAssistant_Linux_x64"
 rm -rf $releaseFolder
 mkdir $releaseFolder
 mv doc/ $releaseFolder
 mv lib/ $releaseFolder
 # mv translations/ $releaseFolder
+rm -rf translations
 mv plugins/ $releaseFolder
 mv ComAssistant $releaseFolder
 cp install.sh $releaseFolder

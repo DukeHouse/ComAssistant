@@ -132,11 +132,7 @@ bool HTTP::downloadMessages(void)
         return false;
 
     //下载远端信息
-#ifdef UNIX_SYSTEM
-    QUrl url("http://www.inhowe.com/ComAssistant/Request/msg.txt");
-#else
-    QUrl url("http://www.inhowe.com/ComAssistant/Request/msgLinux.txt");
-#endif
+    QUrl url(NEW_MSG_ADDR);
     QNetworkRequest request;
     request.setSslConfiguration(QSslConfiguration::defaultConfiguration());
     request.setUrl(url);

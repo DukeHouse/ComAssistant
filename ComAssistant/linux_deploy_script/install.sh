@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# 获取OS类型
 linuxType=$(cat /etc/os-release)
 ubuntuStr="Ubuntu"
 centosStr="CentOS"
