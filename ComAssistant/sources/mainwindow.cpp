@@ -1160,14 +1160,14 @@ void MainWindow::tee_textGroupsUpdate(const QString &name, const QByteArray &dat
 
         ui->tabWidget->addTab(textEdit, name);
         teeManager.addTeeBrowser(name, textEdit);
-    }
 
-    //再次尝试把数据放缓冲里
-    if(teeManager.appendTeeBrowserBuffer(name, data))
-    {
-        qDebug() << "teeManager append buffer error at" << __FUNCTION__
-                 << "name:" << name
-                 << "data:" << data;
+        //再次尝试把数据放缓冲里
+        if(teeManager.appendTeeBrowserBuffer(name, data))
+        {
+            qDebug() << "teeManager append buffer error at" << __FUNCTION__
+                     << "name:" << name
+                     << "data:" << data;
+        }
     }
 }
 
