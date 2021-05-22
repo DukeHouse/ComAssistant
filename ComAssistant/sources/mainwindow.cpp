@@ -2321,9 +2321,11 @@ void MainWindow::parseTimer100hzSlot()
 
 /**
  * @brief     添加数据到多字符串组件中
+ * @note      已有数据不会添加
  * @param[in] 添加的数据
+ * @param[in] （如果已有数据依然）强制添加
  */
-void MainWindow::addTextToMultiString(const QString &text)
+void MainWindow::addTextToMultiString(const QString &text, bool forceAdd)
 {
     bool hasItem=false;
     QString containt;
@@ -2343,12 +2345,15 @@ void MainWindow::addTextToMultiString(const QString &text)
         if(containt == text)
         {
             hasItem = true;
+            //不要break出去因为可能需要补注释
         }
     }
-    if(!hasItem)
+    if(!hasItem || forceAdd)
+    {
         ui->multiString->addItem("CMD_" +
                                 QString::number(ui->multiString->count()) + " |" +
                                 text);
+    }
 }
 
 /**
@@ -2424,7 +2429,7 @@ void MainWindow::on_sendButton_clicked()
 
     //给多字符串控件添加条目, is_multi_str_double_click用于减少处理次数，高频发送时很有效
     if(ui->actionMultiString->isChecked() && !is_multi_str_double_click){
-        addTextToMultiString(ui->textEdit->toPlainText());
+        addTextToMultiString(ui->textEdit->toPlainText(), false);
     }
     is_multi_str_double_click = false;
 
@@ -3423,7 +3428,7 @@ void MainWindow::addSeedSlot()
     {
         return;
     }
-    addTextToMultiString(newStr);
+    addTextToMultiString(newStr, true);
 }
 
 /**

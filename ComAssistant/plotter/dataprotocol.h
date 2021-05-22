@@ -81,6 +81,7 @@ private:
     bool packToFloat(const Pack_t& pack , float& result);
     void parsePacksFromBuffer(QByteArray& buffer, QByteArray& restBuffer,
                               QMutex &bufferLock, bool enableSumCheck);
+    QByteArray& packetDecorationOfCSV(QByteArray& onePack);
 };
 
 #endif // DATAPROTOCOL_H

@@ -67,12 +67,15 @@ void DataProtocol::appendData(const QByteArray &data)
     QByteArray tmp;
     if(protocolType != Float)
     {
-        //剔除正则匹配无法很好支持的字符：中文、'\0'
+        //剔除正则匹配无法很好支持的字符：中文换空格、'\0'删除
         foreach(char ch, data)
         {
             if(ch & 0x80 || ch == '\0')
             {
-                continue;
+                if(ch & 0x80)
+                    ch = ' ';
+                else
+                    continue;
             }
             tmp.append(ch);
         }
@@ -133,6 +136,48 @@ inline int32_t DataProtocol::hasErrorStr_Ascii(QByteArray &input)
         err--;
     }
     return err;
+}
+
+/**
+ * @brief      CSV协议的数据包修饰
+ * @note       见函数内部注释
+ * @param[in]  要修饰的数据包
+ * @param[out] 修饰后的数据包
+ */
+QByteArray& DataProtocol::packetDecorationOfCSV(QByteArray& onePack)
+{
+    //剔除\r\n并把连续空格替换为单个空格
+    onePack = onePack.simplified();
+
+    //把", "或者" ,"替换为","
+    while(onePack.indexOf(", ") != -1)
+    {
+        onePack.replace(onePack.indexOf(", "), 2, ",");
+    }
+    while(onePack.indexOf(" ,") != -1)
+    {
+        onePack.replace(onePack.indexOf(" ,"), 2, ",");
+    }
+    //把剩余空格替换为逗号
+    while(onePack.indexOf(" ") != -1)
+    {
+        onePack.replace(onePack.indexOf(" "), 1, ",");
+    }
+    //连续逗号之间补0
+    while(onePack.indexOf(",,") != -1)
+    {
+        onePack.insert(onePack.indexOf(",,") + 1,'0');
+    }
+    //以逗号开头或结尾则在开头或结尾补0
+    if(onePack.startsWith(','))
+    {
+        onePack.push_front('0');
+    }
+    if(onePack.endsWith(','))
+    {
+        onePack.remove(onePack.size() - 1, 1);
+    }
+    return onePack;
 }
 
 /**
@@ -245,16 +290,37 @@ inline void DataProtocol::parsePacksFromBuffer(QByteArray& buffer, QByteArray& r
     else if(protocolType == CSV)
     {
         bufferLock.lock();
+        //删除\0
         while (buffer.indexOf('\0') != -1)
         {
             buffer.remove(buffer.indexOf('\0'), 1);
+        }
+        //替换所有非数字和符号的数据为空格
+        for(int32_t i = 0; i < buffer.size(); i++)
+        {
+            if(buffer[i] < '0' || buffer[i] > '9')
+            {
+                if(buffer[i] != '-'
+                && buffer[i] != '+'
+                && buffer[i] != ','
+                && buffer[i] != '.'
+                && buffer[i] != '\r'
+                && buffer[i] != '\n')
+                {
+                    buffer[i] = ' ';
+                }
+            }
         }
         bufferLock.unlock();
         QRegularExpression reg;
         QRegularExpressionMatch match;
         int scanIndex = 0;
         int lastScannedIndex = 0;
-        //逗号分隔符格式
+        /* 逗号分隔符格式
+         * 符号有0到1个，整数必须有，小数部分有0到1个
+         * 以上作为一个组，组前可以有空格，组后可以有逗号
+         * 末尾要有换行符
+        */
         reg.setPattern("(\\s*([+-]?\\d+(\\.\\d+)?)?,?)+\r?\n");
         reg.setPatternOptions(QRegularExpression::InvertedGreedinessOption);//设置为非贪婪模式匹配
         do {
@@ -267,24 +333,10 @@ inline void DataProtocol::parsePacksFromBuffer(QByteArray& buffer, QByteArray& r
                     onePack.append(match.captured(0).toLocal8Bit());
                     if(hasErrorStr_Ascii(onePack) != 0)
                     {
-                        qDebug()<<"hasErrorStr_CSV"<<onePack;
+                        qDebug() << "hasErrorStr_CSV" << onePack;
                         continue;
                     }
-                    //剔除\r\n
-                    onePack = onePack.trimmed();
-                    //补0
-                    while(onePack.indexOf(",,") != -1)
-                    {
-                        onePack.insert(onePack.indexOf(",,") + 1,'0');
-                    }
-                    if(onePack.startsWith(','))
-                    {
-                        onePack.push_front('0');
-                    }
-                    if(onePack.endsWith(','))
-                    {
-                        onePack.remove(onePack.size() - 1, 1);
-                    }
+                    onePack = packetDecorationOfCSV(onePack);
                     if(!onePack.isEmpty())
                     {
                         RowData_t data;

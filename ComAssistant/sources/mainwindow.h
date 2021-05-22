@@ -249,7 +249,7 @@ private:
     void readRecoveryFile();
     void setVisualizerTitle(void);
     void resetVisualizerTitle(void);
-    void addTextToMultiString(const QString &text);
+    void addTextToMultiString(const QString &text, bool forceAdd);
     void updateProgressBar(QString preStr, double percent);
     void parsePlotterAndTee();
     void updateUIPanelBackground(QColor itsColor);
