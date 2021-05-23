@@ -5,14 +5,14 @@ ubuntuStr="Ubuntu"
 centosStr="CentOS"
 deepinStr="Deepin"
 
-# 把当前路径下所有文件复制到指定目录
+# 把当前路径下所有文件复制到指定目录并增加可执行权限
 installPath=$HOME/ComAssistant
 mkdir $installPath
 cp -rf $(pwd)/. $installPath
+chmod +x $HOME/ComAssistant/ComAssistant
 
 # 添加环境变量
-chmod +x ComAssistant
-echo -e "\033[33m add current path to enviroment variable. \033[0m"
+echo -e "\033[33m add install path to enviroment variable. \033[0m"
 echo "export PATH=$installPath:$PATH" >> ~/.bashrc
 source ~/.bashrc
 
