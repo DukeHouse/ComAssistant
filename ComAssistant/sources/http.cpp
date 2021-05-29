@@ -94,6 +94,9 @@ bool HTTP::postUsageStatistic(void)
     return true;
 }
 
+/**
+ * @brief     功能上已经和getRemoteVersion_my_server完全一致了
+ */
 bool HTTP::getRemoteVersion(void)
 {
     //旧请求未完成时不执行。
@@ -103,7 +106,7 @@ bool HTTP::getRemoteVersion(void)
 //    ui->statusBar->showMessage("正在检查更新，请稍候……", 1000);
 
     //发起http请求远端的发布版本号
-    QUrl url("https://api.github.com/repos/inhowe/ComAssistant/releases/latest");
+    QUrl url("http://www.inhowe.com/ComAssistant/Request/latest");
     QNetworkRequest request;
     request.setSslConfiguration(QSslConfiguration::defaultConfiguration());
     request.setUrl(url);
