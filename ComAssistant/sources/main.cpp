@@ -93,6 +93,7 @@ void outputMessage(QtMsgType type, const QMessageLogContext &context, const QStr
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+    qputenv("QT_MAC_WANTS_LAYER", "1");
 
     //重定向qDebug到文件
 #ifdef QT_NO_DEBUG
