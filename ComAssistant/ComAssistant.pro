@@ -209,7 +209,9 @@ qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
-RC_ICONS = logo.ico
+#RC_ICONS = logo.ico
+
+mac {ICON = logo.icns}
 
 #头文件搜索路径
 INCLUDEPATH += $$PWD/sources/
